@@ -15,6 +15,8 @@
     <IsWindowsApplication>False</IsWindowsApplication>
     <InterpreterId>{2b6b0bd4-1bfe-4903-8e15-234f412e85c8}</InterpreterId>
     <InterpreterVersion>2.7</InterpreterVersion>
+    <LaunchProvider>Standard Python launcher</LaunchProvider>
+    <EnableNativeCodeDebugging>False</EnableNativeCodeDebugging>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
     <DebugSymbols>true</DebugSymbols>
@@ -25,6 +27,9 @@
     <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="dash_table_test.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="QAQC_checks.py" />
   </ItemGroup>
   <ItemGroup>
