@@ -1,0 +1,187 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.8.6">
+  <compounddef id="class_q_a_q_c__checks_1_1_qaqc_tile_collection" kind="class" prot="public">
+    <compoundname>QAQC_checks::QaqcTileCollection</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="class_q_a_q_c__checks_1_1_qaqc_tile_collection_1a3891a36e98e343461c2690eccf9f0613" prot="public" static="no" mutable="no">
+        <type></type>
+        <definition>QAQC_checks.QaqcTileCollection::las_paths</definition>
+        <argsstring></argsstring>
+        <name>las_paths</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="Z:/QAQC_checks/QAQC_checks/QAQC_checks.py" line="361" column="1" bodyfile="Z:/QAQC_checks/QAQC_checks/QAQC_checks.py" bodystart="361" bodyend="-1"/>
+        <referencedby refid="class_q_a_q_c__checks_1_1_qaqc_tile_collection_1a34d1e096f05c2fe3e1443a3314fcd6ed" compoundref="_q_a_q_c__checks_8py" startline="383" endline="386">QAQC_checks.QaqcTileCollection.run_qaqc_tile_collection_checks</referencedby>
+      </memberdef>
+      <memberdef kind="variable" id="class_q_a_q_c__checks_1_1_qaqc_tile_collection_1a33dcf504080e0fd319dc3aa85ccf50f4" prot="public" static="no" mutable="no">
+        <type></type>
+        <definition>QAQC_checks.QaqcTileCollection::qaqc_gdb</definition>
+        <argsstring></argsstring>
+        <name>qaqc_gdb</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="Z:/QAQC_checks/QAQC_checks/QAQC_checks.py" line="362" column="1" bodyfile="Z:/QAQC_checks/QAQC_checks/QAQC_checks.py" bodystart="362" bodyend="-1"/>
+        <referencedby refid="class_q_a_q_c__checks_1_1_dz_ortho_mosaic_1a09c647188c10baa2c78d6f0808b74a50" compoundref="_q_a_q_c__checks_8py" startline="135" endline="138">QAQC_checks.DzOrthoMosaic.add_dz_dir_to_raster_catalog</referencedby>
+        <referencedby refid="class_q_a_q_c__checks_1_1_dz_ortho_mosaic_1a05446cac17bbce30f395f0dcc0bc866f" compoundref="_q_a_q_c__checks_8py" startline="139" endline="147">QAQC_checks.DzOrthoMosaic.add_dz_mosaic_to_mxd</referencedby>
+        <referencedby refid="class_q_a_q_c__checks_1_1_qaqc_tile_collection_1aacd3e5d0a88bde8f3d4e347a033c3c61" compoundref="_q_a_q_c__checks_8py" startline="369" endline="375">QAQC_checks.QaqcTileCollection.create_qaqc_feature_dataset</referencedby>
+        <referencedby refid="class_q_a_q_c__checks_1_1_dz_ortho_mosaic_1a0c4cfd866d9cd2fb9a410a459fde46eb" compoundref="_q_a_q_c__checks_8py" startline="130" endline="134">QAQC_checks.DzOrthoMosaic.mosaic_dz_raster_catalog</referencedby>
+      </memberdef>
+      <memberdef kind="variable" id="class_q_a_q_c__checks_1_1_qaqc_tile_collection_1a336615960b47da78024bc1b5cf072ab9" prot="public" static="no" mutable="no">
+        <type></type>
+        <definition>QAQC_checks.QaqcTileCollection::qaqc_fd_name</definition>
+        <argsstring></argsstring>
+        <name>qaqc_fd_name</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="Z:/QAQC_checks/QAQC_checks/QAQC_checks.py" line="363" column="1" bodyfile="Z:/QAQC_checks/QAQC_checks/QAQC_checks.py" bodystart="363" bodyend="-1"/>
+        <referencedby refid="class_q_a_q_c__checks_1_1_qaqc_tile_collection_1aacd3e5d0a88bde8f3d4e347a033c3c61" compoundref="_q_a_q_c__checks_8py" startline="369" endline="375">QAQC_checks.QaqcTileCollection.create_qaqc_feature_dataset</referencedby>
+      </memberdef>
+      <memberdef kind="variable" id="class_q_a_q_c__checks_1_1_qaqc_tile_collection_1ac43eb704567c41b00a0311711a1d093c" prot="public" static="no" mutable="no">
+        <type></type>
+        <definition>QAQC_checks.QaqcTileCollection::qaqc_fd_path</definition>
+        <argsstring></argsstring>
+        <name>qaqc_fd_path</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="Z:/QAQC_checks/QAQC_checks/QAQC_checks.py" line="364" column="1" bodyfile="Z:/QAQC_checks/QAQC_checks/QAQC_checks.py" bodystart="364" bodyend="-1"/>
+        <referencedby refid="class_q_a_q_c__checks_1_1_qaqc_tile_collection_1a7b407abada2ab4b879eb732badbddc29" compoundref="_q_a_q_c__checks_8py" startline="376" endline="382">QAQC_checks.QaqcTileCollection.create_qaqc_tile_feature_class</referencedby>
+      </memberdef>
+      <memberdef kind="variable" id="class_q_a_q_c__checks_1_1_qaqc_tile_collection_1ade722062732822ab35c930f953312081" prot="public" static="no" mutable="no">
+        <type></type>
+        <definition>QAQC_checks.QaqcTileCollection::qaqc_tile_fc_name</definition>
+        <argsstring></argsstring>
+        <name>qaqc_tile_fc_name</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="Z:/QAQC_checks/QAQC_checks/QAQC_checks.py" line="365" column="1" bodyfile="Z:/QAQC_checks/QAQC_checks/QAQC_checks.py" bodystart="365" bodyend="-1"/>
+        <referencedby refid="class_q_a_q_c__checks_1_1_qaqc_tile_collection_1a7b407abada2ab4b879eb732badbddc29" compoundref="_q_a_q_c__checks_8py" startline="376" endline="382">QAQC_checks.QaqcTileCollection.create_qaqc_tile_feature_class</referencedby>
+      </memberdef>
+      <memberdef kind="variable" id="class_q_a_q_c__checks_1_1_qaqc_tile_collection_1adceff8f3f16c761cbc79e83a75b604bb" prot="public" static="no" mutable="no">
+        <type></type>
+        <definition>QAQC_checks.QaqcTileCollection::qaqc_tile_fc_path</definition>
+        <argsstring></argsstring>
+        <name>qaqc_tile_fc_path</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="Z:/QAQC_checks/QAQC_checks/QAQC_checks.py" line="366" column="1" bodyfile="Z:/QAQC_checks/QAQC_checks/QAQC_checks.py" bodystart="366" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="class_q_a_q_c__checks_1_1_qaqc_tile_collection_1aa2bf4d82cc110575cb1986184a677435" prot="public" static="no" mutable="no">
+        <type></type>
+        <definition>QAQC_checks.QaqcTileCollection::checks_to_do</definition>
+        <argsstring></argsstring>
+        <name>checks_to_do</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="Z:/QAQC_checks/QAQC_checks/QAQC_checks.py" line="367" column="1" bodyfile="Z:/QAQC_checks/QAQC_checks/QAQC_checks.py" bodystart="367" bodyend="-1"/>
+        <referencedby refid="class_q_a_q_c__checks_1_1_qaqc_tile_collection_1a34d1e096f05c2fe3e1443a3314fcd6ed" compoundref="_q_a_q_c__checks_8py" startline="383" endline="386">QAQC_checks.QaqcTileCollection.run_qaqc_tile_collection_checks</referencedby>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="class_q_a_q_c__checks_1_1_qaqc_tile_collection_1a407849d3b118059e804c6a7dacc363a6" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>def</type>
+        <definition>def QAQC_checks.QaqcTileCollection.__init__</definition>
+        <argsstring></argsstring>
+        <name>__init__</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="Z:/QAQC_checks/QAQC_checks/QAQC_checks.py" line="359" column="1" bodyfile="Z:/QAQC_checks/QAQC_checks/QAQC_checks.py" bodystart="360" bodyend="368"/>
+      </memberdef>
+      <memberdef kind="function" id="class_q_a_q_c__checks_1_1_qaqc_tile_collection_1aacd3e5d0a88bde8f3d4e347a033c3c61" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>def</type>
+        <definition>def QAQC_checks.QaqcTileCollection.create_qaqc_feature_dataset</definition>
+        <argsstring></argsstring>
+        <name>create_qaqc_feature_dataset</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="Z:/QAQC_checks/QAQC_checks/QAQC_checks.py" line="369" column="1" bodyfile="Z:/QAQC_checks/QAQC_checks/QAQC_checks.py" bodystart="369" bodyend="375"/>
+        <references refid="class_q_a_q_c__checks_1_1_qaqc_tile_collection_1a336615960b47da78024bc1b5cf072ab9" compoundref="_q_a_q_c__checks_8py" startline="363">QAQC_checks.QaqcTileCollection.qaqc_fd_name</references>
+        <references refid="class_q_a_q_c__checks_1_1_qaqc_tile_collection_1a33dcf504080e0fd319dc3aa85ccf50f4" compoundref="_q_a_q_c__checks_8py" startline="362">QAQC_checks.QaqcTileCollection.qaqc_gdb</references>
+      </memberdef>
+      <memberdef kind="function" id="class_q_a_q_c__checks_1_1_qaqc_tile_collection_1a7b407abada2ab4b879eb732badbddc29" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>def</type>
+        <definition>def QAQC_checks.QaqcTileCollection.create_qaqc_tile_feature_class</definition>
+        <argsstring></argsstring>
+        <name>create_qaqc_tile_feature_class</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="Z:/QAQC_checks/QAQC_checks/QAQC_checks.py" line="376" column="1" bodyfile="Z:/QAQC_checks/QAQC_checks/QAQC_checks.py" bodystart="376" bodyend="382"/>
+        <references refid="class_q_a_q_c__checks_1_1_qaqc_tile_collection_1ac43eb704567c41b00a0311711a1d093c" compoundref="_q_a_q_c__checks_8py" startline="364">QAQC_checks.QaqcTileCollection.qaqc_fd_path</references>
+        <references refid="class_q_a_q_c__checks_1_1_qaqc_tile_collection_1ade722062732822ab35c930f953312081" compoundref="_q_a_q_c__checks_8py" startline="365">QAQC_checks.QaqcTileCollection.qaqc_tile_fc_name</references>
+      </memberdef>
+      <memberdef kind="function" id="class_q_a_q_c__checks_1_1_qaqc_tile_collection_1a34d1e096f05c2fe3e1443a3314fcd6ed" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>def</type>
+        <definition>def QAQC_checks.QaqcTileCollection.run_qaqc_tile_collection_checks</definition>
+        <argsstring></argsstring>
+        <name>run_qaqc_tile_collection_checks</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="Z:/QAQC_checks/QAQC_checks/QAQC_checks.py" line="383" column="1" bodyfile="Z:/QAQC_checks/QAQC_checks/QAQC_checks.py" bodystart="383" bodyend="386"/>
+        <references refid="class_q_a_q_c__checks_1_1_qaqc_tile_1ae142381445fcd541dda2f15587ffc4c7" compoundref="_q_a_q_c__checks_8py" startline="253">QAQC_checks.QaqcTile.checks_to_do</references>
+        <references refid="class_q_a_q_c__checks_1_1_qaqc_tile_collection_1aa2bf4d82cc110575cb1986184a677435" compoundref="_q_a_q_c__checks_8py" startline="367">QAQC_checks.QaqcTileCollection.checks_to_do</references>
+        <references refid="class_q_a_q_c__checks_1_1_qaqc_tile_collection_1a3891a36e98e343461c2690eccf9f0613" compoundref="_q_a_q_c__checks_8py" startline="361">QAQC_checks.QaqcTileCollection.las_paths</references>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="Z:/QAQC_checks/QAQC_checks/QAQC_checks.py" line="357" column="1" bodyfile="Z:/QAQC_checks/QAQC_checks/QAQC_checks.py" bodystart="357" bodyend="394"/>
+    <listofallmembers>
+      <member refid="class_q_a_q_c__checks_1_1_qaqc_tile_collection_1a407849d3b118059e804c6a7dacc363a6" prot="public" virt="non-virtual"><scope>QAQC_checks::QaqcTileCollection</scope><name>__init__</name></member>
+      <member refid="class_q_a_q_c__checks_1_1_qaqc_tile_collection_1aa2bf4d82cc110575cb1986184a677435" prot="public" virt="non-virtual"><scope>QAQC_checks::QaqcTileCollection</scope><name>checks_to_do</name></member>
+      <member refid="class_q_a_q_c__checks_1_1_qaqc_tile_collection_1aacd3e5d0a88bde8f3d4e347a033c3c61" prot="public" virt="non-virtual"><scope>QAQC_checks::QaqcTileCollection</scope><name>create_qaqc_feature_dataset</name></member>
+      <member refid="class_q_a_q_c__checks_1_1_qaqc_tile_collection_1a7b407abada2ab4b879eb732badbddc29" prot="public" virt="non-virtual"><scope>QAQC_checks::QaqcTileCollection</scope><name>create_qaqc_tile_feature_class</name></member>
+      <member refid="class_q_a_q_c__checks_1_1_qaqc_tile_collection_1a3891a36e98e343461c2690eccf9f0613" prot="public" virt="non-virtual"><scope>QAQC_checks::QaqcTileCollection</scope><name>las_paths</name></member>
+      <member refid="class_q_a_q_c__checks_1_1_qaqc_tile_collection_1a336615960b47da78024bc1b5cf072ab9" prot="public" virt="non-virtual"><scope>QAQC_checks::QaqcTileCollection</scope><name>qaqc_fd_name</name></member>
+      <member refid="class_q_a_q_c__checks_1_1_qaqc_tile_collection_1ac43eb704567c41b00a0311711a1d093c" prot="public" virt="non-virtual"><scope>QAQC_checks::QaqcTileCollection</scope><name>qaqc_fd_path</name></member>
+      <member refid="class_q_a_q_c__checks_1_1_qaqc_tile_collection_1a33dcf504080e0fd319dc3aa85ccf50f4" prot="public" virt="non-virtual"><scope>QAQC_checks::QaqcTileCollection</scope><name>qaqc_gdb</name></member>
+      <member refid="class_q_a_q_c__checks_1_1_qaqc_tile_collection_1ade722062732822ab35c930f953312081" prot="public" virt="non-virtual"><scope>QAQC_checks::QaqcTileCollection</scope><name>qaqc_tile_fc_name</name></member>
+      <member refid="class_q_a_q_c__checks_1_1_qaqc_tile_collection_1adceff8f3f16c761cbc79e83a75b604bb" prot="public" virt="non-virtual"><scope>QAQC_checks::QaqcTileCollection</scope><name>qaqc_tile_fc_path</name></member>
+      <member refid="class_q_a_q_c__checks_1_1_qaqc_tile_collection_1a34d1e096f05c2fe3e1443a3314fcd6ed" prot="public" virt="non-virtual"><scope>QAQC_checks::QaqcTileCollection</scope><name>run_qaqc_tile_collection_checks</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

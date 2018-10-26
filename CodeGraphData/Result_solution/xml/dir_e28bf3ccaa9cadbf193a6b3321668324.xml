@@ -1,0 +1,12 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.8.6">
+  <compounddef id="dir_e28bf3ccaa9cadbf193a6b3321668324" kind="dir">
+    <compoundname>Z:/QAQC_checks</compoundname>
+    <innerdir refid="dir_e59a7018cb962cd4388c10168fa045a8">Z:/QAQC_checks/QAQC_checks</innerdir>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="Z:/QAQC_checks/"/>
+  </compounddef>
+</doxygen>

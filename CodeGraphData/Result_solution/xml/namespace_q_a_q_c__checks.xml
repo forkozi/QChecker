@@ -1,0 +1,61 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.8.6">
+  <compounddef id="namespace_q_a_q_c__checks" kind="namespace">
+    <compoundname>QAQC_checks</compoundname>
+    <innerclass refid="class_q_a_q_c__checks_1_1_las_tile_collection" prot="public">QAQC_checks::LasTileCollection</innerclass>
+    <innerclass refid="class_q_a_q_c__checks_1_1_las_tile" prot="public">QAQC_checks::LasTile</innerclass>
+    <innerclass refid="class_q_a_q_c__checks_1_1_dz_ortho_mosaic" prot="public">QAQC_checks::DzOrthoMosaic</innerclass>
+    <innerclass refid="class_q_a_q_c__checks_1_1_dz_ortho" prot="public">QAQC_checks::DzOrtho</innerclass>
+    <innerclass refid="class_q_a_q_c__checks_1_1_hill_shade" prot="public">QAQC_checks::HillShade</innerclass>
+    <innerclass refid="class_q_a_q_c__checks_1_1_qaqc_tile" prot="public">QAQC_checks::QaqcTile</innerclass>
+    <innerclass refid="class_q_a_q_c__checks_1_1_qaqc_tile_collection" prot="public">QAQC_checks::QaqcTileCollection</innerclass>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="namespace_q_a_q_c__checks_1aa2ce26d30447f80439f3b0c2e0967457" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>def</type>
+        <definition>def QAQC_checks.run_console_cmd</definition>
+        <argsstring></argsstring>
+        <name>run_console_cmd</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="Z:/QAQC_checks/QAQC_checks/QAQC_checks.py" line="394" column="1" bodyfile="Z:/QAQC_checks/QAQC_checks/QAQC_checks.py" bodystart="394" bodyend="400"/>
+      </memberdef>
+      <memberdef kind="function" id="namespace_q_a_q_c__checks_1a27af4d9991c6196b628658f4dafafc45" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>def</type>
+        <definition>def QAQC_checks.config_settings</definition>
+        <argsstring></argsstring>
+        <name>config_settings</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="Z:/QAQC_checks/QAQC_checks/QAQC_checks.py" line="401" column="1" bodyfile="Z:/QAQC_checks/QAQC_checks/QAQC_checks.py" bodystart="401" bodyend="457"/>
+        <referencedby refid="namespace_q_a_q_c__checks_1a40a495a827f27e48674423e090d86358" compoundref="_q_a_q_c__checks_8py" startline="458" endline="477">main</referencedby>
+      </memberdef>
+      <memberdef kind="function" id="namespace_q_a_q_c__checks_1a40a495a827f27e48674423e090d86358" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>def</type>
+        <definition>def QAQC_checks.main</definition>
+        <argsstring></argsstring>
+        <name>main</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="Z:/QAQC_checks/QAQC_checks/QAQC_checks.py" line="458" column="1" bodyfile="Z:/QAQC_checks/QAQC_checks/QAQC_checks.py" bodystart="458" bodyend="477"/>
+        <references refid="namespace_q_a_q_c__checks_1a27af4d9991c6196b628658f4dafafc45" compoundref="_q_a_q_c__checks_8py" startline="401" endline="457">config_settings</references>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="Z:/QAQC_checks/QAQC_checks/QAQC_checks.py" line="1" column="1"/>
+  </compounddef>
+</doxygen>

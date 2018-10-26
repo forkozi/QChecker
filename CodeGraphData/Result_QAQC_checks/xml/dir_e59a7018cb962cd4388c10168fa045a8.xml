@@ -1,0 +1,13 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.8.6">
+  <compounddef id="dir_e59a7018cb962cd4388c10168fa045a8" kind="dir">
+    <compoundname>Z:/QAQC_checks/QAQC_checks</compoundname>
+    <innerfile refid="dash__table__test_8py">dash_table_test.py</innerfile>
+    <innerfile refid="_q_a_q_c__checks_8py">QAQC_checks.py</innerfile>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="Z:/QAQC_checks/QAQC_checks/"/>
+  </compounddef>
+</doxygen>

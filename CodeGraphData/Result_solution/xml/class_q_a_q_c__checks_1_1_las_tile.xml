@@ -1,0 +1,275 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.8.6">
+  <compounddef id="class_q_a_q_c__checks_1_1_las_tile" kind="class" prot="public">
+    <compoundname>QAQC_checks::LasTile</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="class_q_a_q_c__checks_1_1_las_tile_1aa31ad14c26746d2d4f7a69f3c6c71fe3" prot="public" static="no" mutable="no">
+        <type></type>
+        <definition>QAQC_checks.LasTile::path</definition>
+        <argsstring></argsstring>
+        <name>path</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="Z:/QAQC_checks/QAQC_checks/QAQC_checks.py" line="45" column="1" bodyfile="Z:/QAQC_checks/QAQC_checks/QAQC_checks.py" bodystart="45" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="class_q_a_q_c__checks_1_1_las_tile_1a0c2a58c82495fa612dcef747cb67a219" prot="public" static="no" mutable="no">
+        <type></type>
+        <definition>QAQC_checks.LasTile::name</definition>
+        <argsstring></argsstring>
+        <name>name</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="Z:/QAQC_checks/QAQC_checks/QAQC_checks.py" line="46" column="1" bodyfile="Z:/QAQC_checks/QAQC_checks/QAQC_checks.py" bodystart="46" bodyend="-1"/>
+        <referencedby refid="class_q_a_q_c__checks_1_1_las_tile_1a1c1fe04427c20c92c0bea580d51b161c" compoundref="_q_a_q_c__checks_8py" startline="87" endline="94">QAQC_checks.LasTile.output_check_results_to_json</referencedby>
+      </memberdef>
+      <memberdef kind="variable" id="class_q_a_q_c__checks_1_1_las_tile_1adcce1aaff93d7e9b6f6b550a177d9181" prot="public" static="no" mutable="no">
+        <type></type>
+        <definition>QAQC_checks.LasTile::inFile</definition>
+        <argsstring></argsstring>
+        <name>inFile</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="Z:/QAQC_checks/QAQC_checks/QAQC_checks.py" line="47" column="1" bodyfile="Z:/QAQC_checks/QAQC_checks/QAQC_checks.py" bodystart="47" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="class_q_a_q_c__checks_1_1_las_tile_1a7f545b5ff0013bde23bebd6a2a00d0e3" prot="public" static="no" mutable="no">
+        <type></type>
+        <definition>QAQC_checks.LasTile::header</definition>
+        <argsstring></argsstring>
+        <name>header</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="Z:/QAQC_checks/QAQC_checks/QAQC_checks.py" line="67" column="1" bodyfile="Z:/QAQC_checks/QAQC_checks/QAQC_checks.py" bodystart="67" bodyend="-1"/>
+        <referencedby refid="class_q_a_q_c__checks_1_1_las_tile_1a5269d7c3a51e456038cb855ce3c6560b" compoundref="_q_a_q_c__checks_8py" startline="95" endline="100">QAQC_checks.LasTile.__str__</referencedby>
+        <referencedby refid="class_q_a_q_c__checks_1_1_las_tile_1a944b3f0bb66d7604065b6dc53d7173e3" compoundref="_q_a_q_c__checks_8py" startline="107" endline="111">QAQC_checks.LasTile.get_gps_time_type</referencedby>
+        <referencedby refid="class_q_a_q_c__checks_1_1_las_tile_1a5f28bf458062348ef4444c24dc94850a" compoundref="_q_a_q_c__checks_8py" startline="118" endline="121">QAQC_checks.LasTile.get_hor_datum</referencedby>
+        <referencedby refid="class_q_a_q_c__checks_1_1_las_tile_1a91e0fbf2dc4e7434331d49b732e4b7a3" compoundref="_q_a_q_c__checks_8py" startline="115" endline="117">QAQC_checks.LasTile.get_las_pdrf</referencedby>
+        <referencedby refid="class_q_a_q_c__checks_1_1_las_tile_1a43b35abed67deb2b991c72e9e4572f3a" compoundref="_q_a_q_c__checks_8py" startline="112" endline="114">QAQC_checks.LasTile.get_las_version</referencedby>
+      </memberdef>
+      <memberdef kind="variable" id="class_q_a_q_c__checks_1_1_las_tile_1a541890bc9bf3e32070e6e1a868db26bb" prot="public" static="no" mutable="no">
+        <type></type>
+        <definition>QAQC_checks.LasTile::las_extents</definition>
+        <argsstring></argsstring>
+        <name>las_extents</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="Z:/QAQC_checks/QAQC_checks/QAQC_checks.py" line="68" column="1" bodyfile="Z:/QAQC_checks/QAQC_checks/QAQC_checks.py" bodystart="68" bodyend="-1"/>
+        <referencedby refid="class_q_a_q_c__checks_1_1_las_tile_1a1c1fe04427c20c92c0bea580d51b161c" compoundref="_q_a_q_c__checks_8py" startline="87" endline="94">QAQC_checks.LasTile.output_check_results_to_json</referencedby>
+      </memberdef>
+      <memberdef kind="variable" id="class_q_a_q_c__checks_1_1_las_tile_1a21cd803f5f580ff9565386523d94434a" prot="public" static="no" mutable="no">
+        <type></type>
+        <definition>QAQC_checks.LasTile::class_counts</definition>
+        <argsstring></argsstring>
+        <name>class_counts</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="Z:/QAQC_checks/QAQC_checks/QAQC_checks.py" line="73" column="1" bodyfile="Z:/QAQC_checks/QAQC_checks/QAQC_checks.py" bodystart="73" bodyend="-1"/>
+        <referencedby refid="class_q_a_q_c__checks_1_1_las_tile_1a5269d7c3a51e456038cb855ce3c6560b" compoundref="_q_a_q_c__checks_8py" startline="95" endline="100">QAQC_checks.LasTile.__str__</referencedby>
+      </memberdef>
+      <memberdef kind="variable" id="class_q_a_q_c__checks_1_1_las_tile_1afca60bba56a2ffb2c38fe6e0aa4be74a" prot="public" static="no" mutable="no">
+        <type></type>
+        <definition>QAQC_checks.LasTile::has_bathy</definition>
+        <argsstring></argsstring>
+        <name>has_bathy</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="Z:/QAQC_checks/QAQC_checks/QAQC_checks.py" line="74" column="1" bodyfile="Z:/QAQC_checks/QAQC_checks/QAQC_checks.py" bodystart="74" bodyend="-1"/>
+        <referencedby refid="class_q_a_q_c__checks_1_1_las_tile_1a5269d7c3a51e456038cb855ce3c6560b" compoundref="_q_a_q_c__checks_8py" startline="95" endline="100">QAQC_checks.LasTile.__str__</referencedby>
+      </memberdef>
+      <memberdef kind="variable" id="class_q_a_q_c__checks_1_1_las_tile_1a348491d98d1109049299169f6bd33545" prot="public" static="no" mutable="no">
+        <type></type>
+        <definition>QAQC_checks.LasTile::has_ground</definition>
+        <argsstring></argsstring>
+        <name>has_ground</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="Z:/QAQC_checks/QAQC_checks/QAQC_checks.py" line="75" column="1" bodyfile="Z:/QAQC_checks/QAQC_checks/QAQC_checks.py" bodystart="75" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="class_q_a_q_c__checks_1_1_las_tile_1a9e97bac67b38bfd764dca715c8803480" prot="public" static="no" mutable="no">
+        <type></type>
+        <definition>QAQC_checks.LasTile::checks_result</definition>
+        <argsstring></argsstring>
+        <name>checks_result</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="Z:/QAQC_checks/QAQC_checks/QAQC_checks.py" line="77" column="1" bodyfile="Z:/QAQC_checks/QAQC_checks/QAQC_checks.py" bodystart="77" bodyend="-1"/>
+        <referencedby refid="class_q_a_q_c__checks_1_1_las_tile_1a1c1fe04427c20c92c0bea580d51b161c" compoundref="_q_a_q_c__checks_8py" startline="87" endline="94">QAQC_checks.LasTile.output_check_results_to_json</referencedby>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="class_q_a_q_c__checks_1_1_las_tile_1a67ce6066bc426c2829ca38ad7040e5f2" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>def</type>
+        <definition>def QAQC_checks.LasTile.__init__</definition>
+        <argsstring></argsstring>
+        <name>__init__</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="Z:/QAQC_checks/QAQC_checks/QAQC_checks.py" line="44" column="1" bodyfile="Z:/QAQC_checks/QAQC_checks/QAQC_checks.py" bodystart="44" bodyend="86"/>
+      </memberdef>
+      <memberdef kind="function" id="class_q_a_q_c__checks_1_1_las_tile_1a1c1fe04427c20c92c0bea580d51b161c" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>def</type>
+        <definition>def QAQC_checks.LasTile.output_check_results_to_json</definition>
+        <argsstring></argsstring>
+        <name>output_check_results_to_json</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="Z:/QAQC_checks/QAQC_checks/QAQC_checks.py" line="87" column="1" bodyfile="Z:/QAQC_checks/QAQC_checks/QAQC_checks.py" bodystart="87" bodyend="94"/>
+        <references refid="class_q_a_q_c__checks_1_1_las_tile_1a9e97bac67b38bfd764dca715c8803480" compoundref="_q_a_q_c__checks_8py" startline="77">QAQC_checks.LasTile.checks_result</references>
+        <references refid="class_q_a_q_c__checks_1_1_las_tile_1a541890bc9bf3e32070e6e1a868db26bb" compoundref="_q_a_q_c__checks_8py" startline="68">QAQC_checks.LasTile.las_extents</references>
+        <references refid="class_q_a_q_c__checks_1_1_las_tile_1a0c2a58c82495fa612dcef747cb67a219" compoundref="_q_a_q_c__checks_8py" startline="46">QAQC_checks.LasTile.name</references>
+      </memberdef>
+      <memberdef kind="function" id="class_q_a_q_c__checks_1_1_las_tile_1a5269d7c3a51e456038cb855ce3c6560b" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>def</type>
+        <definition>def QAQC_checks.LasTile.__str__</definition>
+        <argsstring></argsstring>
+        <name>__str__</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="Z:/QAQC_checks/QAQC_checks/QAQC_checks.py" line="95" column="1" bodyfile="Z:/QAQC_checks/QAQC_checks/QAQC_checks.py" bodystart="95" bodyend="100"/>
+        <references refid="class_q_a_q_c__checks_1_1_las_tile_1a21cd803f5f580ff9565386523d94434a" compoundref="_q_a_q_c__checks_8py" startline="73">QAQC_checks.LasTile.class_counts</references>
+        <references refid="class_q_a_q_c__checks_1_1_las_tile_1afca60bba56a2ffb2c38fe6e0aa4be74a" compoundref="_q_a_q_c__checks_8py" startline="74">QAQC_checks.LasTile.has_bathy</references>
+        <references refid="class_q_a_q_c__checks_1_1_las_tile_1a7f545b5ff0013bde23bebd6a2a00d0e3" compoundref="_q_a_q_c__checks_8py" startline="67">QAQC_checks.LasTile.header</references>
+      </memberdef>
+      <memberdef kind="function" id="class_q_a_q_c__checks_1_1_las_tile_1a27314c234fbed59ac78abbb7940b27a2" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>def</type>
+        <definition>def QAQC_checks.LasTile.get_class_counts</definition>
+        <argsstring></argsstring>
+        <name>get_class_counts</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="Z:/QAQC_checks/QAQC_checks/QAQC_checks.py" line="101" column="1" bodyfile="Z:/QAQC_checks/QAQC_checks/QAQC_checks.py" bodystart="101" bodyend="106"/>
+      </memberdef>
+      <memberdef kind="function" id="class_q_a_q_c__checks_1_1_las_tile_1a944b3f0bb66d7604065b6dc53d7173e3" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>def</type>
+        <definition>def QAQC_checks.LasTile.get_gps_time_type</definition>
+        <argsstring></argsstring>
+        <name>get_gps_time_type</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="Z:/QAQC_checks/QAQC_checks/QAQC_checks.py" line="107" column="1" bodyfile="Z:/QAQC_checks/QAQC_checks/QAQC_checks.py" bodystart="107" bodyend="111"/>
+        <references refid="class_q_a_q_c__checks_1_1_las_tile_1a7f545b5ff0013bde23bebd6a2a00d0e3" compoundref="_q_a_q_c__checks_8py" startline="67">QAQC_checks.LasTile.header</references>
+      </memberdef>
+      <memberdef kind="function" id="class_q_a_q_c__checks_1_1_las_tile_1a43b35abed67deb2b991c72e9e4572f3a" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>def</type>
+        <definition>def QAQC_checks.LasTile.get_las_version</definition>
+        <argsstring></argsstring>
+        <name>get_las_version</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="Z:/QAQC_checks/QAQC_checks/QAQC_checks.py" line="112" column="1" bodyfile="Z:/QAQC_checks/QAQC_checks/QAQC_checks.py" bodystart="112" bodyend="114"/>
+        <references refid="class_q_a_q_c__checks_1_1_las_tile_1a7f545b5ff0013bde23bebd6a2a00d0e3" compoundref="_q_a_q_c__checks_8py" startline="67">QAQC_checks.LasTile.header</references>
+      </memberdef>
+      <memberdef kind="function" id="class_q_a_q_c__checks_1_1_las_tile_1a91e0fbf2dc4e7434331d49b732e4b7a3" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>def</type>
+        <definition>def QAQC_checks.LasTile.get_las_pdrf</definition>
+        <argsstring></argsstring>
+        <name>get_las_pdrf</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="Z:/QAQC_checks/QAQC_checks/QAQC_checks.py" line="115" column="1" bodyfile="Z:/QAQC_checks/QAQC_checks/QAQC_checks.py" bodystart="115" bodyend="117"/>
+        <references refid="class_q_a_q_c__checks_1_1_las_tile_1a7f545b5ff0013bde23bebd6a2a00d0e3" compoundref="_q_a_q_c__checks_8py" startline="67">QAQC_checks.LasTile.header</references>
+      </memberdef>
+      <memberdef kind="function" id="class_q_a_q_c__checks_1_1_las_tile_1a5f28bf458062348ef4444c24dc94850a" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>def</type>
+        <definition>def QAQC_checks.LasTile.get_hor_datum</definition>
+        <argsstring></argsstring>
+        <name>get_hor_datum</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="Z:/QAQC_checks/QAQC_checks/QAQC_checks.py" line="118" column="1" bodyfile="Z:/QAQC_checks/QAQC_checks/QAQC_checks.py" bodystart="118" bodyend="121"/>
+        <references refid="class_q_a_q_c__checks_1_1_las_tile_1a7f545b5ff0013bde23bebd6a2a00d0e3" compoundref="_q_a_q_c__checks_8py" startline="67">QAQC_checks.LasTile.header</references>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="Z:/QAQC_checks/QAQC_checks/QAQC_checks.py" line="42" column="1" bodyfile="Z:/QAQC_checks/QAQC_checks/QAQC_checks.py" bodystart="42" bodyend="122"/>
+    <listofallmembers>
+      <member refid="class_q_a_q_c__checks_1_1_las_tile_1a67ce6066bc426c2829ca38ad7040e5f2" prot="public" virt="non-virtual"><scope>QAQC_checks::LasTile</scope><name>__init__</name></member>
+      <member refid="class_q_a_q_c__checks_1_1_las_tile_1a5269d7c3a51e456038cb855ce3c6560b" prot="public" virt="non-virtual"><scope>QAQC_checks::LasTile</scope><name>__str__</name></member>
+      <member refid="class_q_a_q_c__checks_1_1_las_tile_1a9e97bac67b38bfd764dca715c8803480" prot="public" virt="non-virtual"><scope>QAQC_checks::LasTile</scope><name>checks_result</name></member>
+      <member refid="class_q_a_q_c__checks_1_1_las_tile_1a21cd803f5f580ff9565386523d94434a" prot="public" virt="non-virtual"><scope>QAQC_checks::LasTile</scope><name>class_counts</name></member>
+      <member refid="class_q_a_q_c__checks_1_1_las_tile_1a27314c234fbed59ac78abbb7940b27a2" prot="public" virt="non-virtual"><scope>QAQC_checks::LasTile</scope><name>get_class_counts</name></member>
+      <member refid="class_q_a_q_c__checks_1_1_las_tile_1a944b3f0bb66d7604065b6dc53d7173e3" prot="public" virt="non-virtual"><scope>QAQC_checks::LasTile</scope><name>get_gps_time_type</name></member>
+      <member refid="class_q_a_q_c__checks_1_1_las_tile_1a5f28bf458062348ef4444c24dc94850a" prot="public" virt="non-virtual"><scope>QAQC_checks::LasTile</scope><name>get_hor_datum</name></member>
+      <member refid="class_q_a_q_c__checks_1_1_las_tile_1a91e0fbf2dc4e7434331d49b732e4b7a3" prot="public" virt="non-virtual"><scope>QAQC_checks::LasTile</scope><name>get_las_pdrf</name></member>
+      <member refid="class_q_a_q_c__checks_1_1_las_tile_1a43b35abed67deb2b991c72e9e4572f3a" prot="public" virt="non-virtual"><scope>QAQC_checks::LasTile</scope><name>get_las_version</name></member>
+      <member refid="class_q_a_q_c__checks_1_1_las_tile_1afca60bba56a2ffb2c38fe6e0aa4be74a" prot="public" virt="non-virtual"><scope>QAQC_checks::LasTile</scope><name>has_bathy</name></member>
+      <member refid="class_q_a_q_c__checks_1_1_las_tile_1a348491d98d1109049299169f6bd33545" prot="public" virt="non-virtual"><scope>QAQC_checks::LasTile</scope><name>has_ground</name></member>
+      <member refid="class_q_a_q_c__checks_1_1_las_tile_1a7f545b5ff0013bde23bebd6a2a00d0e3" prot="public" virt="non-virtual"><scope>QAQC_checks::LasTile</scope><name>header</name></member>
+      <member refid="class_q_a_q_c__checks_1_1_las_tile_1adcce1aaff93d7e9b6f6b550a177d9181" prot="public" virt="non-virtual"><scope>QAQC_checks::LasTile</scope><name>inFile</name></member>
+      <member refid="class_q_a_q_c__checks_1_1_las_tile_1a541890bc9bf3e32070e6e1a868db26bb" prot="public" virt="non-virtual"><scope>QAQC_checks::LasTile</scope><name>las_extents</name></member>
+      <member refid="class_q_a_q_c__checks_1_1_las_tile_1a0c2a58c82495fa612dcef747cb67a219" prot="public" virt="non-virtual"><scope>QAQC_checks::LasTile</scope><name>name</name></member>
+      <member refid="class_q_a_q_c__checks_1_1_las_tile_1a1c1fe04427c20c92c0bea580d51b161c" prot="public" virt="non-virtual"><scope>QAQC_checks::LasTile</scope><name>output_check_results_to_json</name></member>
+      <member refid="class_q_a_q_c__checks_1_1_las_tile_1aa31ad14c26746d2d4f7a69f3c6c71fe3" prot="public" virt="non-virtual"><scope>QAQC_checks::LasTile</scope><name>path</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

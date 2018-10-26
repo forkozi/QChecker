@@ -45,7 +45,7 @@ class LasTile:
 		self.path = las_path
 		self.name = os.path.splitext(las_path.split(os.sep)[-1])[0]
 		self.inFile = File(self.path, mode="r")
-		
+
 		def get_useful_las_header_info():
 			# put various useful tidbits from las header into LasTile header dict
 			info_to_get = 'global_encoding,version_major,version_minor,' \
@@ -155,72 +155,80 @@ class DzOrthoMosaic():
 		md.save()
 
 
-class DzOrtho(LasTile):   
+class DzOrtho:   
 
-	def __init__(self, las_path, las_name, las_extents):
-		self.las_path = las_path
-		self.las_name = las_name
-		self.las_extents = las_extents
-		self.qaqc_dir = r'C:\QAQC_contract\nantucket'
-		self.dz_binary_path = r'{}\dz\{}_dz_dzValue.flt'.format(self.qaqc_dir, self.las_name)
-		self.dz_raster_path = r'{}\dz_{}'.format(self.qaqc_gdb, self.las_name)
+    def __init__(self, las_path, las_name, las_extents,
+                 dz_binary_dir, dz_raster_dir, dz_export_settings):
+        print('hi bob--------------------------------------')
+        self.las_path = las_path
+        self.las_name = las_name
+        self.las_extents = las_extents
+        self.dz_binary_dir = dz_binary_dir
+        self.dz_raster_dir = dz_raster_dir
+        self.dz_binary_path = r'{}\{}_dz_dzValue.flt'.format(self.dz_binary_dir, self.las_name)
+        self.dz_raster_path = r'{}\dz_{}'.format(self.dz_raster_dir, self.las_name)
+        self.dz_export_settings = dz_export_settings
 
-	def update_dz_raster_symbology(self):
-		md = arcpy.mapping.MapDocument(self.dz_mxd)
-		df = arcpy.mapping.ListDataFrames(md)[0]
-		dz_to_update = arcpy.mapping.ListLayers(md, self.las_name, df)[0]
-		dz_classes_lyr = arcpy.mapping.Layer(self.dz_classes_lyr)
-		arcpy.mapping.UpdateLayer(df, dz_to_update, dz_classes_lyr, True)
-		md.save()
+    def __str__(self):
+        return(self.dz_raster_path)
+    
+    #def update_dz_raster_symbology(self):
+    #    md = arcpy.mapping.MapDocument(self.dz_mxd)
+    #    df = arcpy.mapping.ListDataFrames(md)[0]
+    #    dz_to_update = arcpy.mapping.ListLayers(md, self.las_name, df)[0]
+    #    dz_classes_lyr = arcpy.mapping.Layer(self.dz_classes_lyr)
+    #    arcpy.mapping.UpdateLayer(df, dz_to_update, dz_classes_lyr, True)
+    #    md.save()
 
-	def add_dz_to_mxd(self):
-		md = arcpy.mapping.MapDocument(self.dz_mxd)
-		df = arcpy.mapping.ListDataFrames(md)[0]
-		arcpy.MakeRasterLayer_management(self.dz_raster_path, self.las_name)
-		dz_lyr = arcpy.mapping.Layer(self.las_name)
-		arcpy.mapping.AddLayer(df, dz_lyr, 'AUTO_ARRANGE')
-		md.save()
+    #def add_dz_to_mxd(self):
+    #    md = arcpy.mapping.MapDocument(self.dz_mxd)
+    #    df = arcpy.mapping.ListDataFrames(md)[0]
+    #    arcpy.MakeRasterLayer_management(self.dz_raster_path, self.las_name)
+    #    dz_lyr = arcpy.mapping.Layer(self.las_name)
+    #    arcpy.mapping.AddLayer(df, dz_lyr, 'AUTO_ARRANGE')
+    #    md.save()
 
-	def update_dz_export_settings_extents(self):
-		tree = ET.parse(self.dz_export_settings)  
-		root = tree.getroot()
-		for extent, val in self.las_extents.iteritems():
-			for e in root.findall(extent):
-				e.text = str(val)
+    def update_dz_export_settings_extents(self):
+        logging.info('updating dz export settings xml with las extents...')
+        tree = ET.parse(self.dz_export_settings)  
+        root = tree.getroot()
+        for extent, val in self.las_extents.iteritems():
+            for e in root.findall(extent):
+                e.text = str(val)
 
-		new_dz_settings = ET.tostring(root)  
-		myfile = open(self.dz_export_settings, "w")  
-		myfile.write(new_dz_settings)  
+        new_dz_settings = ET.tostring(root)  
+        myfile = open(self.dz_export_settings, "w")  
+        myfile.write(new_dz_settings)  
 
-	def gen_dz_ortho(self):
-		exe = r'C:\Program Files\Common Files\LP360\LDExport.exe'
-		las = self.las_path.replace('CLASSIFIED_LAS\\', 'CLASSIFIED_LAS\\\\')
-		dz = r'C:\QAQC_contract\nantucket\dz\{}'.format(self.las_name)
-		cmd_str = '{} -s {} -f {} -o {}'.format(exe, self.dz_export_settings, las, dz)
-		print('generating dz ortho for {}...'.format(las))
-		print(cmd_str)
-		try:
-			returncode, output = run_console_cmd(cmd_str)
-		except Exception as e:
-			print(e)
+    def gen_dz_ortho(self):
+        exe = r'C:\Program Files\Common Files\LP360\LDExport.exe'
+        las = self.las_path.replace('CLASSIFIED_LAS\\', 'CLASSIFIED_LAS\\\\')
+        dz = r'C:\QAQC_contract\nantucket\dz\{}'.format(self.las_name)
+        cmd_str = '{} -s {} -f {} -o {}'.format(exe, self.dz_export_settings, las, dz)
+        print('generating dz ortho for {}...'.format(las))
+        print(cmd_str)
+        try:
+            returncode, output = run_console_cmd(cmd_str)
+        except Exception as e:
+            print(e)
 
-	def binary_to_raster(self):
-		logging.info('converting {} to {}...'.format(self.dz_binary_path, self.dz_raster_path))
-		try:
-			arcpy.FloatToRaster_conversion(self.dz_binary_path, self.dz_raster_path)
-		except Exception as e:
-			print(e)
+    #def binary_to_raster(self):
+    #    logging.info('converting {} to {}...'.format(self.dz_binary_path, self.dz_raster_path))
+    #    try:
+    #        arcpy.FloatToRaster_conversion(self.dz_binary_path, self.dz_raster_path)
+    #    except Exception as e:
+    #        print(e)
 
-	def project_dz_raster(self):
-		pass
+    #def project_dz_raster(self):
+    #    pass
 
-	def dz_to_numpy(self):  # TODO
-		logging.info('getting dz stat for {}...'.format(self.las_name))
-		dz_np = arcpy.RasterToNumPyArray(self.dz_raster_path)
-		print(dz_np)
-		dz_stats = stats.describe(dz_np.flatten())
-		print(dz_stats)
-		
+    #def dz_to_numpy(self):  # TODO
+    #    logging.info('getting dz stat for {}...'.format(self.las_name))
+    #    dz_np = arcpy.RasterToNumPyArray(self.dz_raster_path)
+    #    print(dz_np)
+    #    dz_stats = stats.describe(dz_np.flatten())
+    #    print(dz_stats)
+
 
 class HillShade():
 
@@ -233,7 +241,7 @@ class HillShade():
 
 class QaqcTile():
 
-	def __init__(self, checks_to_do):
+	def __init__(self, checks_to_do, dz_binary_dir, dz_raster_dir, dz_export_settings):
 
 		self.checks = {
 			'naming_convention': self.check_las_naming_convention,
@@ -248,6 +256,10 @@ class QaqcTile():
 
 		self.checks_to_do = checks_to_do
 		
+		self.dz_binary_dir = dz_binary_dir
+		self.dz_raster_dir = dz_raster_dir
+		self.dz_export_settings = dz_export_settings
+
 	def check_las_naming_convention(self):
 		pass
 
@@ -298,11 +310,14 @@ class QaqcTile():
 		pass
 
 	def create_dz(self, tile):
+		from QAQC_checks import DzOrtho
 		if tile.has_bathy or tile.has_ground:
-			print('peggy sue########################################################################')
-			tile_dz = DzOrtho(tile.path, tile.name, tile.las_extents)
-			#tile_dz.update_dz_export_settings_extents()
-			#tile_dz.gen_dz_ortho()
+			print('peggy sue')
+			tile_dz = DzOrtho(tile.path, tile.name, tile.las_extents, 
+					 self.dz_binary_dir, self.dz_raster_dir, self.dz_export_settings)
+			print(tile_dz)
+			tile_dz.update_dz_export_settings_extents()
+			tile_dz.gen_dz_ortho()
 			#tile_dz.binary_to_raster()
 			#tile_dz.dz_to_numpy()
 			#tile_dz.add_dz_to_mxd()
@@ -320,16 +335,21 @@ class QaqcTile():
 		pass
 
 	def run_qaqc_checks(self, las_path):
-		from QAQC_checks import LasTile, LasTileCollection, DzOrtho
+		from QAQC_checks import LasTile, LasTileCollection
 		import logging
+		import xml.etree.ElementTree as ET
 		logging.basicConfig(format='%(asctime)s:%(message)s', level=logging.INFO)
 
 		tile = LasTile(las_path)
+		
+		# perform inital las-tile checks
 		logging.info('checking {}'.format(tile.name))
 		for c in [k for k, v in self.checks_to_do.iteritems() if v]:
 			logging.info('running {}...'.format(c))
 			result = self.checks[c](tile)
 			logging.info(result)
+
+		# output results of qaqc checks to json file
 		tile.output_check_results_to_json()
 
 	def run_qaqc(self, las_paths):  
@@ -342,15 +362,21 @@ class QaqcTile():
 
 class QaqcTileCollection:
 
-	def __init__(self, las_paths, qaqc_gdb, qaqc_fd_name, 
-			  qaqcd_tile_fc_name, checks_to_do):
+	def __init__(self, dz_export_settings, dz_binary_dir, dz_raster_dir, las_paths, qaqc_gdb, 
+              qaqc_fd_name, qaqcd_tile_fc_name, checks_to_do):
+
+		self.dz_binary_dir = dz_binary_dir
+		self.dz_raster_dir = dz_raster_dir
 		self.las_paths = las_paths
 		self.qaqc_gdb = qaqc_gdb
 		self.qaqc_fd_name = qaqc_fd_name
 		self.qaqc_fd_path = os.path.join(self.qaqc_gdb, self.qaqc_fd_name)
 		self.qaqc_tile_fc_name = qaqcd_tile_fc_name
+		print('blue')
 		self.qaqc_tile_fc_path = os.path.join(self.qaqc_fd_path, self.qaqc_tile_fc_name)
+		print('green')
 		self.checks_to_do = checks_to_do
+		self.dz_export_settings = dz_export_settings
 
 	def create_qaqc_feature_dataset(self):
 		logging.info('making {} in {}...'.format(self.qaqc_fd_name, self.qaqc_gdb))
@@ -367,7 +393,8 @@ class QaqcTileCollection:
 			print(e)
 	
 	def run_qaqc_tile_collection_checks(self):
-		tiles_qaqc = QaqcTile(self.checks_to_do)
+		tiles_qaqc = QaqcTile(self.checks_to_do, self.dz_binary_dir, 
+                        self.dz_raster_dir, self.dz_export_settings)
 		tiles_qaqc.run_qaqc(self.las_paths)
 
 	#def gen_dz_ortho_mosaic(self):  # TODO
@@ -389,9 +416,11 @@ def config_settings():
 	qaqc_dir = r'C:\QAQC_contract\nantucket'
 	qaqc_gdb = r'{}\qaqc_nantucket.gdb'.format(qaqc_dir)
 	qaqc_fd_name = 'QAQC_Layers'
-	qaqc_fd_path = r'{}\qaqc_nantucket.gdb\{}'.format(qaqc_dir, qaqc_fd_name)
+	qaqc_fd_path = r'{}\{}'.format(qaqc_gdb, qaqc_fd_name)
 	qaqc_tile_fc_name = r'QAQC_tile_checks'
 	las_tile_dir = r'{}\CLASSIFIED_LAS'.format(qaqc_dir)
+	dz_binary_dir = r'{}\dz'.format(qaqc_dir)
+	dz_raster_dir = r'{}'.format(qaqc_gdb)
 	
 	classification_scheme_dir = r'\\ngs-s-rsd\response_dl\Research\transfer\software\LP360'
 	classification_scheme_xml = 'noaa_topobathy_v02.xml'
@@ -401,7 +430,7 @@ def config_settings():
 	dz_classes_lyr = r'C:\QAQC_contract\dz_classes.lyr'
 	dz_export_settings = r'C:\QAQC_contract\\dz_export_settings.xml'
 	dz_mxd = r'{}\QAQC_nantucket.mxd'.format(qaqc_dir)
-	
+
 	dz_bins = {
 		0: (0.00, 0.04, 'darkgreen'),
 		1: (0.04, 0.08, 'lightgree'),
@@ -428,6 +457,8 @@ def config_settings():
 		'qaqc_fd_name': qaqc_fd_name,
 		'qaqc_fd_path': qaqc_fd_path,
 		'qaqc_tile_fc_name': qaqc_tile_fc_name,
+        'dz_binary_dir': dz_binary_dir,
+        'dz_raster_dir': dz_raster_dir,
 		'las_tile_dir': las_tile_dir,
 		'classification_scheme_xml': classification_scheme_xml,
 		'dz_raster_catalog': dz_raster_catalog,
@@ -435,7 +466,7 @@ def config_settings():
 		'dz_export_settings': dz_export_settings,
 		'dz_mxd': dz_mxd,
 		'dz_bins': dz_bins,
-		'checks_to_do': checks_to_do,
+		'checks_to_do': checks_to_do
 	}
 
 	return settings
@@ -444,11 +475,15 @@ def config_settings():
 def main():
 	logging.basicConfig(format='%(asctime)s:%(message)s', level=logging.INFO)
 	settings = config_settings()
-
+	print(settings)
 	nantucket = LasTileCollection(settings['las_tile_dir'])
+	print('hi tutu')
 
 	qaqc = QaqcTileCollection(
-        nantucket.get_las_tile_paths(),
+		settings['dz_export_settings'],
+		settings['dz_binary_dir'],
+		settings['dz_raster_dir'],
+		nantucket.get_las_tile_paths(),
 		settings['qaqc_gdb'], 
 		settings['qaqc_fd_name'], 
 		settings['qaqc_tile_fc_name'],

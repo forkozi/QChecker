@@ -1,0 +1,102 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.8.6">
+  <compounddef id="class_q_a_q_c__checks_1_1_dz_ortho_mosaic" kind="class" prot="public">
+    <compoundname>QAQC_checks::DzOrthoMosaic</compoundname>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="class_q_a_q_c__checks_1_1_dz_ortho_mosaic_1a8a68a966c0c0ed0ba99a6f21f0746953" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>def</type>
+        <definition>def QAQC_checks.DzOrthoMosaic.__init__</definition>
+        <argsstring></argsstring>
+        <name>__init__</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="Z:/QAQC_checks/QAQC_checks/QAQC_checks.py" line="124" column="1" bodyfile="Z:/QAQC_checks/QAQC_checks/QAQC_checks.py" bodystart="124" bodyend="126"/>
+      </memberdef>
+      <memberdef kind="function" id="class_q_a_q_c__checks_1_1_dz_ortho_mosaic_1ad5dc82ac43e0d04e026d4fc197b310dc" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>def</type>
+        <definition>def QAQC_checks.DzOrthoMosaic.create_raster_catalog</definition>
+        <argsstring></argsstring>
+        <name>create_raster_catalog</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="Z:/QAQC_checks/QAQC_checks/QAQC_checks.py" line="127" column="1" bodyfile="Z:/QAQC_checks/QAQC_checks/QAQC_checks.py" bodystart="127" bodyend="129"/>
+      </memberdef>
+      <memberdef kind="function" id="class_q_a_q_c__checks_1_1_dz_ortho_mosaic_1a0c4cfd866d9cd2fb9a410a459fde46eb" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>def</type>
+        <definition>def QAQC_checks.DzOrthoMosaic.mosaic_dz_raster_catalog</definition>
+        <argsstring></argsstring>
+        <name>mosaic_dz_raster_catalog</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="Z:/QAQC_checks/QAQC_checks/QAQC_checks.py" line="130" column="1" bodyfile="Z:/QAQC_checks/QAQC_checks/QAQC_checks.py" bodystart="130" bodyend="134"/>
+        <references refid="class_q_a_q_c__checks_1_1_qaqc_tile_collection_1a33dcf504080e0fd319dc3aa85ccf50f4" compoundref="_q_a_q_c__checks_8py" startline="362">QAQC_checks.QaqcTileCollection.qaqc_gdb</references>
+      </memberdef>
+      <memberdef kind="function" id="class_q_a_q_c__checks_1_1_dz_ortho_mosaic_1a09c647188c10baa2c78d6f0808b74a50" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>def</type>
+        <definition>def QAQC_checks.DzOrthoMosaic.add_dz_dir_to_raster_catalog</definition>
+        <argsstring></argsstring>
+        <name>add_dz_dir_to_raster_catalog</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="Z:/QAQC_checks/QAQC_checks/QAQC_checks.py" line="135" column="1" bodyfile="Z:/QAQC_checks/QAQC_checks/QAQC_checks.py" bodystart="135" bodyend="138"/>
+        <references refid="class_q_a_q_c__checks_1_1_qaqc_tile_collection_1a33dcf504080e0fd319dc3aa85ccf50f4" compoundref="_q_a_q_c__checks_8py" startline="362">QAQC_checks.QaqcTileCollection.qaqc_gdb</references>
+      </memberdef>
+      <memberdef kind="function" id="class_q_a_q_c__checks_1_1_dz_ortho_mosaic_1a05446cac17bbce30f395f0dcc0bc866f" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>def</type>
+        <definition>def QAQC_checks.DzOrthoMosaic.add_dz_mosaic_to_mxd</definition>
+        <argsstring></argsstring>
+        <name>add_dz_mosaic_to_mxd</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="Z:/QAQC_checks/QAQC_checks/QAQC_checks.py" line="139" column="1" bodyfile="Z:/QAQC_checks/QAQC_checks/QAQC_checks.py" bodystart="139" bodyend="147"/>
+        <references refid="class_q_a_q_c__checks_1_1_qaqc_tile_collection_1a33dcf504080e0fd319dc3aa85ccf50f4" compoundref="_q_a_q_c__checks_8py" startline="362">QAQC_checks.QaqcTileCollection.qaqc_gdb</references>
+      </memberdef>
+      <memberdef kind="function" id="class_q_a_q_c__checks_1_1_dz_ortho_mosaic_1a9ae0586ea4747bc75d8965057305508b" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>def</type>
+        <definition>def QAQC_checks.DzOrthoMosaic.update_raster_symbology</definition>
+        <argsstring></argsstring>
+        <name>update_raster_symbology</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="Z:/QAQC_checks/QAQC_checks/QAQC_checks.py" line="148" column="1" bodyfile="Z:/QAQC_checks/QAQC_checks/QAQC_checks.py" bodystart="148" bodyend="157"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="Z:/QAQC_checks/QAQC_checks/QAQC_checks.py" line="122" column="1" bodyfile="Z:/QAQC_checks/QAQC_checks/QAQC_checks.py" bodystart="122" bodyend="158"/>
+    <listofallmembers>
+      <member refid="class_q_a_q_c__checks_1_1_dz_ortho_mosaic_1a8a68a966c0c0ed0ba99a6f21f0746953" prot="public" virt="non-virtual"><scope>QAQC_checks::DzOrthoMosaic</scope><name>__init__</name></member>
+      <member refid="class_q_a_q_c__checks_1_1_dz_ortho_mosaic_1a09c647188c10baa2c78d6f0808b74a50" prot="public" virt="non-virtual"><scope>QAQC_checks::DzOrthoMosaic</scope><name>add_dz_dir_to_raster_catalog</name></member>
+      <member refid="class_q_a_q_c__checks_1_1_dz_ortho_mosaic_1a05446cac17bbce30f395f0dcc0bc866f" prot="public" virt="non-virtual"><scope>QAQC_checks::DzOrthoMosaic</scope><name>add_dz_mosaic_to_mxd</name></member>
+      <member refid="class_q_a_q_c__checks_1_1_dz_ortho_mosaic_1ad5dc82ac43e0d04e026d4fc197b310dc" prot="public" virt="non-virtual"><scope>QAQC_checks::DzOrthoMosaic</scope><name>create_raster_catalog</name></member>
+      <member refid="class_q_a_q_c__checks_1_1_dz_ortho_mosaic_1a0c4cfd866d9cd2fb9a410a459fde46eb" prot="public" virt="non-virtual"><scope>QAQC_checks::DzOrthoMosaic</scope><name>mosaic_dz_raster_catalog</name></member>
+      <member refid="class_q_a_q_c__checks_1_1_dz_ortho_mosaic_1a9ae0586ea4747bc75d8965057305508b" prot="public" virt="non-virtual"><scope>QAQC_checks::DzOrthoMosaic</scope><name>update_raster_symbology</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>
