@@ -38,17 +38,14 @@ class LasTileCollection():
 		classes_json_str = json.dumps(classes, indent=2)
 		print(classes_json_str)		
 
-	def create_qaqc_shp():
-		pass
 
-
-class LasTile():
+class LasTile:
 
 	def __init__(self, las_path):
 		self.path = las_path
 		self.name = os.path.splitext(las_path.split(os.sep)[-1])[0]
 		self.inFile = File(self.path, mode="r")
-
+		
 		def get_useful_las_header_info():
 			# put various useful tidbits from las header into LasTile header dict
 			info_to_get = 'global_encoding,version_major,version_minor,' \
@@ -77,6 +74,24 @@ class LasTile():
 		self.has_bathy = True if '26' in self.class_counts.keys() else False
 		self.has_ground = True if '2' in self.class_counts.keys() else False
 
+		self.checks_result = {
+			'naming_convention': None,
+			'version': None,
+			'pdrf': None,
+			'gps_time': None,
+			'hor_datum': None,
+			'ver_datum': None,
+			'point_src_ids': None,
+		}
+
+	def output_check_results_to_json(self):
+		json_file_name = r'C:\QAQC_contract\nantucket\qaqc_check_results\{}.json'.format(self.name)  # todo: fix hard-coding
+		info_to_output = {'las_tile_name': self.name,
+					'las_tile_extents': self.las_extents,
+					'check_results': self.checks_result}
+		with open(json_file_name, 'w') as json_file:
+			json.dump(info_to_output, json_file)
+
 	def __str__(self):
 		obj_str = {'las_header': self.header,
 				   'class_counts': self.class_counts,
@@ -102,7 +117,7 @@ class LasTile():
 
 	def get_hor_datum(self):
 		return self.header['VLRs']['coord_sys']
-		
+
 
 class DzOrthoMosaic():
 
@@ -212,90 +227,65 @@ class HillShade():
 	def __init__(self):
 		pass
 
-	def gen_hillshade_img():
+	def gen_hillshade_img(self):
 		pass
 
 
-class QaqcTile(LasTile):
+class QaqcTile():
 
-	def __init__(self, tile, checks_to_do):
-		self.tile = tile
-
-		# intital las checks
-		self.tile_checks_result = {
-			'naming_convention': None,
-			'las_version': None,
-			'las_pdrf': None,
-			'gps_time': None,
-			'coord_ref_sys': None,
-			'point_src_ids': None,
-		}
-		
-		# point cloud stats
-		self.passed_las_version = None
-		self.passed_las_version = None
-		self.passed_las_version = None
-
-		# surface creation
-		self.is_dz_created = False
-		self.is_hillshade_created = False
+	def __init__(self, checks_to_do):
 
 		self.checks = {
-			'las_naming_convention': self.check_las_naming_convention,
-			'las_version': self.check_las_version,
-			'las_pdrf': self.check_las_pdrf,
-			'las_gps_time': self.check_las_gps_time,
+			'naming_convention': self.check_las_naming_convention,
+			'version': self.check_las_version,
+			'pdrf': self.check_las_pdrf,
+			'gps_time': self.check_las_gps_time,
 			'hor_datum': self.check_hor_datum,
 			'ver_datum': self.check_ver_datum,
 			'point_source_ids': self.check_point_source_ids,
+            'create_dz': self.create_dz
 		}
 
 		self.checks_to_do = checks_to_do
-
-	def __str__(self):
-		obj_str = {
-			'check_results': self.tile_checks_result,
-		}
-		return json.dumps(obj_str, indent=2)		
-
+		
 	def check_las_naming_convention(self):
 		pass
 
-	def check_las_version(self):
-		version = self.tile.get_las_version()
+	def check_las_version(self, tile):
+		version = tile.get_las_version()
 		if version in ['1.2', '1.4']:
 			passed = True
 		else:
 			passed = False
-		self.tile_checks_result['las_version'] = (passed, version)
+		tile.checks_result['las_version'] = (passed, version)
 		return 'PASSED' if passed else 'FAILED'
 
-	def check_las_pdrf(self):
-		las_pdrf = self.tile.get_las_pdrf()
-		las_version = self.tile.get_las_version()
+	def check_las_pdrf(self, tile):
+		las_pdrf = tile.get_las_pdrf()
+		las_version = tile.get_las_version()
 		if las_pdrf == 3 and las_version == '1.2' or las_pdrf == 6 and las_version == '1.4':
 			passed = True
 		else:
 			passed = False
-		self.tile_checks_result['las_pdrf'] = (passed, las_pdrf)
+		tile.checks_result['las_pdrf'] = (passed, las_pdrf)
 		return 'PASSED' if passed else 'FAILED'
 
-	def check_las_gps_time(self):
-		gps_time_type = self.tile.get_gps_time_type()
+	def check_las_gps_time(self, tile):
+		gps_time_type = tile.get_gps_time_type()
 		if gps_time_type == 'Satellite GPS Time':
 			passed = True
 		else:
 			passed = False
-		self.tile_checks_result['gps_time'] = (passed, gps_time_type)
+		tile.checks_result['gps_time'] = (passed, gps_time_type)
 		return 'PASSED' if passed else 'FAILED'
 
-	def check_hor_datum(self):
-		hor_datum = self.tile.get_hor_datum()
+	def check_hor_datum(self, tile):
+		hor_datum = tile.get_hor_datum()
 		if 2 == 2:
 			passed = True
 		else:
 			passed = False
-		self.tile_checks_result['hor_datum'] = (passed, hor_datum)
+		tile.checks_result['hor_datum'] = (passed, hor_datum)
 		return 'PASSED' if passed else 'FAILED'
 
 	def check_ver_datum(self):
@@ -307,50 +297,60 @@ class QaqcTile(LasTile):
 	def calc_pt_cloud_stats(self):
 		pass
 
-	def create_dz(self):
-		if self.tile.has_bathy or self.tile.has_ground:
+	def create_dz(self, tile):
+		if tile.has_bathy or tile.has_ground:
+			print('peggy sue########################################################################')
 			tile_dz = DzOrtho(tile.path, tile.name, tile.las_extents)
-			tile_dz.update_dz_export_settings_extents()
-			tile_dz.gen_dz_ortho()
-			tile_dz.binary_to_raster()
-			tile_dz.dz_to_numpy()
-			tile_dz.add_dz_to_mxd()
-			tile_dz.update_dz_raster_symbology()
+			#tile_dz.update_dz_export_settings_extents()
+			#tile_dz.gen_dz_ortho()
+			#tile_dz.binary_to_raster()
+			#tile_dz.dz_to_numpy()
+			#tile_dz.add_dz_to_mxd()
+			#tile_dz.update_dz_raster_symbology()
 		else:
 			logging.info('{} has no bathy or ground points; no dz ortho generated'.format(self.tile.name))
 
 	def create_hillshade(self):
 		pass
 
+	def add_tile_check_results(self, tile_check_results):
+		print(tile_check_results)
+
 	def update_qaqc_results_table(self):
 		pass
 
-	def run_qaqc_checks(self):
-		print(self.checks_to_do)
+	def run_qaqc_checks(self, las_path):
+		from QAQC_checks import LasTile, LasTileCollection, DzOrtho
+		import logging
+		logging.basicConfig(format='%(asctime)s:%(message)s', level=logging.INFO)
+
+		tile = LasTile(las_path)
+		logging.info('checking {}'.format(tile.name))
 		for c in [k for k, v in self.checks_to_do.iteritems() if v]:
 			logging.info('running {}...'.format(c))
-			result = self.checks[c]()
+			result = self.checks[c](tile)
 			logging.info(result)
-		
+		tile.output_check_results_to_json()
 
-	def run_qaqc(self, multiprocessing):
-		if not multiprocessing:
-			self.run_qaqc_checks()
-		else:
-			p = pp.ProcessPool()
-			p.imap(self.run_qaqc_checks, las_files, sbet_files)
-			p.close()
-			p.join()
+	def run_qaqc(self, las_paths):  
+		p = pp.ProcessPool()
+		print(p)
+		p.imap(self.run_qaqc_checks, las_paths)
+		p.close()
+		p.join()
 
 
-class QaqcTileCollection():
+class QaqcTileCollection:
 
-	def __init__(self, qaqc_gdb, qaqc_fd_name, qaqcd_tile_fc_name):
+	def __init__(self, las_paths, qaqc_gdb, qaqc_fd_name, 
+			  qaqcd_tile_fc_name, checks_to_do):
+		self.las_paths = las_paths
 		self.qaqc_gdb = qaqc_gdb
 		self.qaqc_fd_name = qaqc_fd_name
-		self.qaqc_fd_path = os.path.join(os.sep, self.qaqc_gdb, self.qaqc_fd_name)
+		self.qaqc_fd_path = os.path.join(self.qaqc_gdb, self.qaqc_fd_name)
 		self.qaqc_tile_fc_name = qaqcd_tile_fc_name
-		self.qaqc_tile_fc_path = os.path.join(os.sep, self.qaqc_fd_path, self.qaqc_tile_fc_name)
+		self.qaqc_tile_fc_path = os.path.join(self.qaqc_fd_path, self.qaqc_tile_fc_name)
+		self.checks_to_do = checks_to_do
 
 	def create_qaqc_feature_dataset(self):
 		logging.info('making {} in {}...'.format(self.qaqc_fd_name, self.qaqc_gdb))
@@ -365,17 +365,17 @@ class QaqcTileCollection():
 			arcpy.CreateFeatureclass_management(self.qaqc_fd_path, self.qaqc_tile_fc_name)
 		except Exception as e:
 			print(e)
+	
+	def run_qaqc_tile_collection_checks(self):
+		tiles_qaqc = QaqcTile(self.checks_to_do)
+		tiles_qaqc.run_qaqc(self.las_paths)
 
-	def add_tile_check_results(self, tile_check_results):
-		print(tile_check_results)
-
-	def gen_dz_ortho_mosaic(self):  # TODO
-		DzOrtho.create_raster_catalog()
-		DzOrtho.add_dz_dir_to_raster_catalog()
-		DzOrtho.mosaic_dz_raster_catalog()
-		DzOrtho.add_dz_mosaic_to_mxd()
-		DzOrtho.update_raster_symbology()
-
+	#def gen_dz_ortho_mosaic(self):  # TODO
+	#	DzOrtho.create_raster_catalog()
+	#	DzOrtho.add_dz_dir_to_raster_catalog()
+	#	DzOrtho.mosaic_dz_raster_catalog()
+	#	DzOrtho.add_dz_mosaic_to_mxd()
+	#	DzOrtho.update_raster_symbology()
 
 def run_console_cmd(cmd):
 	process = subprocess.Popen(cmd.split(' '))
@@ -412,21 +412,22 @@ def config_settings():
 	}
 
 	checks_to_do = {
-		'las_naming_convention': False,
-		'las_version': True,
-		'las_pdrf': True,
-		'las_gps_time': True,
-		'hor_datum': True,
+		'naming_convention': False,
+		'version': False,
+		'pdrf': False,
+		'gps_time': False,
+		'hor_datum': False,
 		'ver_datum': False,
 		'point_source_ids': False,
+        'create_dz': True
 	}
 
 	settings = {
 		'qaqc_dir': qaqc_dir,
 		'qaqc_gdb': qaqc_gdb,
-        'qaqc_fd_name': qaqc_fd_name,
-        'qaqc_fd_path': qaqc_fd_path,
-        'qaqc_tile_fc_name': qaqc_tile_fc_name,
+		'qaqc_fd_name': qaqc_fd_name,
+		'qaqc_fd_path': qaqc_fd_path,
+		'qaqc_tile_fc_name': qaqc_tile_fc_name,
 		'las_tile_dir': las_tile_dir,
 		'classification_scheme_xml': classification_scheme_xml,
 		'dz_raster_catalog': dz_raster_catalog,
@@ -441,27 +442,23 @@ def config_settings():
 
 
 def main():
-    logging.basicConfig(format='%(asctime)s:%(message)s', level=logging.INFO)
-    settings = config_settings()
+	logging.basicConfig(format='%(asctime)s:%(message)s', level=logging.INFO)
+	settings = config_settings()
 
-    nantucket = LasTileCollection(settings['las_tile_dir'])
-    qaqc = QaqcTileCollection(
-        settings['qaqc_gdb'], 
-        settings['qaqc_fd_name'], 
-        settings['qaqc_tile_fc_name'])
-    qaqc.create_qaqc_feature_dataset()
-    qaqc.create_qaqc_tile_feature_class()
+	nantucket = LasTileCollection(settings['las_tile_dir'])
 
-    # perform checks for every las tile
-    for i, las_tile in enumerate(nantucket.get_las_tile_paths(), 1):
-        print('{}\n({} of {}) {}'.format('-' * 50, i, nantucket.num_las, las_tile))
-        tile = LasTile(las_tile)
-        qaqc_tile= QaqcTile(tile, settings['checks_to_do'])
-        qaqc_tile.run_qaqc(multiprocessing=False)
-        print(qaqc_obj)
+	qaqc = QaqcTileCollection(
+        nantucket.get_las_tile_paths(),
+		settings['qaqc_gdb'], 
+		settings['qaqc_fd_name'], 
+		settings['qaqc_tile_fc_name'],
+		settings['checks_to_do'])
+	#qaqc.create_qaqc_feature_dataset()
+	#qaqc.create_qaqc_tile_feature_class()
+	qaqc.run_qaqc_tile_collection_checks()
 
-    # summarize QAQC check results
-    # TODO: read json files to make dashboard
+	# summarize QAQC check json results
+	# TODO: read json files to make dashboard
 
 
 if __name__ == '__main__':
