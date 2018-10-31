@@ -10,6 +10,7 @@ import xml.etree.ElementTree as ET
 import arcpy
 import osgeo.osr as osr
 import pathos.pools as pp
+from pathos.helpers import mp
 
 
 class LasTileCollection():
@@ -159,7 +160,6 @@ class DzOrtho:
 
     def __init__(self, las_path, las_name, las_extents,
                  dz_binary_dir, dz_raster_dir, dz_export_settings):
-        print('hi bob--------------------------------------')
         self.las_path = las_path
         self.las_name = las_name
         self.las_extents = las_extents
@@ -255,7 +255,6 @@ class QaqcTile():
 		}
 
 		self.checks_to_do = checks_to_do
-		
 		self.dz_binary_dir = dz_binary_dir
 		self.dz_raster_dir = dz_raster_dir
 		self.dz_export_settings = dz_export_settings
@@ -312,10 +311,13 @@ class QaqcTile():
 	def create_dz(self, tile):
 		from QAQC_checks import DzOrtho
 		if tile.has_bathy or tile.has_ground:
-			print('peggy sue')
-			tile_dz = DzOrtho(tile.path, tile.name, tile.las_extents, 
-					 self.dz_binary_dir, self.dz_raster_dir, self.dz_export_settings)
-			print(tile_dz)
+			tile_dz = DzOrtho(
+                tile.path, 
+                tile.name, 
+                tile.las_extents, 
+				self.dz_binary_dir, 
+                self.dz_raster_dir, 
+                self.dz_export_settings)
 			tile_dz.update_dz_export_settings_extents()
 			tile_dz.gen_dz_ortho()
 			#tile_dz.binary_to_raster()
@@ -323,7 +325,7 @@ class QaqcTile():
 			#tile_dz.add_dz_to_mxd()
 			#tile_dz.update_dz_raster_symbology()
 		else:
-			logging.info('{} has no bathy or ground points; no dz ortho generated'.format(self.tile.name))
+			logging.info('{} has no bathy or ground points; no dz ortho generated'.format(tile.name))
 
 	def create_hillshade(self):
 		pass
@@ -334,7 +336,7 @@ class QaqcTile():
 	def update_qaqc_results_table(self):
 		pass
 
-	def run_qaqc_checks(self, las_path):
+	def run_qaqc_checks_multiprocess(self, las_path):
 		from QAQC_checks import LasTile, LasTileCollection
 		import logging
 		import xml.etree.ElementTree as ET
@@ -342,8 +344,6 @@ class QaqcTile():
 
 		tile = LasTile(las_path)
 		
-		# perform inital las-tile checks
-		logging.info('checking {}'.format(tile.name))
 		for c in [k for k, v in self.checks_to_do.iteritems() if v]:
 			logging.info('running {}...'.format(c))
 			result = self.checks[c](tile)
@@ -352,18 +352,41 @@ class QaqcTile():
 		# output results of qaqc checks to json file
 		tile.output_check_results_to_json()
 
-	def run_qaqc(self, las_paths):  
-		p = pp.ProcessPool()
-		print(p)
-		p.imap(self.run_qaqc_checks, las_paths)
-		p.close()
-		p.join()
+	def run_qaqc_checks(self, las_paths):
+		for las_path in las_paths:
+			tile = LasTile(las_path)
+		
+			for c in [k for k, v in self.checks_to_do.iteritems() if v]:
+				logging.info('running {}...'.format(c))
+				result = self.checks[c](tile)
+				logging.info(result)
+
+			# output results of qaqc checks to json file
+			tile.output_check_results_to_json()    
+
+	def run_qaqc(self, las_paths, multiprocess):  
+
+		if multiprocess:
+			p = pp.ProcessPool()
+			print(p)
+			p.imap(self.run_qaqc_checks_multiprocess, las_paths)
+			p.close()
+			p.join()
+		else:
+			self.run_qaqc_checks(las_paths)
 
 
 class QaqcTileCollection:
 
-	def __init__(self, dz_export_settings, dz_binary_dir, dz_raster_dir, las_paths, qaqc_gdb, 
-              qaqc_fd_name, qaqcd_tile_fc_name, checks_to_do):
+	def __init__(self, 
+              dz_export_settings, 
+              dz_binary_dir, 
+              dz_raster_dir, 
+              las_paths, 
+              qaqc_gdb, 
+			  qaqc_fd_name, 
+              qaqcd_tile_fc_name, 
+              checks_to_do):
 
 		self.dz_binary_dir = dz_binary_dir
 		self.dz_raster_dir = dz_raster_dir
@@ -372,9 +395,7 @@ class QaqcTileCollection:
 		self.qaqc_fd_name = qaqc_fd_name
 		self.qaqc_fd_path = os.path.join(self.qaqc_gdb, self.qaqc_fd_name)
 		self.qaqc_tile_fc_name = qaqcd_tile_fc_name
-		print('blue')
 		self.qaqc_tile_fc_path = os.path.join(self.qaqc_fd_path, self.qaqc_tile_fc_name)
-		print('green')
 		self.checks_to_do = checks_to_do
 		self.dz_export_settings = dz_export_settings
 
@@ -393,9 +414,25 @@ class QaqcTileCollection:
 			print(e)
 	
 	def run_qaqc_tile_collection_checks(self):
-		tiles_qaqc = QaqcTile(self.checks_to_do, self.dz_binary_dir, 
-                        self.dz_raster_dir, self.dz_export_settings)
-		tiles_qaqc.run_qaqc(self.las_paths)
+		tiles_qaqc = QaqcTile(
+            self.checks_to_do, 
+            self.dz_binary_dir,
+            self.dz_raster_dir, 
+            self.dz_export_settings)
+		tiles_qaqc.run_qaqc(self.las_paths, multiprocess=False)
+
+    def get_qaqc_results(self):
+        return os.listdir()
+
+    def consolidate_qaqc_check_results(self):
+        for las_path in self.las_paths:
+            try:
+                las_json = 
+                with open(las_json, 'r') as json_file:
+                    json_data = json.load(json_file)
+            except Exception as e:
+                print(e)
+
 
 	#def gen_dz_ortho_mosaic(self):  # TODO
 	#	DzOrtho.create_raster_catalog()
