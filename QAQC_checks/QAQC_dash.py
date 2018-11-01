@@ -28,6 +28,35 @@ fin.close()
 df = pd.read_csv(r'Z:\QAQC_checks\QAQC_checks\data\bfro_reports_geocoded.csv')
 
 
+geojson = {
+  "type": "FeatureCollection",
+  "features": [{
+    "type": "Feature",
+    "properties": {},
+    "geometry": {
+      "type": "GeometryCollection",
+      "geometries": [{
+        "type": "MultiPolygon",
+        "coordinates": [
+          [[
+              [-73, 45],
+              [-76, 46],
+              [-75, 47],
+              [-73, 45]
+          ]],
+          [[
+            [-70, 42],
+            [-73, 43],
+            [-72, 44],
+            [-70, 42]
+          ]]        
+        ]
+      }]
+    }
+  }]
+}
+
+
 def generate_table(dataframe, max_rows=10):
     return html.Table(
         # Header
@@ -60,10 +89,11 @@ listpluck = compose(list, pluck)
 
 
 def make_bathy_hist_data():
-    mu, sigma = 0, 0.1 # mean and standard deviation
-    s = np.random.normal(mu, sigma, 1000)
-    hist, bin_edges = np.histogram(s, bins=100)
-    return (hist, bin_edges)
+	mu, sigma = 0, 0.1 # mean and standard deviation
+	s = np.random.normal(mu, sigma, 1000)
+	hist, bin_edges = np.histogram(s, bins=100)
+	return (hist, bin_edges)
+
 
 
 def bigfoot_map(sightings):
@@ -92,6 +122,14 @@ def bigfoot_map(sightings):
             "autosize": True,
             "hovermode": "closest",
             "mapbox": {
+                'layers': [{
+                    'sourcetype': 'geojson',
+                    'source': geojson,
+                    'type': 'line',
+                    'color': 'yellow',
+                    'line': {'width':0.4},
+                    'opacity': 2
+                }],
                 "accesstoken": MAPBOX_KEY,
                 "bearing": 0,
                 "center": {
