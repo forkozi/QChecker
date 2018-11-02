@@ -32,7 +32,7 @@ tile_centroids = [
 fin.close()
 
 
-df = pd.read_csv(r'Z:\QAQC_checks\QAQC_checks\data\bfro_reports_geocoded.csv')
+df = pd.read_csv(r'C:\QAQC_contract\nantucket\bfro_reports_geocoded.csv')
 
 
 geojson = {
