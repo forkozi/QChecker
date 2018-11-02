@@ -24,6 +24,42 @@ MAPBOX_KEY = "pk.eyJ1Ijoibmlja2ZvcmZpbnNraSIsImEiOiJjam51cTNxY2wwMTJ2M2xrZ21wbXZ
 
 external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
 
+
+def shp_to_geojson():
+    qaqc_dir = r'C:\QAQC_contract\nantucket'
+    contractor_las_tiles = r'C:\QAQC_contract\nantucket\EXTENTS\final\Nantucket_TileGrid.shp'
+    las_tiles_geojson = os.path.join(qaqc_dir, 'contractor_tiles.json')
+
+    shp = fiona.open(contractor_las_tiles)
+    original = Proj(init='EPSG:26919')
+    nad83_2011 = Proj(init='EPSG:6317')
+    wgs84 = Proj(init='EPSG:4326')
+
+    with fiona.open(contractor_las_tiles) as source:
+        records = list(source)
+
+    geojson = {"type": "FeatureCollection","features": records}
+    schema = {'geometry': 'Polygon', 'properties': {}}
+    with fiona.open(las_tiles_geojson, 'w', 'GeoJSON', schema, crs=from_epsg(6317)) as output:
+        for feat in geojson['features']:
+            out_linear_ring = []
+
+            for point in feat['geometry']['coordinates'][0]:
+                print(point)
+                easting, northing = point
+                lat, lon = transform(original, wgs84, easting, northing)
+                feat['geometry']['coordinates'] = (lat, lon)
+                print('{} --> {}'.format(point, feat['geometry']['coordinates']))
+                out_linear_ring.append((lat, lon))
+           
+            feat['geometry']['coordinates'] = [out_linear_ring]
+            feat['properties'] = {}
+
+            output.write(feat)
+
+
+
+
 fin = open(r'Z:\QAQC_checks\QAQC_checks\data\bfro_reports_geocoded.csv', 'r')
 reader = DictReader(fin)
 tile_centroids = [
@@ -33,35 +69,6 @@ fin.close()
 
 
 df = pd.read_csv(r'C:\QAQC_contract\nantucket\bfro_reports_geocoded.csv')
-
-
-geojson = {
-  "type": "FeatureCollection",
-  "features": [{
-    "type": "Feature",
-    "properties": {},
-    "geometry": {
-      "type": "GeometryCollection",
-      "geometries": [{
-        "type": "MultiPolygon",
-        "coordinates": [
-          [[
-              [-73, 45],
-              [-76, 46],
-              [-75, 47],
-              [-73, 45]
-          ]],
-          [[
-            [-70, 42],
-            [-73, 43],
-            [-72, 44],
-            [-70, 42]
-          ]]        
-        ]
-      }]
-    }
-  }]
-}
 
 
 def generate_table(dataframe, max_rows=10):
