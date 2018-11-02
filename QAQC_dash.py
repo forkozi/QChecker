@@ -7,68 +7,17 @@ import geopandas as gpd
 import numpy as np
 import json
 from io import open
-
 from pyproj import Proj, transform
 import fiona
 from fiona.crs import from_epsg
-
 from toolz import groupby, compose, pluck
 from dotenv import load_dotenv
 import os
 from csv import DictReader
 
+
 #dotenv_path = os.path.join(os.path.dirname(__file__), '.env')
 #load_dotenv(dotenv_path)
-
-MAPBOX_KEY = "pk.eyJ1Ijoibmlja2ZvcmZpbnNraSIsImEiOiJjam51cTNxY2wwMTJ2M2xrZ21wbXZrN2F1In0.RooxCuqsNotDzEP2EeuJng"
-
-external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
-
-
-def shp_to_geojson():
-    qaqc_dir = r'C:\QAQC_contract\nantucket'
-    contractor_las_tiles = r'C:\QAQC_contract\nantucket\EXTENTS\final\Nantucket_TileGrid.shp'
-    las_tiles_geojson = os.path.join(qaqc_dir, 'contractor_tiles.json')
-
-    shp = fiona.open(contractor_las_tiles)
-    original = Proj(init='EPSG:26919')
-    nad83_2011 = Proj(init='EPSG:6317')
-    wgs84 = Proj(init='EPSG:4326')
-
-    with fiona.open(contractor_las_tiles) as source:
-        records = list(source)
-
-    geojson = {"type": "FeatureCollection","features": records}
-    schema = {'geometry': 'Polygon', 'properties': {}}
-    with fiona.open(las_tiles_geojson, 'w', 'GeoJSON', schema, crs=from_epsg(6317)) as output:
-        for feat in geojson['features']:
-            out_linear_ring = []
-
-            for point in feat['geometry']['coordinates'][0]:
-                print(point)
-                easting, northing = point
-                lat, lon = transform(original, wgs84, easting, northing)
-                feat['geometry']['coordinates'] = (lat, lon)
-                print('{} --> {}'.format(point, feat['geometry']['coordinates']))
-                out_linear_ring.append((lat, lon))
-           
-            feat['geometry']['coordinates'] = [out_linear_ring]
-            feat['properties'] = {}
-
-            output.write(feat)
-
-
-
-
-fin = open(r'Z:\QAQC_checks\QAQC_checks\data\bfro_reports_geocoded.csv', 'r')
-reader = DictReader(fin)
-tile_centroids = [
-    line for line in reader
-]
-fin.close()
-
-
-df = pd.read_csv(r'C:\QAQC_contract\nantucket\bfro_reports_geocoded.csv')
 
 
 def generate_table(dataframe, max_rows=10):
@@ -99,9 +48,6 @@ def generate_table(dataframe, max_rows=10):
     )
 
 
-listpluck = compose(list, pluck)
-
-
 def make_bathy_hist_data():
 	mu, sigma = 0, 0.1 # mean and standard deviation
 	s = np.random.normal(mu, sigma, 1000)
@@ -109,25 +55,12 @@ def make_bathy_hist_data():
 	return (hist, bin_edges)
 
 
-def shp_to_geojson(shp, geojson):
-    file = gpd.read_file(shp)
-    file.to_file(geojson, driver="GeoJSON")
-
-qaqc_dir = r'C:\QAQC_contract\nantucket'
-contractor_las_tiles = r'C:\QAQC_contract\nantucket\EXTENTS\final\Nantucket_TileGrid.shp'
-las_tiles_geojson = os.path.join(qaqc_dir, 'contractor_tiles.json')
-
-with open(las_tiles_geojson, encoding='utf-8') as f:
-	geojson_data = json.load(f)
-
-#shp_to_geojskon(contractor_las_tiles, las_tiles_geojson)
-
-
-def qaqc_map(sightings):
+def get_qaqc_map(tile_csv):
 	# groupby returns a dictionary mapping the values of the first field 
 	# 'classification' onto a list of record dictionaries with that 
 	# classification value.
-	classifications = groupby('classification', sightings)
+	listpluck = compose(list, pluck)
+	classifications = groupby('classification', tile_csv)
 	return {
 		"data": [
 				{
@@ -151,7 +84,7 @@ def qaqc_map(sightings):
             "mapbox": {
                 'layers': [{
                     'sourcetype': 'geojson',
-                    'source': geojson_data,
+                    'source': get_tile_geojson_file(),
                     'type': 'line',
                     'color': '#0946BF',
                     'line': {'width':0.5},
@@ -171,7 +104,34 @@ def qaqc_map(sightings):
     }
 
 
+def get_tile_geojson_file():
+	qaqc_dir = r'C:\QAQC_contract\nantucket'
+	las_tiles_geojson = os.path.join(qaqc_dir, 'contractor_tiles.json')
+	with open(las_tiles_geojson, encoding='utf-8') as f:
+		geojson_data = json.load(f)
+
+	return geojson_data
+
+
+def get_tile_csv():
+    fin = open(r'C:\QAQC_contract\nantucket\bfro_reports_geocoded.csv', 'r')
+    reader = DictReader(fin)
+    tile_centroids = [line for line in reader]
+    fin.close()
+
+    return tile_centroids
+
+
+def get_tiles_df():
+    df = pd.read_csv(r'C:\QAQC_contract\nantucket\bfro_reports_geocoded.csv')
+    return df
+
+
+MAPBOX_KEY = "pk.eyJ1Ijoibmlja2ZvcmZpbnNraSIsImEiOiJjam51cTNxY2wwMTJ2M2xrZ21wbXZrN2F1In0.RooxCuqsNotDzEP2EeuJng"
+
+external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
 app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
+
 
 colors = {
 	'background': '#373D42',
@@ -183,7 +143,8 @@ map_button_style = {
     'color': colors['text'],
     'border-color': colors['text'],
     'background-color': colors['background'],
-    'border-radius': '50px'}
+    'border-radius': '50px'
+}
 
 checks_to_do = {
 	'naming_convention': False,
@@ -196,7 +157,6 @@ checks_to_do = {
     'create_dz': True,
     'create_dz': False,
 }
-
 
 app.layout = html.Div(style={'backgroundColor': colors['background']}, children=[
     html.Div(style={'backgroundColor':'#00ADEF'}, children=[
@@ -231,7 +191,6 @@ app.layout = html.Div(style={'backgroundColor': colors['background']}, children=
     ], className='row'),
 
     html.Div([
-
 
         html.Div(style={}, children=[
 
@@ -382,7 +341,7 @@ app.layout = html.Div(style={'backgroundColor': colors['background']}, children=
 
             html.Div([
                 html.Div([
-                    generate_table(df)
+                    generate_table(get_tiles_df())
                 ], className='twelve columns'),
             ]),
 
@@ -398,7 +357,7 @@ app.layout = html.Div(style={'backgroundColor': colors['background']}, children=
 def update_map_layer(selector):
 
     if 'MTL' in selector:
-        figure=qaqc_map(tile_centroids)
+        figure=get_qaqc_map(get_tile_csv())
 
     return figure
 

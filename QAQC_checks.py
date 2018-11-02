@@ -2,6 +2,7 @@ import os
 import json
 import logging
 import pandas as pd
+import geopandas as gpd
 import numpy as np
 from scipy import stats
 import subprocess
@@ -12,6 +13,7 @@ import osgeo.osr as osr
 import pathos.pools as pp
 from pathos.helpers import mp
 import re
+import fiona
 
 
 class LasTileCollection():
@@ -128,8 +130,8 @@ class LasTile:
 	def get_hor_datum(self):
 		return self.header['VLRs']['coord_sys']
 
-    def calc_centroid(self):
-
+	def calc_centroid(self):
+		pass
 
 
 class DzOrthoMosaic():
@@ -467,7 +469,7 @@ class QaqcTileCollection:
 			self.dz_export_settings)
 		tiles_qaqc.run_qaqc(self.las_paths, multiprocess=False)
 
-	def consolidate_qaqc_check_results(self):
+	def consolidate_qaqc_check_results(self, output):
 
 		def flatten_dict(d_obj):
 			for k, v in d_obj.items():
@@ -495,7 +497,7 @@ class QaqcTileCollection:
 
 		df = pd.DataFrame(flattened_dicts)
 		print(df)
-		df.to_csv(r'C:\QAQC_contract\nantucket\qaqc_tile_collection_results.csv', index=False)
+		df.to_csv(output, index=False)
 
 	#def gen_dz_ortho_mosaic(self):  # TODO
 	#	DzOrtho.create_raster_catalog()
@@ -503,6 +505,53 @@ class QaqcTileCollection:
 	#	DzOrtho.mosaic_dz_raster_catalog()
 	#	DzOrtho.add_dz_mosaic_to_mxd()
 	#	DzOrtho.update_raster_symbology()
+
+
+def shp_to_geojson(shp, geojson):
+
+	## alternate way to get geojson
+	#file = gpd.read_file(shp)
+	#file.to_file(geojson, driver="GeoJSON")
+
+	shp = fiona.open(contractor_las_tiles)
+	original = Proj(init='EPSG:26919')
+	nad83_2011 = Proj(init='EPSG:6317')
+	wgs84 = Proj(init='EPSG:4326')
+
+	with fiona.open(contractor_las_tiles) as source:
+		records = list(source)
+
+	geojson_data = {"type": "FeatureCollection","features": records}
+	schema = {'geometry': 'Polygon', 'properties': {}}
+	with fiona.open(geojson, 'w', 'GeoJSON', schema, crs=from_epsg(6317)) as output:
+		for feat in geojson_data['features']:
+			out_linear_ring = []
+
+			for point in feat['geometry']['coordinates'][0]:
+				print(point)
+				easting, northing = point
+				lat, lon = transform(original, wgs84, easting, northing)
+				feat['geometry']['coordinates'] = (lat, lon)
+				print('{} --> {}'.format(point, feat['geometry']['coordinates']))
+				out_linear_ring.append((lat, lon))
+
+			feat['geometry']['coordinates'] = [out_linear_ring]
+			feat['properties'] = {}  # don't need propeties for polygons
+			output.write(feat)
+
+
+def gen_tile_centroids(shp, out_geojson):
+	input = gpd.read_file(shp).to_crs({'init': 'epsg:4326'})  # WGS84 (temporary)
+	input['geometry'] = input['geometry'].centroid
+	print(fiona.supported_drivers)
+	input.to_file(out_geojson, driver='GeoJSON')
+
+	def get_x_y_name(pt):
+		return (pt.x, pt.y)
+
+	centroid_csv_data = map(get_x_y_name, input['geometry'])
+	print centroid_csv_data
+	#input.to_csv(out_geojson.replace('.json', '.csv'))
 
 
 def run_console_cmd(cmd):
@@ -523,6 +572,12 @@ def config_settings():
 	dz_binary_dir = r'{}\dz'.format(qaqc_dir)
 	dz_raster_dir = r'{}'.format(qaqc_gdb)
 	
+	contractor_tiles_geojson = os.path.join(qaqc_dir, 'contractor_tiles.json')
+	contractor_tiles_centroids_geojson = os.path.join(qaqc_dir, 'contractor_tiles_centroids.json')
+
+	qaqc_results = r'C:\QAQC_contract\nantucket\qaqc_tile_collection_results.csv'
+	contractor_tiles_shp = r'C:\QAQC_contract\nantucket\EXTENTS\final\Nantucket_TileGrid.shp'
+
 	classification_scheme_dir = r'\\ngs-s-rsd\response_dl\Research\transfer\software\LP360'
 	classification_scheme_xml = 'noaa_topobathy_v02.xml'
 	classificaiton_scheme_fpath = os.path.join(classification_scheme_dir, classification_scheme_xml)
@@ -558,6 +613,10 @@ def config_settings():
 		'qaqc_fd_name': qaqc_fd_name,
 		'qaqc_fd_path': qaqc_fd_path,
 		'qaqc_tile_fc_name': qaqc_tile_fc_name,
+		'qaqc_results': qaqc_results,
+		'contractor_tiles_shp': contractor_tiles_shp,
+        'contractor_tiles_geojson': contractor_tiles_geojson,
+	    'contractor_tiles_centroids_geojson': contractor_tiles_centroids_geojson,
 		'dz_binary_dir': dz_binary_dir,
 		'dz_raster_dir': dz_raster_dir,
 		'las_tile_dir': las_tile_dir,
@@ -577,20 +636,25 @@ def main():
 	logging.basicConfig(format='%(asctime)s:%(message)s', level=logging.INFO)
 	settings = config_settings()
 
-	nantucket = LasTileCollection(settings['las_tile_dir'])
-	qaqc = QaqcTileCollection(
-		settings['dz_export_settings'],
-		settings['dz_binary_dir'],
-		settings['dz_raster_dir'],
-		nantucket.get_las_tile_paths()[0:20],
-		settings['qaqc_gdb'], 
-		settings['qaqc_fd_name'], 
-		settings['qaqc_tile_fc_name'],
-		settings['checks_to_do'])
-	#qaqc.create_qaqc_feature_dataset()
-	#qaqc.create_qaqc_tile_feature_class()
-	qaqc.run_qaqc_tile_collection_checks()
-	qaqc.consolidate_qaqc_check_results()
+	# convert contractor tile shp to geojson (for dashboard display)
+	
+	#shp_to_geojson(shp, settings['contractor_tiles_geojson'])
+	gen_tile_centroids(settings['contractor_tiles_shp'], settings['contractor_tiles_centroids_geojson'])
+
+	#nantucket = LasTileCollection(settings['las_tile_dir'])
+	#qaqc = QaqcTileCollection(
+	#	settings['dz_export_settings'],
+	#	settings['dz_binary_dir'],
+	#	settings['dz_raster_dir'],
+	#	nantucket.get_las_tile_paths()[0:20],
+	#	settings['qaqc_gdb'], 
+	#	settings['qaqc_fd_name'], 
+	#	settings['qaqc_tile_fc_name'],
+	#	settings['checks_to_do'])
+	##qaqc.create_qaqc_feature_dataset()
+	##qaqc.create_qaqc_tile_feature_class()
+	#qaqc.run_qaqc_tile_collection_checks()
+	#qaqc.consolidate_qaqc_check_results(settings['qaqc_results'])
 
 
 if __name__ == '__main__':
