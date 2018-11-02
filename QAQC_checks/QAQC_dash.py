@@ -3,7 +3,13 @@ import dash
 import dash_core_components as dcc
 import dash_html_components as html
 import pandas as pd
+import geopandas as gpd
 import numpy as np
+import json
+
+from pyproj import Proj, transform
+import fiona
+from fiona.crs import from_epsg
 
 from toolz import groupby, compose, pluck
 from dotenv import load_dotenv
@@ -95,20 +101,34 @@ def make_bathy_hist_data():
 	return (hist, bin_edges)
 
 
+def shp_to_geojson(shp, geojson):
+    file = gpd.read_file(shp)
+    file.to_file(geojson, driver="GeoJSON")
 
-def bigfoot_map(sightings):
-    # groupby returns a dictionary mapping the values of the first field 
-    # 'classification' onto a list of record dictionaries with that 
-    # classification value.
-    classifications = groupby('classification', sightings)
-    return {
-        "data": [
-                {
-                    "type": "scattermapbox",
-                    "lat": listpluck("latitude", class_sightings),
-                    "lon": listpluck("longitude", class_sightings),
-                    "mode": "markers",
-                    "name": classification,
+qaqc_dir = r'C:\QAQC_contract\nantucket'
+contractor_las_tiles = r'C:\QAQC_contract\nantucket\EXTENTS\final\Nantucket_TileGrid.shp'
+las_tiles_geojson = os.path.join(qaqc_dir, 'contractor_tiles.json')
+
+with open(las_tiles_geojson) as f:
+	geojson_data = json.load(f)
+
+print(geojson_data)
+#shp_to_geojskon(contractor_las_tiles, las_tiles_geojson)
+
+
+def qaqc_map(sightings):
+	# groupby returns a dictionary mapping the values of the first field 
+	# 'classification' onto a list of record dictionaries with that 
+	# classification value.
+	classifications = groupby('classification', sightings)
+	return {
+		"data": [
+				{
+					"type": "scattermapbox",
+					"lat": listpluck("latitude", class_sightings),
+					"lon": listpluck("longitude", class_sightings),
+					"mode": "markers",
+					"name": classification,
                     "marker": {
                         "size": 3,
                         "opacity": 1.0
@@ -124,7 +144,7 @@ def bigfoot_map(sightings):
             "mapbox": {
                 'layers': [{
                     'sourcetype': 'geojson',
-                    'source': geojson,
+                    'source': geojson_data,
                     'type': 'line',
                     'color': 'yellow',
                     'line': {'width':0.4},
@@ -371,7 +391,7 @@ app.layout = html.Div(style={'backgroundColor': colors['background']}, children=
 def update_map_layer(selector):
 
     if 'MTL' in selector:
-        figure=bigfoot_map(tile_centroids)
+        figure=qaqc_map(tile_centroids)
 
     return figure
 

@@ -99,6 +99,13 @@ class LasTile:
 			'las_tile_extents': self.las_extents,
 			'class_counts': self.class_counts,
 			'check_results': self.checks_result}
+
+		# del keys not needed because of repitition
+		info_to_output['las_header'].pop('VLRs', None)
+		info_to_output['las_header'].pop('version_major', None)
+		info_to_output['las_header'].pop('version_minor', None)
+		info_to_output['las_header'].pop('global_encoding', None)
+		info_to_output['las_header'].pop('data_format_id', None)
 		return json.dumps(info_to_output, indent=2)
 
 	def get_class_counts(self):
@@ -249,7 +256,7 @@ class QaqcTile():
 			'naming_convention': self.check_las_naming_convention,
 			'version': self.check_las_version,
 			'pdrf': self.check_las_pdrf,
-			'gps_time': self.check_las_gps_time,
+			'gps_time_type': self.check_las_gps_time,
 			'hor_datum': self.check_hor_datum,
 			'ver_datum': self.check_ver_datum,
 			'point_source_ids': self.check_point_source_ids,
@@ -264,8 +271,6 @@ class QaqcTile():
 	def check_las_naming_convention(self, tile):
 		"""for now, the checks assume Northern Hemisphere"""
 
-		tile_name = tile.name
-
 		# https://www.e-education.psu.edu/natureofgeoinfo/c2_p23.html
 		min_easting = 167000
 		max_easting = 833000
@@ -276,11 +281,10 @@ class QaqcTile():
 
 		# first check general format with regex (e.g., ####_######e_#[#######]n_las)
 		pattern = re.compile(r'[0-9]{4}_[0-9]{6}e_[0-9]{1,8}(n_las)')
-		print pattern.match(tile_name)
-		if pattern.match(tile_name):
+		if pattern.match(tilen.name):
 
 			# then check name components
-			tile_name_parts = tilename.split('_')
+			tile_name_parts = tile.name.split('_')
 			easting = tile_name_parts[1].replace('e', '')
 			northing = tile_name_parts[2].replace('n', '')
 
@@ -294,7 +298,7 @@ class QaqcTile():
 		else:
 			passed = False
 		tile.checks_result['naming_convention'] = tile_name
-		tile.checks_result['naming_convention'] = passed
+		tile.checks_result['naming_convention_passed'] = passed
 		return 'PASSED' if passed else 'FAILED'
 
 	def check_las_version(self, tile):
@@ -519,7 +523,7 @@ def config_settings():
 	classification_scheme_dir = r'\\ngs-s-rsd\response_dl\Research\transfer\software\LP360'
 	classification_scheme_xml = 'noaa_topobathy_v02.xml'
 	classificaiton_scheme_fpath = os.path.join(classification_scheme_dir, classification_scheme_xml)
-		
+	
 	dz_raster_catalog = r'{}\{}_raster_catalog'.format(qaqc_gdb, 'nantucket') 
 	dz_classes_lyr = r'C:\QAQC_contract\dz_classes.lyr'
 	dz_export_settings = r'C:\QAQC_contract\\dz_export_settings.xml'
@@ -535,10 +539,10 @@ def config_settings():
 	}
 
 	checks_to_do = {
-		'naming_convention': False,
+		'naming_convention': True,
 		'version': True,
 		'pdrf': True,
-		'gps_time': True,
+		'gps_time_type': True,
 		'hor_datum': True,
 		'ver_datum': False,
 		'point_source_ids': False,
@@ -569,7 +573,7 @@ def config_settings():
 def main():
 	logging.basicConfig(format='%(asctime)s:%(message)s', level=logging.INFO)
 	settings = config_settings()
-	print(settings)
+
 	nantucket = LasTileCollection(settings['las_tile_dir'])
 	qaqc = QaqcTileCollection(
 		settings['dz_export_settings'],
