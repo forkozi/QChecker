@@ -128,6 +128,9 @@ class LasTile:
 	def get_hor_datum(self):
 		return self.header['VLRs']['coord_sys']
 
+    def calc_centroid(self):
+
+
 
 class DzOrthoMosaic():
 

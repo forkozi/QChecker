@@ -6,6 +6,7 @@ import pandas as pd
 import geopandas as gpd
 import numpy as np
 import json
+from io import open
 
 from pyproj import Proj, transform
 import fiona
@@ -109,10 +110,9 @@ qaqc_dir = r'C:\QAQC_contract\nantucket'
 contractor_las_tiles = r'C:\QAQC_contract\nantucket\EXTENTS\final\Nantucket_TileGrid.shp'
 las_tiles_geojson = os.path.join(qaqc_dir, 'contractor_tiles.json')
 
-with open(las_tiles_geojson) as f:
+with open(las_tiles_geojson, encoding='utf-8') as f:
 	geojson_data = json.load(f)
 
-print(geojson_data)
 #shp_to_geojskon(contractor_las_tiles, las_tiles_geojson)
 
 
@@ -146,8 +146,8 @@ def qaqc_map(sightings):
                     'sourcetype': 'geojson',
                     'source': geojson_data,
                     'type': 'line',
-                    'color': 'yellow',
-                    'line': {'width':0.4},
+                    'color': '#0946BF',
+                    'line': {'width':0.5},
                     'opacity': 2
                 }],
                 "accesstoken": MAPBOX_KEY,
