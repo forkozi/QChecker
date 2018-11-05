@@ -3,6 +3,7 @@ import json
 import logging
 import pandas as pd
 import geopandas as gpd
+from shapely.geometry import Point
 import numpy as np
 from scipy import stats
 import subprocess
@@ -74,6 +75,18 @@ class LasTile:
 							'ExtentYMin': self.header['y_min'],
 							'ExtentYMax': self.header['y_max'],
 							}
+
+		def calc_las_centroid():
+			tile_size = 500  # meters
+			data_nw_x = self.las_extents['ExtentXMin']
+			data_nw_y = self.las_extents['ExtentYMax']
+			las_nw_x = data_nw_x - (data_nw_x % tile_size)
+			las_nw_y = data_nw_y + tile_size - (data_nw_y % tile_size)
+			las_centroid_x = las_nw_x + tile_size / 2
+			las_centroid_y = las_nw_y - tile_size / 2
+			return (las_centroid_x, las_centroid_y)
+
+		self.centroid_x, self.centroid_y = calc_las_centroid()
 		self.class_counts = self.get_class_counts()
 		self.has_bathy = True if '26' in self.class_counts.keys() else False
 		self.has_ground = True if '2' in self.class_counts.keys() else False
@@ -96,18 +109,20 @@ class LasTile:
 
 	def __str__(self):
 		info_to_output = {
-			'las_tile_name': self.name,
-			'las_header': self.header,
-			'las_tile_extents': self.las_extents,
+			'tile_name': self.name,
+			'header': self.header,
+			'tile_extents': self.las_extents,
+            'centroid_x': self.centroid_x, 
+            'centroid_y': self.centroid_y, 
 			'class_counts': self.class_counts,
 			'check_results': self.checks_result}
 
 		# del keys not needed because of repitition
-		info_to_output['las_header'].pop('VLRs', None)
-		info_to_output['las_header'].pop('version_major', None)
-		info_to_output['las_header'].pop('version_minor', None)
-		info_to_output['las_header'].pop('global_encoding', None)
-		info_to_output['las_header'].pop('data_format_id', None)
+		info_to_output['header'].pop('VLRs', None)
+		info_to_output['header'].pop('version_major', None)
+		info_to_output['header'].pop('version_minor', None)
+		info_to_output['header'].pop('global_encoding', None)
+		info_to_output['header'].pop('data_format_id', None)
 		return json.dumps(info_to_output, indent=2)
 
 	def get_class_counts(self):
@@ -276,7 +291,7 @@ class QaqcTile():
 	def check_las_naming_convention(self, tile):
 		"""for now, the checks assume Northern Hemisphere"""
 
-		# https://www.e-education.psu.edu/natureofgeoinfo/c2_p23.html
+		# for info on UTM, see https://www.e-education.psu.edu/natureofgeoinfo/c2_p23.html
 		min_easting = 167000
 		max_easting = 833000
 		min_northing = 0
@@ -286,7 +301,7 @@ class QaqcTile():
 
 		# first check general format with regex (e.g., ####_######e_#[#######]n_las)
 		pattern = re.compile(r'[0-9]{4}_[0-9]{6}e_[0-9]{1,8}(n_las)')
-		if pattern.match(tilen.name):
+		if pattern.match(tile.name):
 
 			# then check name components
 			tile_name_parts = tile.name.split('_')
@@ -302,7 +317,7 @@ class QaqcTile():
 				passed = False
 		else:
 			passed = False
-		tile.checks_result['naming_convention'] = tile_name
+		tile.checks_result['naming_convention'] = tile.name
 		tile.checks_result['naming_convention_passed'] = passed
 		return 'PASSED' if passed else 'FAILED'
 
@@ -446,6 +461,8 @@ class QaqcTileCollection:
 		self.qaqc_tile_fc_path = os.path.join(self.qaqc_fd_path, self.qaqc_tile_fc_name)
 		self.checks_to_do = checks_to_do
 		self.dz_export_settings = dz_export_settings
+		self.json_dir = r'C:\QAQC_contract\nantucket\qaqc_check_results'
+		self.qaqc_results_json = r'C:\QAQC_contract\nantucket\qaqc_tile_collection_results.json'
 
 	def create_qaqc_feature_dataset(self):
 		logging.info('making {} in {}...'.format(self.qaqc_fd_name, self.qaqc_gdb))
@@ -469,7 +486,7 @@ class QaqcTileCollection:
 			self.dz_export_settings)
 		tiles_qaqc.run_qaqc(self.las_paths, multiprocess=False)
 
-	def consolidate_qaqc_check_results(self, output):
+	def get_qaqc_results_df(self):
 
 		def flatten_dict(d_obj):
 			for k, v in d_obj.items():
@@ -481,10 +498,10 @@ class QaqcTileCollection:
 					yield k, v
 
 		flattened_dicts = []
-		json_dir = r'C:\QAQC_contract\nantucket\qaqc_check_results'
-		for las_json in os.listdir(json_dir):
+		
+		for las_json in os.listdir(self.json_dir):
 			try:
-				las_json = os.path.join(json_dir, las_json)
+				las_json = os.path.join(self.json_dir, las_json)
 				with open(las_json, 'r') as json_file:
 					json_data = json.load(json_file)
 					flattened_json_data = {k:v for k,v in flatten_dict(json_data)}
@@ -492,12 +509,28 @@ class QaqcTileCollection:
 			except Exception as e:
 				print(e)
 
-		with open(r'C:\QAQC_contract\nantucket\qaqc_tile_collection_results.json', 'w') as f:
+		with open(self.qaqc_results_json, 'w') as f:
 			f.write(json.dumps(flattened_dicts))
 
 		df = pd.DataFrame(flattened_dicts)
-		print(df)
+		return df
+
+	def gen_qaqc_results_csv(self, output):
+		df = self.get_qaqc_results_df()
 		df.to_csv(output, index=False)
+
+	def gen_qaqc_results_geojson(self, output):
+		df = self.get_qaqc_results_df()
+
+		df['Coordinates'] = list(zip(df.centroid_x, df.centroid_y))
+		df['Coordinates'] = df['Coordinates'].apply(Point)
+		
+		nad83_utm_z19 = {'init': 'epsg:26919'}
+		wgs84 = {'init': 'epsg:4326'}
+
+		gdf = gpd.GeoDataFrame(df, crs=nad83_utm_z19, geometry='Coordinates')
+		gdf = gdf.to_crs(wgs84)
+		print(gdf)
 
 	#def gen_dz_ortho_mosaic(self):  # TODO
 	#	DzOrtho.create_raster_catalog()
@@ -505,7 +538,6 @@ class QaqcTileCollection:
 	#	DzOrtho.mosaic_dz_raster_catalog()
 	#	DzOrtho.add_dz_mosaic_to_mxd()
 	#	DzOrtho.update_raster_symbology()
-
 
 def shp_to_geojson(shp, geojson):
 
@@ -540,18 +572,22 @@ def shp_to_geojson(shp, geojson):
 			output.write(feat)
 
 
-def gen_tile_centroids(shp, out_geojson):
-	input = gpd.read_file(shp).to_crs({'init': 'epsg:4326'})  # WGS84 (temporary)
+def gen_contractor_tile_shp_centroids(shp, out_geojson):
+	input = gpd.read_file(shp).to_crs({'init': 'epsg:4326'})  # wgs84 (temporary)
 	input['geometry'] = input['geometry'].centroid
 	print(fiona.supported_drivers)
-	input.to_file(out_geojson, driver='GeoJSON')
+	#input.to_file(out_geojson, driver='GeoJSON')
 
-	def get_x_y_name(pt):
-		return (pt.x, pt.y)
+	def get_x(pt):
+		return (pt.x)
 
-	centroid_csv_data = map(get_x_y_name, input['geometry'])
-	print centroid_csv_data
-	#input.to_csv(out_geojson.replace('.json', '.csv'))
+	def get_y(pt):
+		return (pt.y)
+
+	input['centroid_x'] = map(get_x, input['geometry'])
+	input['centroid_y'] = map(get_y, input['geometry'])
+
+	input.to_csv(out_geojson.replace('.json', '.csv'))
 
 
 def run_console_cmd(cmd):
@@ -575,7 +611,8 @@ def config_settings():
 	contractor_tiles_geojson = os.path.join(qaqc_dir, 'contractor_tiles.json')
 	contractor_tiles_centroids_geojson = os.path.join(qaqc_dir, 'contractor_tiles_centroids.json')
 
-	qaqc_results = r'C:\QAQC_contract\nantucket\qaqc_tile_collection_results.csv'
+	qaqc_results_csv = r'C:\QAQC_contract\nantucket\qaqc_tile_collection_results.csv'
+	qaqc_results_geojson = r'C:\QAQC_contract\nantucket\qaqc_tile_collection_results.json'
 	contractor_tiles_shp = r'C:\QAQC_contract\nantucket\EXTENTS\final\Nantucket_TileGrid.shp'
 
 	classification_scheme_dir = r'\\ngs-s-rsd\response_dl\Research\transfer\software\LP360'
@@ -613,7 +650,8 @@ def config_settings():
 		'qaqc_fd_name': qaqc_fd_name,
 		'qaqc_fd_path': qaqc_fd_path,
 		'qaqc_tile_fc_name': qaqc_tile_fc_name,
-		'qaqc_results': qaqc_results,
+		'qaqc_results_csv': qaqc_results_csv,
+        'qaqc_results_geojson': qaqc_results_geojson,
 		'contractor_tiles_shp': contractor_tiles_shp,
         'contractor_tiles_geojson': contractor_tiles_geojson,
 	    'contractor_tiles_centroids_geojson': contractor_tiles_centroids_geojson,
@@ -639,22 +677,23 @@ def main():
 	# convert contractor tile shp to geojson (for dashboard display)
 	
 	#shp_to_geojson(shp, settings['contractor_tiles_geojson'])
-	gen_tile_centroids(settings['contractor_tiles_shp'], settings['contractor_tiles_centroids_geojson'])
+	#gen_contractor_tile_shp_centroids(settings['contractor_tiles_shp'], settings['contractor_tiles_centroids_geojson'])
 
-	#nantucket = LasTileCollection(settings['las_tile_dir'])
-	#qaqc = QaqcTileCollection(
-	#	settings['dz_export_settings'],
-	#	settings['dz_binary_dir'],
-	#	settings['dz_raster_dir'],
-	#	nantucket.get_las_tile_paths()[0:20],
-	#	settings['qaqc_gdb'], 
-	#	settings['qaqc_fd_name'], 
-	#	settings['qaqc_tile_fc_name'],
-	#	settings['checks_to_do'])
+	nantucket = LasTileCollection(settings['las_tile_dir'])
+	qaqc = QaqcTileCollection(
+		settings['dz_export_settings'],
+		settings['dz_binary_dir'],
+		settings['dz_raster_dir'],
+		nantucket.get_las_tile_paths()[0:20],
+		settings['qaqc_gdb'], 
+		settings['qaqc_fd_name'], 
+		settings['qaqc_tile_fc_name'],
+		settings['checks_to_do'])
 	##qaqc.create_qaqc_feature_dataset()
 	##qaqc.create_qaqc_tile_feature_class()
 	#qaqc.run_qaqc_tile_collection_checks()
-	#qaqc.consolidate_qaqc_check_results(settings['qaqc_results'])
+	#qaqc.gen_qaqc_results_csv(settings['qaqc_results_csv'])
+	qaqc.gen_qaqc_results_geojson(settings['contractor_tiles_geojson'])
 
 
 if __name__ == '__main__':

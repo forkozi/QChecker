@@ -5,7 +5,7 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>f842e6fd-4c69-40e3-a39e-92b094b3b673</ProjectGuid>
     <ProjectHome>.</ProjectHome>
-    <StartupFile>QAQC_dash.py</StartupFile>
+    <StartupFile>QAQC_checks.py</StartupFile>
     <SearchPath>
     </SearchPath>
     <WorkingDirectory>.</WorkingDirectory>

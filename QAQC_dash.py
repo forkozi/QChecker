@@ -55,39 +55,78 @@ def make_bathy_hist_data():
 	return (hist, bin_edges)
 
 
-def get_qaqc_map(tile_csv):
+def get_qaqc_map(contract_tile_csv, qaqc_results_csv):
 	# groupby returns a dictionary mapping the values of the first field 
 	# 'classification' onto a list of record dictionaries with that 
 	# classification value.
 	listpluck = compose(list, pluck)
-	classifications = groupby('classification', tile_csv)
-	return {
-		"data": [
+
+	selected_contract_field = 'Notes'
+	contract_tiles = groupby(selected_contract_field, contract_tile_csv)
+
+	selected_contract_field = 'version_passed'
+	qaqc_results = groupby(selected_contract_field, qaqc_results_csv)
+
+	contract_tiles = [
 				{
 					"type": "scattermapbox",
-					"lat": listpluck("latitude", class_sightings),
-					"lon": listpluck("longitude", class_sightings),
+					"lat": listpluck("centroid_y", tile),
+					"lon": listpluck("centroid_x", tile),
 					"mode": "markers",
-					"name": classification,
-                    "marker": {
-                        "size": 3,
-                        "opacity": 1.0
-                    }
-                }
-                for classification, class_sightings in classifications.items()
-            ],
-        "layout": {
-            'margin': {'l': 0, 'r': 0, 't': 0, 'b':0},
-            'showlegend': False,
-            "autosize": True,
-            "hovermode": "closest",
-            "mapbox": {
-                'layers': [{
-                    'sourcetype': 'geojson',
-                    'source': get_tile_geojson_file(),
-                    'type': 'line',
-                    'color': '#0946BF',
-                    'line': {'width':0.5},
+					"name": field,
+					"marker": {
+						"size": 5,
+						"opacity": 0.7
+					},
+					'hoverinfo': "name",
+				}
+				for field, tile in contract_tiles.items()
+			]
+
+	qaqc_tiles = [
+				{
+					"type": "scattermapbox",
+					"lat": listpluck("centroid_y", tile),
+					"lon": listpluck("centroid_x", tile),
+					"mode": "markers",
+					"name": field,
+					"marker": {
+						"size": 5,
+						"opacity": 0.7
+					},
+					'hoverinfo': "name",
+				}
+				for field, tile in qaqc_results.items()
+				]
+
+	print(contract_tiles)
+	print(qaqc_tiles)
+
+	return {
+		"data":  contract_tiles + qaqc_tiles,
+		"layout": {
+			'legend': dict(
+					x=0,
+					y=0,
+					traceorder='normal',
+					font=dict(
+						family='sans-serif',
+						size=12,
+						color=colors['text']
+					),
+					bgcolor='rgba(26,26,26,0.3)',
+				),
+			'margin': {'l': 0, 'r': 0, 't': 0, 'b':0},
+			'showlegend': True,
+			"autosize": True,
+			"hovermode": "closest",
+			"mapbox": {
+				'layers': [{
+					'sourcetype': 'geojson',
+					'source': get_tile_geojson_file(),
+					'type': 'line',
+					'color': '#0946BF',
+					'line': {'width':0.5},
                     'opacity': 2
                 }],
                 "accesstoken": MAPBOX_KEY,
@@ -113,8 +152,8 @@ def get_tile_geojson_file():
 	return geojson_data
 
 
-def get_tile_csv():
-    fin = open(r'C:\QAQC_contract\nantucket\bfro_reports_geocoded.csv', 'r')
+def get_contract_tile_shp_csv():
+    fin = open(r'C:\QAQC_contract\nantucket\contractor_tiles_centroids.csv', 'r')
     reader = DictReader(fin)
     tile_centroids = [line for line in reader]
     fin.close()
@@ -122,8 +161,17 @@ def get_tile_csv():
     return tile_centroids
 
 
+def get_qaqc_results_csv():
+    fin = open(r'C:\QAQC_contract\nantucket\qaqc_tile_collection_results.csv', 'r')
+    reader = DictReader(fin)
+    qaqc_results = [line for line in reader]
+    fin.close()
+
+    return qaqc_results
+
+
 def get_tiles_df():
-    df = pd.read_csv(r'C:\QAQC_contract\nantucket\bfro_reports_geocoded.csv')
+    df = pd.read_csv(r'C:\QAQC_contract\nantucket\contractor_tiles_centroids.csv')
     return df
 
 
@@ -357,7 +405,8 @@ app.layout = html.Div(style={'backgroundColor': colors['background']}, children=
 def update_map_layer(selector):
 
     if 'MTL' in selector:
-        figure=get_qaqc_map(get_tile_csv())
+        figure=get_qaqc_map(get_contract_tile_shp_csv(),
+                            get_qaqc_results_csv())
 
     return figure
 
