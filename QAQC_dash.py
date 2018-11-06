@@ -55,7 +55,21 @@ def make_bathy_hist_data():
 	return (hist, bin_edges)
 
 
-def get_qaqc_map(contract_tile_csv, qaqc_results_csv):
+
+map_colors = {
+    'tiles': {
+        'Outside AOI and no Bathy': 'rgb(67, 67, 67)',
+        'Project Area/Found Bathy': 'rgb(0, 119, 224)',
+        'automated ground run only/no review': 'rgb(32, 140, 37)',
+        },
+    'check_result': {
+        'TRUE': 'rgb(101,255,0)',
+        'FALSE': 'rgb(255,0,0)',
+        },
+    }
+
+
+def get_qaqc_map(check_name, check_label, contract_tile_csv, qaqc_results_csv):
 	# groupby returns a dictionary mapping the values of the first field 
 	# 'classification' onto a list of record dictionaries with that 
 	# classification value.
@@ -64,8 +78,8 @@ def get_qaqc_map(contract_tile_csv, qaqc_results_csv):
 	selected_contract_field = 'Notes'
 	contract_tiles = groupby(selected_contract_field, contract_tile_csv)
 
-	selected_contract_field = 'version_passed'
-	qaqc_results = groupby(selected_contract_field, qaqc_results_csv)
+	selected_qaqc_field = check_label
+	qaqc_results = groupby(selected_qaqc_field, qaqc_results_csv)
 
 	contract_tiles = [
 				{
@@ -75,10 +89,12 @@ def get_qaqc_map(contract_tile_csv, qaqc_results_csv):
 					"mode": "markers",
 					"name": field,
 					"marker": {
-						"size": 5,
-						"opacity": 0.7
+						"size": 4,
+						"opacity": 1,
+                        "color": map_colors['tiles'][field],
 					},
-					'hoverinfo': "name",
+                    "text": listpluck("Las_Name", tile),
+					'hoverinfo': "name+text",
 				}
 				for field, tile in contract_tiles.items()
 			]
@@ -89,24 +105,22 @@ def get_qaqc_map(contract_tile_csv, qaqc_results_csv):
 					"lat": listpluck("centroid_y", tile),
 					"lon": listpluck("centroid_x", tile),
 					"mode": "markers",
-					"name": field,
+					"name": '{} ({})'.format(field, check_name),
 					"marker": {
-						"size": 5,
-						"opacity": 0.7
+						"size": 8,
+						"opacity": 0.7,
+                        "color": map_colors['check_result'][field],
 					},
 					'hoverinfo': "name",
 				}
 				for field, tile in qaqc_results.items()
 				]
 
-	print(contract_tiles)
-	print(qaqc_tiles)
-
 	return {
-		"data":  contract_tiles + qaqc_tiles,
+		"data":  qaqc_tiles + contract_tiles,
 		"layout": {
 			'legend': dict(
-					x=0,
+					x=1,
 					y=0,
 					traceorder='normal',
 					font=dict(
@@ -114,7 +128,7 @@ def get_qaqc_map(contract_tile_csv, qaqc_results_csv):
 						size=12,
 						color=colors['text']
 					),
-					bgcolor='rgba(26,26,26,0.3)',
+					bgcolor='rgba(26,26,26,1)',
 				),
 			'margin': {'l': 0, 'r': 0, 't': 0, 'b':0},
 			'showlegend': True,
@@ -133,10 +147,10 @@ def get_qaqc_map(contract_tile_csv, qaqc_results_csv):
                 "bearing": 0,
                 "center": {
                     "lat": 41.35,
-                    "lon": -70.4
+                    "lon": -70.3
                 },
                 "pitch": 0,
-                "zoom": 9,
+                "zoom": 10,
                 "style": "dark"
             }
         }
@@ -145,21 +159,24 @@ def get_qaqc_map(contract_tile_csv, qaqc_results_csv):
 
 def get_tile_geojson_file():
 	qaqc_dir = r'C:\QAQC_contract\nantucket'
-	las_tiles_geojson = os.path.join(qaqc_dir, 'contractor_tiles.json')
+	las_tiles_geojson = os.path.join(qaqc_dir, 'tiles.json')
 	with open(las_tiles_geojson, encoding='utf-8') as f:
 		geojson_data = json.load(f)
 
 	return geojson_data
 
 
-def get_contract_tile_shp_csv():
-    fin = open(r'C:\QAQC_contract\nantucket\contractor_tiles_centroids.csv', 'r')
+def get_contract_tile_csv():
+    fin = open(r'C:\QAQC_contract\nantucket\tiles_centroids.csv', 'r')
     reader = DictReader(fin)
     tile_centroids = [line for line in reader]
     fin.close()
 
     return tile_centroids
 
+def get_tiles_df():
+    df = pd.read_csv(r'C:\QAQC_contract\nantucket\tiles_centroids.csv')
+    return df
 
 def get_qaqc_results_csv():
     fin = open(r'C:\QAQC_contract\nantucket\qaqc_tile_collection_results.csv', 'r')
@@ -170,9 +187,6 @@ def get_qaqc_results_csv():
     return qaqc_results
 
 
-def get_tiles_df():
-    df = pd.read_csv(r'C:\QAQC_contract\nantucket\contractor_tiles_centroids.csv')
-    return df
 
 
 MAPBOX_KEY = "pk.eyJ1Ijoibmlja2ZvcmZpbnNraSIsImEiOiJjam51cTNxY2wwMTJ2M2xrZ21wbXZrN2F1In0.RooxCuqsNotDzEP2EeuJng"
@@ -191,7 +205,9 @@ map_button_style = {
     'color': colors['text'],
     'border-color': colors['text'],
     'background-color': colors['background'],
-    'border-radius': '50px'
+    'border-radius': '50px',
+    'padding': '0px',
+    'line-height': '1px',
 }
 
 checks_to_do = {
@@ -203,8 +219,41 @@ checks_to_do = {
 	'ver_datum': False,
 	'point_source_ids': False,
     'create_dz': True,
-    'create_dz': False,
+    'create_hillshade': False,
 }
+
+check_labels = {
+    'naming_convention': 'Naming Convention',
+	'version': 'Version',
+	'pdrf': 'Record Type (PDRF)',
+	'gps_time': 'GPS Time Type',
+	'hor_datum': 'Horizontal Datum',
+	'ver_datum': 'Vertical Datum',
+	'point_source_ids': 'Point Source IDs',
+    'create_dz': 'Dz Ortho Created',
+    'create_hillshade': 'Hillshade Ortho Created',
+    }
+
+check_result_names = {
+    'naming_convention': 'naming_convention_passed',
+	'version': 'version_passed',
+	'pdrf': 'pdrf_passed',
+	'gps_time': 'gps_time_passed',
+	'hor_datum': 'hor_datum_passed',
+	'ver_datum': '',
+	'point_source_ids': '',
+    'create_dz': '',
+    'create_hillshade': '',
+    }
+
+
+def get_check_layer_options():
+    options = []
+    for check in checks_to_do.keys():
+        options.append({'label': check_labels[check], 'value': check})
+
+    return options
+
 
 app.layout = html.Div(style={'backgroundColor': colors['background']}, children=[
     html.Div(style={'backgroundColor':'#00ADEF'}, children=[
@@ -352,61 +401,70 @@ app.layout = html.Div(style={'backgroundColor': colors['background']}, children=
 				}
 			)
 
-		], className='four columns'),
+		], className='three columns'),
 
 		html.Div(style={}, children=[
-
+            
 			html.Div([
-				dcc.Dropdown(
-                    style=map_button_style,
-					id='MapLayers',                             
-                    options=[
-                        {'label': 'New York City', 'value': 'NYC'},
-                        {'label': 'Montréal', 'value': 'MTL'},
-                        {'label': 'San Francisco', 'value': 'SF'}
-                    ],
-                    placeholder='Select a Layer',
-                    value='MTL',
-                    className='two columns'
-                ),
 
-                    dcc.Dropdown(
-                    style=map_button_style,
-                    options=[
-                        {'label': 'streets', 'value': 'streets'},
-                        {'label': 'satellite', 'value': 'satellite'},
-                    ],
-                    placeholder='Select a Layer',
-                    value='MTL',
-                    className='two columns'
-                ),
+				dcc.Graph(
+					id='qaqc_map',
+					style={'height': '65vh'}
+				),
+
+                html.Div(
+				    style={
+					    'float': 'right',
+					    'z-index': 1,
+					    'position': 'absolute',
+				    }, 
+				    children=[
+					    html.P(
+						    style={'color': colors['text'], 'margin':0}, 
+						    children='Test Result:'),
+
+                        dcc.Dropdown(
+                            style=map_button_style,
+					        id='CheckResultLayers',                             
+                            options=get_check_layer_options(),
+                            placeholder='Select a Layer',
+                            value='version'),
+
+                        html.P(
+                            style={'color': colors['text'], 'margin':0}, 
+                            children='Map Style'),
+
+                        dcc.Dropdown(
+                            style=map_button_style,
+                            options=[
+                                {'label': 'streets', 'value': 'streets'},
+                                {'label': 'satellite', 'value': 'satellite'},
+                            ],
+                            placeholder='Select a Layer',
+                            value='MTL'),
+                ], className='three columns'),
             ], className='row'),
 
-            dcc.Graph(
-                id='bigfoot-map',
-                style={'height': '65vh'}
-            ),
-
             html.Div([
-                html.Div([
-                    generate_table(get_tiles_df())
-                ], className='twelve columns'),
-            ]),
+                generate_table(get_tiles_df())
+            ], className='row'),
 
-        ], className='eight columns'),
+        ], className='nine columns'),
 
     ], className='row')
 
 ], className='no gutters')
 
 @app.callback(
-    dash.dependencies.Output('bigfoot-map', 'figure'),
-    [dash.dependencies.Input('MapLayers', 'value')])
+    dash.dependencies.Output('qaqc_map', 'figure'),
+    [dash.dependencies.Input('CheckResultLayers', 'value')])
 def update_map_layer(selector):
-
-    if 'MTL' in selector:
-        figure=get_qaqc_map(get_contract_tile_shp_csv(),
-                            get_qaqc_results_csv())
+    print(selector)
+    
+    figure=get_qaqc_map(check_labels[selector], 
+                        check_result_names[selector],
+                        get_contract_tile_csv(),
+                        get_qaqc_results_csv())
 
     return figure
 
