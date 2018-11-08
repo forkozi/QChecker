@@ -623,6 +623,7 @@ def config_settings():
 
     tiles_geojson = os.path.join(qaqc_dir, 'tiles.json')
     tiles_centroids_geojson = os.path.join(qaqc_dir, 'tiles_centroids.json')
+    tiles_coords_csv = os.path.join(qaqc_dir, 'tiles_coords.csv')
 
     qaqc_results_csv = r'C:\QAQC_contract\nantucket\qaqc_tile_collection_results.csv'
     qaqc_results_geojson = r'C:\QAQC_contract\nantucket\qaqc_tile_collection_results.json'
@@ -668,6 +669,7 @@ def config_settings():
         'tiles_shp': tiles_shp,
         'tiles_geojson': tiles_geojson,
         'tiles_centroids_geojson': tiles_centroids_geojson,
+        'tiles_coords_csv': tiles_coords_csv,
         'checks_to_do': checks_to_do,
         'las_tile_dir': las_tile_dir,
         'classification_scheme_xml': classification_scheme_xml,
@@ -694,21 +696,24 @@ def main():
     #       settings['tiles_shp'],
     #       settings['tiles_centroids_geojson'])
 
-    nantucket = LasTileCollection(settings['las_tile_dir'])
-    qaqc = QaqcTileCollection(
-        settings['dz_export_settings'],
-        settings['dz_binary_dir'],
-        settings['dz_raster_dir'],
-        nantucket.get_las_tile_paths(),
-        settings['qaqc_gdb'],
-        settings['qaqc_fd_name'],
-        settings['qaqc_tile_fc_name'],
-        settings['checks_to_do'])
-    ##qaqc.create_qaqc_feature_dataset()
-    ##qaqc.create_qaqc_tile_feature_class()
-    qaqc.run_qaqc_tile_collection_checks()
-    qaqc.gen_qaqc_results_csv(settings['qaqc_results_csv'])
+    gen_tile_poly_coords_csv(settings['tiles_shp'], settings['tiles_coords_csv'])
+
+    #nantucket = LasTileCollection(settings['las_tile_dir'])
+    #qaqc = QaqcTileCollection(
+    #    settings['dz_export_settings'],
+    #    settings['dz_binary_dir'],
+    #    settings['dz_raster_dir'],
+    #    nantucket.get_las_tile_paths(),
+    #    settings['qaqc_gdb'],
+    #    settings['qaqc_fd_name'],
+    #    settings['qaqc_tile_fc_name'],
+    #    settings['checks_to_do'])
+    ###qaqc.create_qaqc_feature_dataset()
+    ###qaqc.create_qaqc_tile_feature_class()
+    #qaqc.run_qaqc_tile_collection_checks()
+    #qaqc.gen_qaqc_results_csv(settings['qaqc_results_csv'])
 
 
 if __name__ == '__main__':
     main()
+    

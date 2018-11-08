@@ -2,6 +2,7 @@
 import dash
 import dash_core_components as dcc
 import dash_html_components as html
+import dash_table as dt
 import pandas as pd
 import geopandas as gpd
 import numpy as np
@@ -20,35 +21,54 @@ from csv import DictReader
 #load_dotenv(dotenv_path)
 
 
-def generate_table(dataframe, max_rows=10):
-    return html.Table(style={
-        'overflow': 'auto',
-    }, children=
-    # Header
-    [html.Tr([html.Th(col,
-                      style={
-                          'textAlign': 'center',
-                          'color': colors['text'],
-                          'padding-top':'1px',
-                          'padding-bottom':'1px',
-                          'text-align':'left'}
-                      ) for col in dataframe.columns])] +
+def generate_table(df):
 
-    # Body
-    [html.Tr([
-        html.Td(
-            dataframe.iloc[i][col],
-            style={
-                'textAlign': 'center',
-                'color': colors['text'],
-                'padding-top':'1px',
-                'padding-bottom':'1px',
-                'text-align':'left',
-                'border-bottom':'blue',
-                'white-space': 'nowrap',
-            })  # TODO: not what I wanted, but I like it! (fix)
-        for col in dataframe.columns
-    ]) for i in range(min(len(dataframe), max_rows))]
+    return dt.DataTable(
+        id='qaqc-table',
+        columns=[{"name": i, "id": i} for i in df.columns],
+        data=df.to_dict("rows"),
+        style_table={
+            'maxHeight': '90vh',
+            'overflowY': 'scroll'
+        },
+        style_cell={
+            'backgroundColor': 'rgb(50, 50, 50)',
+            'border': 'lightgrey',
+            'color': colors['text'],
+            'margin-top': '1px',
+            'margin-bottom': '1px',
+
+        },
+        style_cell_conditional=[
+            {
+                'if': {'column_id': c},
+                'textAlign': 'left'
+            } for c in []  # enter fields you wante left aligned
+        ] + [
+            {
+                "if": {"row_index": 4},
+                "backgroundColor": "#ffffcc",
+                'color': colors['background']
+            },
+            {
+                'if': {
+                    'column_id': 'class26count',
+                    'filter': 'class26count > num(0)'
+                },
+                'backgroundColor': '#3D9970',
+                'color': 'white',
+            },
+            {
+                'if': {
+                    'column_id': 'class26count',
+                    'filter': 'class26count <= num(0)'
+                },
+                'backgroundColor': '#ff4d4d',
+                'color': 'white',
+            },
+        ],
+
+    style_as_list_view=False,
     )
 
 
@@ -119,8 +139,21 @@ def get_qaqc_map(check_name, check_label, map_style, contract_tile_csv, qaqc_res
         for field, tile in qaqc_results.items()
     ]
 
+    tiles = [
+        dict(
+            type='scattermapbox',
+            lon=tile_coords_x,
+            lat=tile_coords_y,
+            mode='lines',
+            line=dict(width=0.8, color='rgb(34, 57, 94)'),
+            name='Contrator Tiles',
+            hovermode='closest',
+            hoverinfo='name'
+            )
+        ]
+
     return {
-        "data":  qaqc_tiles + contract_tiles,
+        "data":  qaqc_tiles + contract_tiles + tiles,
         "layout": {
             'legend': dict(
                 x=0,
@@ -138,14 +171,7 @@ def get_qaqc_map(check_name, check_label, map_style, contract_tile_csv, qaqc_res
             "autosize": True,
             "hovermode": "closest",
             "mapbox": {
-                'layers': [{
-                    'sourcetype': 'geojson',
-                    'source': get_tile_geojson_file(),
-                    'type': 'line',
-                    'color': '#0946BF',
-                    'line': {'width':0.5},
-                    'opacity': 2
-                }],
+                'layers': [],
                 "accesstoken": MAPBOX_KEY,
                 "bearing": 0,
                 "center": {
@@ -165,7 +191,6 @@ def get_tile_geojson_file():
     las_tiles_geojson = os.path.join(qaqc_dir, 'tiles.json')
     with open(las_tiles_geojson, encoding='utf-8') as f:
         geojson_data = json.load(f)
-
     return geojson_data
 
 
@@ -174,27 +199,51 @@ def get_contract_tile_csv():
     reader = DictReader(fin)
     tile_centroids = [line for line in reader]
     fin.close()
-
     return tile_centroids
+
 
 def get_tiles_df():
     df = pd.read_csv(r'C:\QAQC_contract\nantucket\tiles_centroids.csv')
     return df
+
+
+def get_qaqc_df():
+    df = pd.read_csv(r'C:\QAQC_contract\nantucket\qaqc_tile_collection_results.csv')
+    return df
+
 
 def get_qaqc_results_csv():
     fin = open(r'C:\QAQC_contract\nantucket\qaqc_tile_collection_results.csv', 'r')
     reader = DictReader(fin)
     qaqc_results = [line for line in reader]
     fin.close()
-
     return qaqc_results
+
+
+def gen_tile_coords(shp):
+    input = gpd.read_file(shp).to_crs({'init': 'epsg:4326'})  # wgs84 (temporary)
+
+    coords = []
+    for index, row in input.iterrows():
+        for pt in list(row['geometry'].exterior.coords): 
+            coords.append(list(pt))
+        coords.append([None, None])
+    
+    coords = np.asarray(coords, dtype=np.str)
+    x = coords[:, 0]
+    y = coords[:, 1]
+
+    return x.tolist(), y.tolist()
 
 
 MAPBOX_KEY = "pk.eyJ1Ijoibmlja2ZvcmZpbnNraSIsImEiOiJjam51cTNxY2wwMTJ2M2xrZ21wbXZrN2F1In0.RooxCuqsNotDzEP2EeuJng"
 
 external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
 app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
+app.title = 'RSD Contract QAQC'
 
+tiles_shp = r'C:\QAQC_contract\nantucket\EXTENTS\final\Nantucket_TileGrid.shp'
+tile_coords_x, tile_coords_y = gen_tile_coords(tiles_shp)
 
 colors = {
     'background': '#373D42',
@@ -425,6 +474,7 @@ def get_tile_overview_tab():
         html.Div([
             dcc.Graph(
                 id='qaqc_map',
+                animate=True,
                 style={'height': '90vh'}
             ),
         ], className='seven columns'),
@@ -480,20 +530,20 @@ def get_tile_overview_tab():
 
 def get_tile_point_cloud_tab():
     return html.Div([
-        generate_table(get_tiles_df())
-    ], className='row'),
+        generate_table(get_qaqc_df())
+    ], className='row')
 
 
 def get_qaqc_result_table_tab():
     return html.Div([
-        generate_table(get_tiles_df())
-    ], className='row'),
+        generate_table(get_qaqc_df())
+    ], className='row')
 
 
 def get_qaqc_log_tab():
     return html.Div([
-        generate_table(get_tiles_df())
-    ], className='row'),
+        generate_table(get_qaqc_df())
+    ], className='row')
 
 
 app.config['suppress_callback_exceptions']=True
@@ -526,7 +576,7 @@ app.layout = html.Div(
 
                         dcc.Tabs(
                             id="tabs-header",
-                            value='tab-1',
+                            value='qaqc_settings-tab',
                             style=tabs_styles,
                             children=[
 
@@ -552,7 +602,7 @@ app.layout = html.Div(
                                     style=tab_style,
                                     selected_style=tab_selected_style,
                                     label='QAQC Results Table',
-                                    value='qaqd-results-table-tab'),
+                                    value='qaqc-results-table-tab'),
 
                                 dcc.Tab(
                                     style=tab_style,
@@ -566,9 +616,18 @@ app.layout = html.Div(
 
             ], className='row'),
 
-        html.Div(id='tabs-content')
+        html.Div(id='tabs-content', className='row')
 
     ], className='no gutters')
+
+
+#@app.callback(dash.dependencies.Output('tabs-content', 'children'),
+#              [dash.dependencies.Input('tabs-header', 'value')])
+#def update_selected_rows_indices():
+#    map_aux = get_tiles_df().copy()
+
+#    rows = map_aux.to_dict('records')
+#    return rows
 
 
 @app.callback(dash.dependencies.Output('tabs-content', 'children'),
@@ -580,7 +639,7 @@ def render_content(tab):
         return get_tile_overview_tab()
     elif tab == 'tile-point-cloud-tab':
         return get_tile_point_cloud_tab()
-    elif tab == 'qaqd-results-table-tab':
+    elif tab == 'qaqc-results-table-tab':
         return get_qaqc_result_table_tab()
     elif tab == 'qaqc-log-tab':
         return get_qaqc_log_tab()
@@ -591,8 +650,6 @@ def render_content(tab):
     [dash.dependencies.Input('CheckResultLayers', 'value'),
      dash.dependencies.Input('MapStyleSelector', 'value')])
 def update_map_layer(input1, input2):
-    print(input1)
-    print(input2)
 
     figure=get_qaqc_map(check_labels[input1],
                         check_result_names[input1],
