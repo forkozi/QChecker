@@ -96,10 +96,10 @@ listpluck = compose(list, pluck)
 
 
 def make_bathy_hist_data():
-	mu, sigma = 0, 0.1 # mean and standard deviation
-	s = np.random.normal(mu, sigma, 1000)
-	hist, bin_edges = np.histogram(s, bins=100)
-	return (hist, bin_edges)
+    mu, sigma = 0, 0.1 # mean and standard deviation
+    s = np.random.normal(mu, sigma, 1000)
+    hist, bin_edges = np.histogram(s, bins=100)
+    return (hist, bin_edges)
 
 
 def shp_to_geojson(shp, geojson):
@@ -111,24 +111,24 @@ contractor_las_tiles = r'C:\QAQC_contract\nantucket\EXTENTS\final\Nantucket_Tile
 las_tiles_geojson = os.path.join(qaqc_dir, 'contractor_tiles.json')
 
 with open(las_tiles_geojson, encoding='utf-8') as f:
-	geojson_data = json.load(f)
+    geojson_data = json.load(f)
 
 #shp_to_geojskon(contractor_las_tiles, las_tiles_geojson)
 
 
 def qaqc_map(sightings):
-	# groupby returns a dictionary mapping the values of the first field 
-	# 'classification' onto a list of record dictionaries with that 
-	# classification value.
-	classifications = groupby('classification', sightings)
-	return {
-		"data": [
-				{
-					"type": "scattermapbox",
-					"lat": listpluck("latitude", class_sightings),
-					"lon": listpluck("longitude", class_sightings),
-					"mode": "markers",
-					"name": classification,
+    # groupby returns a dictionary mapping the values of the first field 
+    # 'classification' onto a list of record dictionaries with that 
+    # classification value.
+    classifications = groupby('classification', sightings)
+    return {
+        "data": [
+                {
+                    "type": "scattermapbox",
+                    "lat": listpluck("latitude", class_sightings),
+                    "lon": listpluck("longitude", class_sightings),
+                    "mode": "markers",
+                    "name": classification,
                     "marker": {
                         "size": 3,
                         "opacity": 1.0
@@ -167,8 +167,8 @@ def qaqc_map(sightings):
 app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
 
 colors = {
-	'background': '#373D42',
-	'text': '#B1C4D2',
+    'background': '#373D42',
+    'text': '#B1C4D2',
     'header': '#0968AA'
 }
 
@@ -179,13 +179,13 @@ map_button_style = {
     'border-radius': '50px'}
 
 checks_to_do = {
-	'naming_convention': False,
-	'version': False,
-	'pdrf': False,
-	'gps_time': False,
-	'hor_datum': False,
-	'ver_datum': False,
-	'point_source_ids': False,
+    'naming_convention': False,
+    'version': False,
+    'pdrf': False,
+    'gps_time': False,
+    'hor_datum': False,
+    'ver_datum': False,
+    'point_source_ids': False,
     'create_dz': True,
     'create_dz': False,
 }
@@ -196,24 +196,24 @@ app.layout = html.Div(style={'backgroundColor': colors['background']}, children=
         html.Div([
             html.H6(
                 children='QAQC Dashboard',
-		        style={
-			        'textAlign': 'center',
-			        'color': colors['header']
-		        }),
+                style={
+                    'textAlign': 'center',
+                    'color': colors['header']
+                }),
             html.H6(
-		        children='Nantucket Islands and Martha\'s Vinyard', 
-		        style={
-		            'textAlign': 'center',
-		            'color': colors['header']
+                children='Nantucket Islands and Martha\'s Vinyard', 
+                style={
+                    'textAlign': 'center',
+                    'color': colors['header']
                 }),
         ], className='four columns'),
 
         html.Div(style={}, children=[
 
             html.Div(
-		        style={
-		            'textAlign': 'Left',
-		            'color': colors['header']
+                style={
+                    'textAlign': 'Left',
+                    'color': colors['header']
                 },
                 children=[
                     html.P(style={'margin': 0}, children=r'{:20s}: {:30s}'.format('Project ID', 'MA1601_TB_C')),
@@ -231,54 +231,54 @@ app.layout = html.Div(style={'backgroundColor': colors['background']}, children=
             html.H6(style={'color': colors['text'], 'margin':0}, children='Las Tests'),    
             dcc.Graph(
                 style={'height': '25vh', 'padding': 0},
-		        id='pre-check-results',
-		        figure={
-			        'data': [
-				        {
+                id='pre-check-results',
+                figure={
+                    'data': [
+                        {
                             'x': [340] * 8,
                             'y': range(1,9), 
-	                        'type': 'bar', 'name': 'PASSED', 'orientation': 'h'
+                            'type': 'bar', 'name': 'PASSED', 'orientation': 'h'
                         },
-				        {
+                        {
                             'x': [11] * 8, 
                             'y': range(1,9),
                             'type': 'bar', 'name': 'FAILED', 'orientation': 'h'
                         },
-			        ],
-					'layout': {
+                    ],
+                    'layout': {
                         'margin': {'l': 150, 'r': 5, 't':0},
-						'xaxis': {
-							'title': 'Number of LAS Files'
-							},
-						'yaxis': {
-							'title': None,
-							'titlefont':{
-								'family': 'Courier New, monospace',
-								'size': 20,
-								'color': colors['text']},
+                        'xaxis': {
+                            'title': 'Number of LAS Files'
+                            },
+                        'yaxis': {
+                            'title': None,
+                            'titlefont':{
+                                'family': 'Courier New, monospace',
+                                'size': 20,
+                                'color': colors['text']},
                             'tickvals': range(1, len(checks_to_do.keys())+1),
                             'ticktext': checks_to_do.keys()
-						},
-						'legend': {'orientation': 'h',
-									'x': 0,
-									'y': 1.25},
-						'barmode': 'stack',
-						'plot_bgcolor': colors['background'],
-						'paper_bgcolor': colors['background'],
-						'font': {
-							'color': colors['text']
-						},
-					}
-				}
-			),
+                        },
+                        'legend': {'orientation': 'h',
+                                    'x': 0,
+                                    'y': 1.25},
+                        'barmode': 'stack',
+                        'plot_bgcolor': colors['background'],
+                        'paper_bgcolor': colors['background'],
+                        'font': {
+                            'color': colors['text']
+                        },
+                    }
+                }
+            ),
 
             html.H6(style={'color': colors['text'], 'margin':0}, children='Class Counts'),
             dcc.Graph(
                 style={'height': '20vh'},
-				id='class-code-hist',
-				figure={
-					'data': [
-						{
+                id='class-code-hist',
+                figure={
+                    'data': [
+                        {
                             'values': [2,5,12,43,54,7789,3434,34,343,1],
                             'labels': ['{}:{}'.format(c, v) for c, v in 
                                         zip([01,02,03,04,25,26,27,44,56,66], 
@@ -287,65 +287,65 @@ app.layout = html.Div(style={'backgroundColor': colors['background']}, children=
                             'hoverinfo': 'label+percent+value',
                             'type': 'pie', 
                             'name': 'SF'},
-					],
-					'layout': {
-						'title': None,
+                    ],
+                    'layout': {
+                        'title': None,
                         'margin': {'l': 150, 'r': 25, 't': 0, 'b':25},
                         'plot_bgcolor': colors['background'],
-						'paper_bgcolor': colors['background'],
-						'font': {
-							'color': colors['text']
-						},
+                        'paper_bgcolor': colors['background'],
+                        'font': {
+                            'color': colors['text']
+                        },
                         'legend': {
-							'x': -25.0,
-							'y': 1.15},
-					}
-				}
-			),
+                            'x': -25.0,
+                            'y': 1.15},
+                    }
+                }
+            ),
 
             html.H6(style={'color': colors['text'], 'margin':0}, children='Bathymetry Histogram'),
-			dcc.Graph(
+            dcc.Graph(
                 style={'height': '25vh'},
-				id='depth-hist',
-				figure={
-					'data': [
-						{'x': make_bathy_hist_data()[1], 
+                id='depth-hist',
+                figure={
+                    'data': [
+                        {'x': make_bathy_hist_data()[1], 
                         'y': make_bathy_hist_data()[0], 'type': 'bar', 'name': 'SF'},
-					],
-					'layout': {
-						'title': None,
+                    ],
+                    'layout': {
+                        'title': None,
                         'margin': {'l': 150, 'r': 25, 't': 5, 'b':50},
                         'plot_bgcolor': colors['background'],
-						'paper_bgcolor': colors['background'],
-						'font': {
-							'color': colors['text']
-						},
+                        'paper_bgcolor': colors['background'],
+                        'font': {
+                            'color': colors['text']
+                        },
                         'xaxis': {
-							'title': 'Depth (m)',
-							'titlefont':{
-								'family': 'Calibri',
-								'size': 20,
-								'color': colors['text']},
-						},
+                            'title': 'Depth (m)',
+                            'titlefont':{
+                                'family': 'Calibri',
+                                'size': 20,
+                                'color': colors['text']},
+                        },
                         'yaxis': {
-							'title': 'Frquency',
-							'titlefont':{
-								'family': 'Calibri',
-								'size': 20,
-								'color': colors['text']},
-						},
-					}
-				}
-			)
+                            'title': 'Frquency',
+                            'titlefont':{
+                                'family': 'Calibri',
+                                'size': 20,
+                                'color': colors['text']},
+                        },
+                    }
+                }
+            )
 
-		], className='four columns'),
+        ], className='four columns'),
 
-		html.Div(style={}, children=[
+        html.Div(style={}, children=[
 
-			html.Div([
-				dcc.Dropdown(
+            html.Div([
+                dcc.Dropdown(
                     style=map_button_style,
-					id='MapLayers',                             
+                    id='MapLayers',                             
                     options=[
                         {'label': 'New York City', 'value': 'NYC'},
                         {'label': 'Montréal', 'value': 'MTL'},
@@ -397,4 +397,4 @@ def update_map_layer(selector):
 
 
 if __name__ == '__main__':
-	app.run_server(debug=True)
+    app.run_server(debug=True)
