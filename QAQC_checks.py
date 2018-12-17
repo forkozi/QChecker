@@ -114,7 +114,7 @@ class LasTile:
             'class_counts': self.class_counts,
             'check_results': self.checks_result}
 
-        # del keys not needed because of repitition
+        # del keys that are not needed because of repitition
         info_to_output['header'].pop('VLRs', None)
         info_to_output['header'].pop('version_major', None)
         info_to_output['header'].pop('version_minor', None)
