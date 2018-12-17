@@ -3,7 +3,8 @@ import json
 import logging
 import pandas as pd
 import geopandas as gpd
-from shapely.geometry import Point
+from shapely.geometry import Point, Polygon, mapping, shape
+from shapely import wkt
 import numpy as np
 #from scipy import stats
 import subprocess
@@ -492,6 +493,62 @@ class QaqcTileCollection:
             self.dz_export_settings)
         tiles_qaqc.run_qaqc(self.las_paths, multiprocess=False)
 
+    def gen_qaqc_results_json(self):
+
+        def flatten_dict(d_obj):
+            for k, v in d_obj.items():
+                if isinstance(v, dict):
+                    new_dict = {k2:v2 for k2, v2 in v.items()}
+                    for d in flatten_dict(new_dict):
+                        yield d
+                else:
+                    yield k, v
+
+        flattened_dicts = []
+
+        for las_json in os.listdir(self.json_dir):
+            try:
+                las_json = os.path.join(self.json_dir, las_json)
+                with open(las_json, 'r') as json_file:
+                    json_data = json.load(json_file)
+                    flattened_json_data = {k:v for k,v in flatten_dict(json_data)}
+                    flattened_dicts.append(flattened_json_data)
+            except Exception as e:
+                print(e)
+
+        with open(self.qaqc_results_json, 'w') as f:
+            f.write(json.dumps(flattened_dicts))
+
+    def gen_qaqc_results_gdf(self):
+        """creates a geopandas dataframe"""
+
+        df = pd.read_json(self.qaqc_results_json)
+        df['Coordinates'] = df.poly_geometry
+        df['Coordinates'] = df['Coordinates'].apply(wkt.loads)
+
+        nad83_utm_z19 = {'init': 'epsg:26919'}
+        wgs84 = {'init': 'epsg:4326'}
+
+        gdf = gpd.GeoDataFrame(df, crs=nad83_utm_z19, geometry='Coordinates')
+
+        cols_to_drop = [
+            'x_max', 'x_min', 'y_max', 'y_min', 
+            'created_day', 'created_year', 'tile_name',
+            'centroid_geom', 'poly_geometry'
+            ]
+
+        gdf = gdf.drop(cols_to_drop, axis=1)
+
+        return gdf
+
+    def gen_qaqc_results_csv(self):
+        gdf = self.gen_qaqc_results_gdf()
+        gdf.to_csv(self.qaqc_results_csv, index=False)
+
+    def gen_qaqc_results_shp(self):
+        gdf = self.gen_qaqc_results_gdf()
+        gdf.to_file(self.qaqc_results_shp, driver='ESRI Shapefile')
+
     def get_qaqc_results_df(self):
 
         def flatten_dict(d_obj):
@@ -731,6 +788,9 @@ def main():
     #qaqc.gen_qaqc_results_csv(settings['qaqc_results_csv'])
     qaqc.gen_qaqc_results_csv_WGS84(settings['qaqc_results_csv'])
 
+    qaqc.gen_qaqc_results_json()
+    qaqc.gen_qaqc_results_csv()
+    qaqc.gen_qaqc_results_shp()
 
 if __name__ == '__main__':
     main()
