@@ -4,18 +4,18 @@
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>f842e6fd-4c69-40e3-a39e-92b094b3b673</ProjectGuid>
-    <ProjectHome>.</ProjectHome>
-    <StartupFile>QAQC_dash.py</StartupFile>
-    <SearchPath>
-    </SearchPath>
+    <ProjectHome>
+    </ProjectHome>
+    <StartupFile>QAQC_checks.py</StartupFile>
+    <SearchPath>C:\Program Files (x86)\ArcGIS\Desktop10.5\arcpy;C:\Program Files (x86)\ArcGIS\Desktop10.5\arcpy;C:\Program Files (x86)\ArcGIS\Desktop10.5\ArcToolbox\Scripts;C:\Program Files (x86)\ArcGIS\Desktop10.5\arcpy;C:\Program Files (x86)\ArcGIS\Desktop10.5\ArcToolbox\Scripts;C:\Program Files (x86)\ArcGIS\Desktop10.5\arcpy;C:\Program Files (x86)\ArcGIS\Desktop10.5\ArcToolbox\Scripts;C:\Program Files (x86)\ArcGIS\Desktop10.5\bin</SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
     <OutputPath>.</OutputPath>
-    <Name>QAQC_checks</Name>
+    <Name>qaqc_checks</Name>
     <RootNamespace>QAQC_checks</RootNamespace>
     <IsWindowsApplication>False</IsWindowsApplication>
     <LaunchProvider>Standard Python launcher</LaunchProvider>
     <EnableNativeCodeDebugging>False</EnableNativeCodeDebugging>
-    <InterpreterId>CondaEnv|CondaEnv|qaqc_contract_p27</InterpreterId>
+    <InterpreterId>CondaEnv|CondaEnv|qaqc_p27_64bit</InterpreterId>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
     <DebugSymbols>true</DebugSymbols>
@@ -29,13 +29,13 @@
     <Compile Include="module1.py">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="QAQC_dash.py">
+    <Compile Include="ArcTool_TEST.pyt">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="QAQC_checks.py" />
   </ItemGroup>
   <ItemGroup>
-    <InterpreterReference Include="CondaEnv|CondaEnv|qaqc_contract_p27" />
+    <InterpreterReference Include="CondaEnv|CondaEnv|qaqc_p27_64bit" />
   </ItemGroup>
   <PropertyGroup>
     <VisualStudioVersion Condition="'$(VisualStudioVersion)' == ''">10.0</VisualStudioVersion>

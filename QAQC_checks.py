@@ -5,7 +5,7 @@ import pandas as pd
 import geopandas as gpd
 from shapely.geometry import Point
 import numpy as np
-from scipy import stats
+#from scipy import stats
 import subprocess
 from laspy.file import File
 import xml.etree.ElementTree as ET
@@ -54,7 +54,8 @@ class LasTile:
         self.inFile = File(self.path, mode="r")
 
         def get_useful_las_header_info():
-            # put various useful tidbits from las header into LasTile header dict
+            # put various useful tidbits from las header into LasTile header
+            # dict
             info_to_get = 'global_encoding,version_major,version_minor,' \
                           'created_day,created_year,' \
                           'data_format_id,x_min,x_max,y_min,y_max'
@@ -103,12 +104,6 @@ class LasTile:
             'point_src_ids': None,
         }
 
-    def output_check_results_to_json(self):
-        json_dir = r'C:\QAQC_contract\nantucket\qaqc_check_results' # todo: move to settings dict
-        json_file_name = r'{}\{}.json'.format(json_dir, self.name)
-        with open(json_file_name, 'w') as json_file:
-            json_file.write(str(self))
-
     def __str__(self):
         info_to_output = {
             'tile_name': self.name,
@@ -126,6 +121,29 @@ class LasTile:
         info_to_output['header'].pop('global_encoding', None)
         info_to_output['header'].pop('data_format_id', None)
         return json.dumps(info_to_output, indent=2)
+
+    def output_check_results_to_json(self):
+        json_dir = r'C:\QAQC_contract\nantucket\qaqc_check_results' # todo: move to settings dict
+        json_file_name = r'{}\{}.json'.format(json_dir, self.name)
+        with open(json_file_name, 'w') as json_file:
+            json_file.write(str(self))
+
+        def add_las_centroid_lat_lon(json_file_name):
+            input = gpd.read_file(json_file_name).to_crs({'init': 'epsg:4326'})  # wgs84 (temporary)
+            input['geometry'] = input['geometry'].centroid
+
+            def get_x(pt):
+                return (pt.x)
+
+            def get_y(pt):
+                return (pt.y)
+
+            input['centroid_lon'] = map(get_x, input['geometry'])
+            input['centroid_lat'] = map(get_y, input['geometry'])
+
+            input.to_csv(out_geojson.replace('.json', '.csv'))
+
+        add_las_centroid_lat_lon(json_file_name)
 
     def get_class_counts(self):
         class_counts = np.unique(self.inFile.classification, return_counts=True)
@@ -151,7 +169,7 @@ class LasTile:
         pass
 
 
-class DzOrthoMosaic():
+class DzOrthoMosaic:
 
     def __init__(self):
         pass
@@ -220,10 +238,30 @@ class DzOrtho:
     #    arcpy.mapping.AddLayer(df, dz_lyr, 'AUTO_ARRANGE')
     #    md.save()
 
+    #def binary_to_raster(self):
+    #    logging.info('converting {} to {}...'.format(self.dz_binary_path,
+    #    self.dz_raster_path))
+    #    try:
+    #        arcpy.FloatToRaster_conversion(self.dz_binary_path,
+    #        self.dz_raster_path)
+    #    except Exception as e:
+    #        print(e)
+
+    #def project_dz_raster(self):
+    #    pass
+
+    #def dz_to_numpy(self): # TODO
+    #    logging.info('getting dz stat for {}...'.format(self.las_name))
+    #    dz_np = arcpy.RasterToNumPyArray(self.dz_raster_path)
+    #    print(dz_np)
+    #    dz_stats = stats.describe(dz_np.flatten())
+    #    print(dz_stats)
+
     def update_dz_export_settings_extents(self):
         logging.info('updating dz export settings xml with las extents...')
         tree = ET.parse(self.dz_export_settings)
         root = tree.getroot()
+
         for extent, val in self.las_extents.iteritems():
             for e in root.findall(extent):
                 e.text = str(val)
@@ -244,26 +282,8 @@ class DzOrtho:
         except Exception as e:
             print(e)
 
-#def binary_to_raster(self):
-#    logging.info('converting {} to {}...'.format(self.dz_binary_path, self.dz_raster_path))
-#    try:
-#        arcpy.FloatToRaster_conversion(self.dz_binary_path, self.dz_raster_path)
-#    except Exception as e:
-#        print(e)
 
-#def project_dz_raster(self):
-#    pass
-
-#def dz_to_numpy(self):  # TODO
-#    logging.info('getting dz stat for {}...'.format(self.las_name))
-#    dz_np = arcpy.RasterToNumPyArray(self.dz_raster_path)
-#    print(dz_np)
-#    dz_stats = stats.describe(dz_np.flatten())
-#    print(dz_stats)
-
-
-class HillShade():
-
+class Hillshade:
     def __init__(self):
         pass
 
@@ -271,7 +291,7 @@ class HillShade():
         pass
 
 
-class QaqcTile():
+class QaqcTile:
 
     def __init__(self, checks_to_do, dz_binary_dir, dz_raster_dir, dz_export_settings):
 
@@ -294,15 +314,17 @@ class QaqcTile():
     def check_las_naming_convention(self, tile):
         """for now, the checks assume Northern Hemisphere"""
 
-        # for info on UTM, see https://www.e-education.psu.edu/natureofgeoinfo/c2_p23.html
+        # for info on UTM, see
+        # https://www.e-education.psu.edu/natureofgeoinfo/c2_p23.html
         min_easting = 167000
         max_easting = 833000
         min_northing = 0
         max_northing = 9400000
-        #min_northing_sh = 1000000  # sh = southern hemisphere
+        #min_northing_sh = 1000000 # sh = southern hemisphere
         #max_northing_sh = 10000000
 
-        # first check general format with regex (e.g., ####_######e_#[#######]n_las)
+        # first check general format with regex (e.g.,
+        # ####_######e_#[#######]n_las)
         pattern = re.compile(r'[0-9]{4}_[0-9]{6}e_[0-9]{1,8}(n_las)')
         if pattern.match(tile.name):
 
@@ -377,8 +399,7 @@ class QaqcTile():
     def create_dz(self, tile):
         from QAQC_checks import DzOrtho
         if tile.has_bathy or tile.has_ground:
-            tile_dz = DzOrtho(
-                tile.path,
+            tile_dz = DzOrtho(tile.path,
                 tile.name,
                 tile.las_extents,
                 self.dz_binary_dir,
@@ -482,8 +503,7 @@ class QaqcTileCollection:
             print(e)
 
     def run_qaqc_tile_collection_checks(self):
-        tiles_qaqc = QaqcTile(
-            self.checks_to_do,
+        tiles_qaqc = QaqcTile(self.checks_to_do,
             self.dz_binary_dir,
             self.dz_raster_dir,
             self.dz_export_settings)
@@ -547,12 +567,13 @@ class QaqcTileCollection:
         gdf = self.gen_qaqc_results_gdf(output)
         gdf.to_csv(output, index=False)
 
-#def gen_dz_ortho_mosaic(self):  # TODO
-#	DzOrtho.create_raster_catalog()
-#	DzOrtho.add_dz_dir_to_raster_catalog()
-#	DzOrtho.mosaic_dz_raster_catalog()
-#	DzOrtho.add_dz_mosaic_to_mxd()
-#	DzOrtho.update_raster_symbology()
+    #def gen_dz_ortho_mosaic(self): # TODO
+    #	DzOrtho.create_raster_catalog()
+    #	DzOrtho.add_dz_dir_to_raster_catalog()
+    #	DzOrtho.mosaic_dz_raster_catalog()
+    #	DzOrtho.add_dz_mosaic_to_mxd()
+    #	DzOrtho.update_raster_symbology()
+
 
 def gen_tile_geojson(contractor_las_tiles, geojson):
 
@@ -692,11 +713,9 @@ def main():
     #gen_tile_geojson(
     #       settings['tiles_shp'],
     #       settings['tiles_geojson'])
-    #gen_tile_centroids_csv(
-    #       settings['tiles_shp'],
-    #       settings['tiles_centroids_geojson'])
-
-    gen_tile_poly_coords_csv(settings['tiles_shp'], settings['tiles_coords_csv'])
+    gen_tile_centroids_csv(
+           settings['tiles_shp'],
+           settings['tiles_centroids_geojson'])
 
     #nantucket = LasTileCollection(settings['las_tile_dir'])
     #qaqc = QaqcTileCollection(
@@ -715,5 +734,5 @@ def main():
 
 
 if __name__ == '__main__':
+
     main()
-    
