@@ -26,12 +26,6 @@
     <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="module1.py">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="ArcTool_TEST.pyt">
-      <SubType>Code</SubType>
-    </Compile>
     <Compile Include="QAQC_checks.py" />
   </ItemGroup>
   <ItemGroup>
