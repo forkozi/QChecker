@@ -128,23 +128,6 @@ class LasTile:
         with open(json_file_name, 'w') as json_file:
             json_file.write(str(self))
 
-        def add_las_centroid_lat_lon(json_file_name):
-            input = gpd.read_file(json_file_name).to_crs({'init': 'epsg:4326'})  # wgs84 (temporary)
-            input['geometry'] = input['geometry'].centroid
-
-            def get_x(pt):
-                return (pt.x)
-
-            def get_y(pt):
-                return (pt.y)
-
-            input['centroid_lon'] = map(get_x, input['geometry'])
-            input['centroid_lat'] = map(get_y, input['geometry'])
-
-            input.to_csv(out_geojson.replace('.json', '.csv'))
-
-        add_las_centroid_lat_lon(json_file_name)
-
     def get_class_counts(self):
         class_counts = np.unique(self.inFile.classification, return_counts=True)
         class_counts = dict(zip(['class{}count'.format(str(c)) for c in class_counts[0]],
@@ -538,7 +521,7 @@ class QaqcTileCollection:
         df = pd.DataFrame(flattened_dicts)
         return df
 
-    def gen_qaqc_results_gdf(self, output):
+    def gen_qaqc_results_gdf_NAD83_UTM(self):
         """creates a geopandas dataframe"""
 
         df = self.get_qaqc_results_df()
@@ -547,10 +530,9 @@ class QaqcTileCollection:
         df['Coordinates'] = df['Coordinates'].apply(Point)
 
         nad83_utm_z19 = {'init': 'epsg:26919'}
-        wgs84 = {'init': 'epsg:4326'}
 
         gdf = gpd.GeoDataFrame(df, crs=nad83_utm_z19, geometry='Coordinates')
-        gdf = gdf.to_crs(wgs84)
+        
 
         def get_x(pt):
             return (pt.x)
@@ -563,8 +545,24 @@ class QaqcTileCollection:
 
         return gdf
 
+    def gen_qaqc_results_csv_WGS84(self, output):
+        gdf = self.gen_qaqc_results_gdf_NAD83_UTM()
+        wgs84 = {'init': 'epsg:4326'}
+        gdf = gdf.to_crs(wgs84)
+
+        def get_x(pt):
+            return (pt.x)
+
+        def get_y(pt):
+            return (pt.y)
+
+        gdf['centroid_lon'] = map(get_x, gdf['Coordinates'])
+        gdf['centroid_lat'] = map(get_y, gdf['Coordinates'])
+
+        gdf.to_csv(output, index=False)
+
     def gen_qaqc_results_csv(self, output):
-        gdf = self.gen_qaqc_results_gdf(output)
+        gdf = self.gen_qaqc_results_gdf_NAD83_UTM(output)
         gdf.to_csv(output, index=False)
 
     #def gen_dz_ortho_mosaic(self): # TODO
@@ -717,22 +715,22 @@ def main():
            settings['tiles_shp'],
            settings['tiles_centroids_geojson'])
 
-    #nantucket = LasTileCollection(settings['las_tile_dir'])
-    #qaqc = QaqcTileCollection(
-    #    settings['dz_export_settings'],
-    #    settings['dz_binary_dir'],
-    #    settings['dz_raster_dir'],
-    #    nantucket.get_las_tile_paths(),
-    #    settings['qaqc_gdb'],
-    #    settings['qaqc_fd_name'],
-    #    settings['qaqc_tile_fc_name'],
-    #    settings['checks_to_do'])
+    nantucket = LasTileCollection(settings['las_tile_dir'])
+    qaqc = QaqcTileCollection(
+        settings['dz_export_settings'],
+        settings['dz_binary_dir'],
+        settings['dz_raster_dir'],
+        nantucket.get_las_tile_paths(),
+        settings['qaqc_gdb'],
+        settings['qaqc_fd_name'],
+        settings['qaqc_tile_fc_name'],
+        settings['checks_to_do'])
     ###qaqc.create_qaqc_feature_dataset()
     ###qaqc.create_qaqc_tile_feature_class()
     #qaqc.run_qaqc_tile_collection_checks()
     #qaqc.gen_qaqc_results_csv(settings['qaqc_results_csv'])
+    qaqc.gen_qaqc_results_csv_WGS84(settings['qaqc_results_csv'])
 
 
 if __name__ == '__main__':
-
     main()
