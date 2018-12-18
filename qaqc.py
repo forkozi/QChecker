@@ -19,6 +19,62 @@ import fiona
 from fiona.crs import from_epsg
 from pyproj import Proj, transform
 
+project_name = 'nantucket'
+
+qaqc_dir = r'C:\QAQC_contract\nantucket'
+qaqc_gdb = r'{}\qaqc_nantucket.gdb'.format(qaqc_dir)
+qaqc_fd_name = 'QAQC_Layers'
+qaqc_fd_path = r'{}\{}'.format(qaqc_gdb, qaqc_fd_name)
+qaqc_tile_fc_name = r'QAQC_tile_checks'
+las_tile_dir = r'{}\CLASSIFIED_LAS'.format(qaqc_dir)
+dz_binary_dir = r'{}\dz'.format(qaqc_dir)
+dz_raster_dir = r'{}'.format(qaqc_gdb)
+
+tiles_geojson = os.path.join(qaqc_dir, 'tiles.json')
+tiles_centroids_geojson = os.path.join(qaqc_dir, 'tiles_centroids.json')
+tiles_coords_csv = os.path.join(qaqc_dir, 'tiles_coords.csv')
+
+qaqc_results_csv = r'C:\QAQC_contract\nantucket\qaqc_tile_collection_results.csv'
+qaqc_results_csv_WGS84 = r'C:\QAQC_contract\nantucket\qaqc_tile_collection_results_WGS84.csv'
+qaqc_results_geojson = r'C:\QAQC_contract\nantucket\qaqc_tile_collection_results.json'
+qaqc_results_shp = r'C:\QAQC_contract\nantucket\qaqc_tile_collection_results.shp'
+
+tiles_shp = r'C:\QAQC_contract\nantucket\EXTENTS\final\Nantucket_TileGrid.shp'
+
+classification_scheme_dir = r'\\ngs-s-rsd\response_dl\Research\transfer\software\LP360'
+classification_scheme_xml = 'noaa_topobathy_v02.xml'
+classificaiton_scheme_fpath = os.path.join(classification_scheme_dir, classification_scheme_xml)
+
+dz_classes_lyr = r'C:\QAQC_contract\dz_classes.lyr'
+dz_export_settings = r'C:\QAQC_contract\\dz_export_settings.xml'
+dz_mxd = r'{}\QAQC_nantucket.mxd'.format(qaqc_dir)
+
+dz_raster_catalog_base_name = r'{}_raster_catalog'.format(project_name)
+dz_raster_catalog = r'{}\{}'.format(qaqc_gdb, dz_raster_catalog_base_name)
+
+dz_mosaic_raster_basename = '{}_dz_mosaic'.format(project_name)
+dz_mosaic_raster = '{}\{}'.format(qaqc_gdb, dz_mosaic_raster_basename)
+
+dz_bins = {
+	0: (0.00, 0.04, 'darkgreen'),
+	1: (0.04, 0.08, 'lightgreen'),
+	2: (0.08, 0.12, 'cyan'),
+	3: (0.12, 0.16, 'yellow'),
+	4: (0.16, 0.20, 'orange'),
+	5: (0.20, 1000, 'red'),
+}
+
+checks_to_do = {
+	'naming_convention': True,
+	'version': True,
+	'pdrf': True,
+	'gps_time_type': True,
+	'hor_datum': True,
+	'ver_datum': False,
+	'point_source_ids': False,
+	'create_dz': True
+}
+
 
 class LasTileCollection():
 
@@ -92,8 +148,8 @@ class LasTile:
 
 		self.centroid_x, self.centroid_y = calc_las_centroid()
 		self.class_counts = self.get_class_counts()
-		self.has_bathy = True if '26' in self.class_counts.keys() else False
-		self.has_ground = True if '2' in self.class_counts.keys() else False
+		self.has_bathy = True if '{}26{}'.format('class', 'count') in self.class_counts.keys() else False
+		self.has_ground = True if '{}2{}'.format('class', 'count') in self.class_counts.keys() else False
 
 		self.checks_result = {
 			'naming_convention': None,
@@ -133,6 +189,7 @@ class LasTile:
 		class_counts = np.unique(self.inFile.classification, return_counts=True)
 		class_counts = dict(zip(['class{}count'.format(str(c)) for c in class_counts[0]],
 								[str(c) for c in class_counts[1]]))
+		print(class_counts)
 		return class_counts
 
 	def get_gps_time_type(self):
@@ -159,33 +216,35 @@ class DzOrthoMosaic:
 		pass
 
 	def create_raster_catalog(self):
-		arcpy.CreateRasterCatalog_management(self.qaqc_gdb, 'nantucket_raster_catalog',
-											 raster_management_type='UNMANAGED')
-
-	def mosaic_dz_raster_catalog(self):
-		mosaic_raster = '{}\{}_dz_mosaic'.format(self.qaqc_gdb, 'nantucket')
-		logging.info('mosaicing rasters in {}...'.format(self.raster_catalog))
-		arcpy.RasterCatalogToRasterDataset_management(self.raster_catalog, mosaic_raster)
+		try:
+			arcpy.CreateRasterCatalog_management(qaqc_gdb, dz_raster_catalog_base_name,
+												 raster_management_type='UNMANAGED')
+		except Exception, e:
+			print(e)
 
 	def add_dz_dir_to_raster_catalog(self):
-		logging.info('adding dz_rasters to {}...'.format(self.raster_catalog))
-		arcpy.WorkspaceToRasterCatalog_management(self.qaqc_gdb, self.raster_catalog)
+		logging.info('adding dz_rasters to {}...'.format(dz_raster_catalog))
+		arcpy.WorkspaceToRasterCatalog_management(qaqc_gdb, dz_raster_catalog_base_name)
+
+	def mosaic_dz_raster_catalog(self):
+		logging.info('mosaicing rasters in {}...'.format(dz_raster_catalog))
+		print(dz_raster_catalog)
+		print(dz_mosaic_raster)
+		arcpy.RasterCatalogToRasterDataset_management(dz_raster_catalog, dz_mosaic_raster)
 
 	def add_dz_mosaic_to_mxd(self):
-		md = arcpy.mapping.MapDocument(self.dz_mxd)
+		md = arcpy.mapping.MapDocument(dz_mxd)
 		df = arcpy.mapping.ListDataFrames(md)[0]
-		mosaic_raster = '{}\{}_dz_mosaic'.format(self.qaqc_gdb, 'nantucket')
-		arcpy.MakeRasterLayer_management(mosaic_raster, 'nantucket_dz_mosaic')
-		dz_lyr = arcpy.mapping.Layer('nantucket_dz_mosaic')
+		arcpy.MakeRasterLayer_management(dz_mosaic_raster, dz_raster_catalog_base_name)
+		dz_lyr = arcpy.mapping.Layer(dz_raster_catalog_base_name)
 		arcpy.mapping.AddLayer(df, dz_lyr, 'AUTO_ARRANGE')
 		md.save()
 
 	def update_raster_symbology(self):
-		md = arcpy.mapping.MapDocument(self.dz_mxd)
+		md = arcpy.mapping.MapDocument(dz_mxd)
 		df = arcpy.mapping.ListDataFrames(md)[0]
-		mosaic_raster = '{}_dz_mosaic'.format('nantucket')
-		raster_to_update = arcpy.mapping.ListLayers(md, mosaic_raster, df)[0]
-		dz_classes_lyr = arcpy.mapping.Layer(self.dz_classes_lyr)
+		raster_to_update = arcpy.mapping.ListLayers(md, dz_mosaic_raster_basename, df)[0]
+		dz_classes_lyr = arcpy.mapping.Layer(dz_classes_lyr)
 		arcpy.mapping.UpdateLayer(df, raster_to_update, dz_classes_lyr, True)
 		md.save()
 
@@ -207,29 +266,29 @@ class DzOrtho:
 		return self.dz_raster_path
 
 	#def update_dz_raster_symbology(self):
-	#    md = arcpy.mapping.MapDocument(self.dz_mxd)
-	#    df = arcpy.mapping.ListDataFrames(md)[0]
-	#    dz_to_update = arcpy.mapping.ListLayers(md, self.las_name, df)[0]
-	#    dz_classes_lyr = arcpy.mapping.Layer(self.dz_classes_lyr)
-	#    arcpy.mapping.UpdateLayer(df, dz_to_update, dz_classes_lyr, True)
-	#    md.save()
+	#	md = arcpy.mapping.MapDocument(dz_mxd)
+	#	df = arcpy.mapping.ListDataFrames(md)[0]
+	#	dz_to_update = arcpy.mapping.ListLayers(md, self.las_name, df)[0]
+	#	dz_classes_lyr = arcpy.mapping.Layer(self.dz_classes_lyr)
+	#	arcpy.mapping.UpdateLayer(df, dz_to_update, dz_classes_lyr, True)
+	#	md.save()
 
 	#def add_dz_to_mxd(self):
-	#    md = arcpy.mapping.MapDocument(self.dz_mxd)
-	#    df = arcpy.mapping.ListDataFrames(md)[0]
-	#    arcpy.MakeRasterLayer_management(self.dz_raster_path, self.las_name)
-	#    dz_lyr = arcpy.mapping.Layer(self.las_name)
-	#    arcpy.mapping.AddLayer(df, dz_lyr, 'AUTO_ARRANGE')
-	#    md.save()
+	#	md = arcpy.mapping.MapDocument(dz_mxd)
+	#	df = arcpy.mapping.ListDataFrames(md)[0]
+	#	arcpy.MakeRasterLayer_management(self.dz_raster_path, self.las_name)
+	#	dz_lyr = arcpy.mapping.Layer(self.las_name)
+	#	arcpy.mapping.AddLayer(df, dz_lyr, 'AUTO_ARRANGE')
+	#	md.save()
 
-	#def binary_to_raster(self):
-	#    logging.info('converting {} to {}...'.format(self.dz_binary_path,
-	#    self.dz_raster_path))
-	#    try:
-	#        arcpy.FloatToRaster_conversion(self.dz_binary_path,
-	#        self.dz_raster_path)
-	#    except Exception as e:
-	#        print(e)
+	def binary_to_raster(self):
+		logging.info('converting {} to {}...'.format(self.dz_binary_path,
+		self.dz_raster_path))
+		try:
+			arcpy.FloatToRaster_conversion(self.dz_binary_path,
+			self.dz_raster_path)
+		except Exception as e:
+			print(e)
 
 	#def project_dz_raster(self):
 	#    pass
@@ -277,6 +336,9 @@ class Hillshade:
 
 class QaqcTile:
 
+	passed_text = 'PASSED'
+	failed_text = 'FAILED'
+
 	def __init__(self, checks_to_do, dz_binary_dir, dz_raster_dir, dz_export_settings):
 
 		self.checks = {
@@ -317,59 +379,59 @@ class QaqcTile:
 			easting = tile_name_parts[1].replace('e', '')
 			northing = tile_name_parts[2].replace('n', '')
 
-			easting_good = True if easting >= min_easting and easting <= max_easting else False
-			northing_good = True if northing >= min_northing and northing <= max_northing else False
+			easting_good = self.passed_text if easting >= min_easting and easting <= max_easting else self.failed_text
+			northing_good = self.passed_text if northing >= min_northing and northing <= max_northing else self.failed_text
 
 			if easting_good and northing_good:
-				passed = True
+				passed = self.passed_text
 			else:
-				passed = False
+				passed = self.failed_text
 		else:
-			passed = False
+			passed = self.failed_text
 		tile.checks_result['naming_convention'] = tile.name
 		tile.checks_result['naming_convention_passed'] = passed
-		return 'PASSED' if passed else 'FAILED'
+		return passed
 
 	def check_las_version(self, tile):
 		version = tile.get_las_version()
 		if version in ['1.2', '1.4']:
-			passed = True
+			passed = self.passed_text
 		else:
-			passed = False
+			passed = self.failed_text
 		tile.checks_result['version'] = version
 		tile.checks_result['version_passed'] = passed
-		return 'PASSED' if passed else 'FAILED'
+		return passed
 
 	def check_las_pdrf(self, tile):
 		las_pdrf = tile.get_las_pdrf()
 		las_version = tile.get_las_version()
 		if las_pdrf == 3 and las_version == '1.2' or las_pdrf == 6 and las_version == '1.4':
-			passed = True
+			passed = self.passed_text
 		else:
-			passed = False
+			passed = self.failed_text
 		tile.checks_result['pdrf'] = las_pdrf
 		tile.checks_result['pdrf_passed'] = passed
-		return 'PASSED' if passed else 'FAILED'
+		return passed
 
 	def check_las_gps_time(self, tile):
 		gps_time_type = tile.get_gps_time_type()
 		if gps_time_type == 'Satellite GPS Time':
-			passed = True
+			passed = self.passed_text
 		else:
-			passed = False
+			passed = self.failed_text
 		tile.checks_result['gps_time'] = gps_time_type
 		tile.checks_result['gps_time_passed'] = passed
-		return 'PASSED' if passed else 'FAILED'
+		return passed
 
 	def check_hor_datum(self, tile):
 		hor_datum = tile.get_hor_datum()
 		if 2 == 2:
-			passed = True
+			passed = self.passed_text
 		else:
-			passed = False
+			passed = self.failed_text
 		tile.checks_result['hor_datum'] = hor_datum
 		tile.checks_result['hor_datum_passed'] = passed
-		return 'PASSED' if passed else 'FAILED'
+		return passed
 
 	def check_ver_datum(self):
 		pass
@@ -381,7 +443,7 @@ class QaqcTile:
 		pass
 
 	def create_dz(self, tile):
-		from QAQC_checks import DzOrtho
+		from qaqc import DzOrtho
 		if tile.has_bathy or tile.has_ground:
 			tile_dz = DzOrtho(tile.path,
 				tile.name,
@@ -391,10 +453,10 @@ class QaqcTile:
 				self.dz_export_settings)
 			tile_dz.update_dz_export_settings_extents()
 			tile_dz.gen_dz_ortho()
-		#tile_dz.binary_to_raster()
-		#tile_dz.dz_to_numpy()
-		#tile_dz.add_dz_to_mxd()
-		#tile_dz.update_dz_raster_symbology()
+			tile_dz.binary_to_raster()
+			#tile_dz.dz_to_numpy()
+			#tile_dz.add_dz_to_mxd()
+			#tile_dz.update_dz_raster_symbology()
 		else:
 			logging.info('{} has no bathy or ground points; no dz ortho generated'.format(tile.name))
 
@@ -408,7 +470,7 @@ class QaqcTile:
 		pass
 
 	def run_qaqc_checks_multiprocess(self, las_path):
-		from QAQC_checks import LasTile, LasTileCollection
+		from qaqc import LasTile, LasTileCollection
 		import logging
 		import xml.etree.ElementTree as ET
 		logging.basicConfig(format='%(asctime)s:%(message)s', level=logging.INFO)
@@ -438,7 +500,7 @@ class QaqcTile:
 	def run_qaqc(self, las_paths, multiprocess):
 
 		if multiprocess:
-			p = pp.ProcessPool()
+			p = pp.ProcessPool(4)
 			print(p)
 			p.imap(self.run_qaqc_checks_multiprocess, las_paths)
 			p.close()
@@ -458,7 +520,6 @@ class QaqcTileCollection:
 				 qaqc_fd_name,
 				 qaqcd_tile_fc_name,
 				 checks_to_do):
-
 		self.dz_binary_dir = dz_binary_dir
 		self.dz_raster_dir = dz_raster_dir
 		self.las_paths = las_paths
@@ -470,7 +531,6 @@ class QaqcTileCollection:
 		self.checks_to_do = checks_to_do
 		self.dz_export_settings = dz_export_settings
 		self.json_dir = r'C:\QAQC_contract\nantucket\qaqc_check_results'
-		self.qaqc_results_json = r'C:\QAQC_contract\nantucket\qaqc_tile_collection_results.json'
 
 	def create_qaqc_feature_dataset(self):
 		logging.info('making {} in {}...'.format(self.qaqc_fd_name, self.qaqc_gdb))
@@ -493,7 +553,7 @@ class QaqcTileCollection:
 			self.dz_export_settings)
 		tiles_qaqc.run_qaqc(self.las_paths, multiprocess=False)
 
-	def gen_qaqc_results_json_NAD83_UTM(self):
+	def gen_qaqc_results_dict(self):
 
 		def flatten_dict(d_obj):
 			for k, v in d_obj.items():
@@ -516,38 +576,22 @@ class QaqcTileCollection:
 			except Exception as e:
 				print(e)
 
-		with open(self.qaqc_results_json, 'w') as f:
-			f.write(json.dumps(flattened_dicts))
+		return flattened_dicts
+
+	def get_qaqc_results_df(self):
+		df = pd.DataFrame(self.gen_qaqc_results_dict())
+		return df
+
+	def gen_qaqc_results_json_NAD83_UTM(self, output):
+		with open(output, 'w') as f:
+			f.write(json.dumps(self.gen_qaqc_results_dict()))
 
 	def gen_qaqc_results_gdf_NAD83_UTM(self):
-		"""creates a geopandas dataframe"""
-
-		df = pd.read_json(self.qaqc_results_json)
-		df['Coordinates'] = df.poly_geometry
-		df['Coordinates'] = df['Coordinates'].apply(wkt.loads)
-
-		nad83_utm_z19 = {'init': 'epsg:26919'}
-		wgs84 = {'init': 'epsg:4326'}
-
-		gdf = gpd.GeoDataFrame(df, crs=nad83_utm_z19, geometry='Coordinates')
-
-		cols_to_drop = [
-			'x_max', 'x_min', 'y_max', 'y_min', 
-			'created_day', 'created_year', 'tile_name',
-			'centroid_geom', 'poly_geometry'
-			]
-
-		gdf = gdf.drop(cols_to_drop, axis=1)
-
-		return gdf
-
-	def gen_qaqc_results_gdf_NAD83_UTM(self):
-		"""creates a geopandas dataframe"""
-
 		df = self.get_qaqc_results_df()
 
 		df['Coordinates'] = list(zip(df.centroid_x, df.centroid_y))
 		df['Coordinates'] = df['Coordinates'].apply(Point)
+		# df['Coordinates'] = df['Coordinates'].apply(wkt.loads)
 
 		nad83_utm_z19 = {'init': 'epsg:26919'}
 
@@ -565,41 +609,12 @@ class QaqcTileCollection:
 		return gdf
 
 	def gen_qaqc_results_csv_NAD83_UTM(self, output):
-		gdf = self.gen_qaqc_results_gdf_NAD83_UTM(output)
+		gdf = self.gen_qaqc_results_gdf_NAD83_UTM()
 		gdf.to_csv(output, index=False)
 
-	def gen_qaqc_results_shp_NAD83_UTM(self):
+	def gen_qaqc_results_shp_NAD83_UTM(self, output):
 		gdf = self.gen_qaqc_results_gdf_NAD83_UTM()
-		gdf.to_file(self.qaqc_results_shp, driver='ESRI Shapefile')
-
-	def get_qaqc_results_df(self):
-
-		def flatten_dict(d_obj):
-			for k, v in d_obj.items():
-				if isinstance(v, dict):
-					new_dict = {k2:v2 for k2, v2 in v.items()}
-					for d in flatten_dict(new_dict):
-						yield d
-				else:
-					yield k, v
-
-		flattened_dicts = []
-
-		for las_json in os.listdir(self.json_dir):
-			try:
-				las_json = os.path.join(self.json_dir, las_json)
-				with open(las_json, 'r') as json_file:
-					json_data = json.load(json_file)
-					flattened_json_data = {k:v for k,v in flatten_dict(json_data)}
-					flattened_dicts.append(flattened_json_data)
-			except Exception as e:
-				print(e)
-
-		with open(self.qaqc_results_json, 'w') as f:
-			f.write(json.dumps(flattened_dicts))
-
-		df = pd.DataFrame(flattened_dicts)
-		return df
+		gdf.to_file(output, driver='ESRI Shapefile')
 
 	def gen_qaqc_results_csv_WGS84(self, output):
 		gdf = self.gen_qaqc_results_gdf_NAD83_UTM()
@@ -617,21 +632,19 @@ class QaqcTileCollection:
 
 		gdf.to_csv(output, index=False)
 
-
-
-	#def gen_dz_ortho_mosaic(self): # TODO
-	#	DzOrtho.create_raster_catalog()
-	#	DzOrtho.add_dz_dir_to_raster_catalog()
-	#	DzOrtho.mosaic_dz_raster_catalog()
-	#	DzOrtho.add_dz_mosaic_to_mxd()
-	#	DzOrtho.update_raster_symbology()
+	def gen_dz_ortho_mosaic(self): # TODO
+		DzOrtho.create_raster_catalog()
+		DzOrtho.add_dz_dir_to_raster_catalog()
+		DzOrtho.mosaic_dz_raster_catalog()
+		DzOrtho.add_dz_mosaic_to_mxd()
+		DzOrtho.update_raster_symbology()
 
 
 def gen_tile_geojson(contractor_las_tiles, geojson):
 
 	## alternate way to get geojson
 	#file = gpd.read_file(shp)
-	file.to_file(geojson, driver="GeoJSON")
+	#file.to_file(geojson, driver="GeoJSON")
 
 	shp = fiona.open(contractor_las_tiles)
 	original = Proj(init='EPSG:26919')
@@ -644,20 +657,23 @@ def gen_tile_geojson(contractor_las_tiles, geojson):
 	geojson_data = {"type": "FeatureCollection","features": records}
 	schema = {'geometry': 'Polygon', 'properties': {}}
 
-	with fiona.open(geojson, 'w', 'GeoJSON', schema, crs=from_epsg(6317)) as output:
-		for feat in geojson_data['features']:
-			out_linear_ring = []
+	try:
+		with fiona.open(geojson, 'w', 'GeoJSON', schema, crs=from_epsg(6317)) as output:
+			for feat in geojson_data['features']:
+				out_linear_ring = []
 
-			for point in feat['geometry']['coordinates'][0]:
-				easting, northing = point
-				lat, lon = transform(original, wgs84, easting, northing)
-				feat['geometry']['coordinates'] = (lat, lon)
-				print('{} --> {}'.format(point, feat['geometry']['coordinates']))
-				out_linear_ring.append((lat, lon))
+				for point in feat['geometry']['coordinates'][0]:
+					easting, northing = point
+					lat, lon = transform(original, wgs84, easting, northing)
+					feat['geometry']['coordinates'] = (lat, lon)
+					print('{} --> {}'.format(point, feat['geometry']['coordinates']))
+					out_linear_ring.append((lat, lon))
 
-			feat['geometry']['coordinates'] = [out_linear_ring]
-			feat['properties'] = {}  # don't need propeties for polygons
-			output.write(feat)
+				feat['geometry']['coordinates'] = [out_linear_ring]
+				feat['properties'] = {}  # don't need propeties for polygons
+				output.write(feat)
+	except Exception, e:
+		print(e)
 
 
 def gen_tile_centroids_csv(shp, out_geojson):
@@ -684,112 +700,43 @@ def run_console_cmd(cmd):
 	return returncode, output
 
 
-def config_settings():
-
-	qaqc_dir = r'C:\QAQC_contract\nantucket'
-	qaqc_gdb = r'{}\qaqc_nantucket.gdb'.format(qaqc_dir)
-	qaqc_fd_name = 'QAQC_Layers'
-	qaqc_fd_path = r'{}\{}'.format(qaqc_gdb, qaqc_fd_name)
-	qaqc_tile_fc_name = r'QAQC_tile_checks'
-	las_tile_dir = r'{}\CLASSIFIED_LAS'.format(qaqc_dir)
-	dz_binary_dir = r'{}\dz'.format(qaqc_dir)
-	dz_raster_dir = r'{}'.format(qaqc_gdb)
-
-	tiles_geojson = os.path.join(qaqc_dir, 'tiles.json')
-	tiles_centroids_geojson = os.path.join(qaqc_dir, 'tiles_centroids.json')
-	tiles_coords_csv = os.path.join(qaqc_dir, 'tiles_coords.csv')
-
-	qaqc_results_csv = r'C:\QAQC_contract\nantucket\qaqc_tile_collection_results.csv'
-	qaqc_results_csv_WGS84 = r'C:\QAQC_contract\nantucket\qaqc_tile_collection_results_WGS84.csv'
-	qaqc_results_geojson = r'C:\QAQC_contract\nantucket\qaqc_tile_collection_results.json'
-	tiles_shp = r'C:\QAQC_contract\nantucket\EXTENTS\final\Nantucket_TileGrid.shp'
-
-	classification_scheme_dir = r'\\ngs-s-rsd\response_dl\Research\transfer\software\LP360'
-	classification_scheme_xml = 'noaa_topobathy_v02.xml'
-	classificaiton_scheme_fpath = os.path.join(classification_scheme_dir, classification_scheme_xml)
-
-	dz_raster_catalog = r'{}\{}_raster_catalog'.format(qaqc_gdb, 'nantucket')
-	dz_classes_lyr = r'C:\QAQC_contract\dz_classes.lyr'
-	dz_export_settings = r'C:\QAQC_contract\\dz_export_settings.xml'
-	dz_mxd = r'{}\QAQC_nantucket.mxd'.format(qaqc_dir)
-
-	dz_bins = {
-		0: (0.00, 0.04, 'darkgreen'),
-		1: (0.04, 0.08, 'lightgreen'),
-		2: (0.08, 0.12, 'cyan'),
-		3: (0.12, 0.16, 'yellow'),
-		4: (0.16, 0.20, 'orange'),
-		5: (0.20, 1000, 'red'),
-	}
-
-	checks_to_do = {
-		'naming_convention': True,
-		'version': True,
-		'pdrf': True,
-		'gps_time_type': True,
-		'hor_datum': True,
-		'ver_datum': False,
-		'point_source_ids': False,
-		'create_dz': False
-	}
-
-	settings = {
-		'qaqc_dir': qaqc_dir,
-		'qaqc_gdb': qaqc_gdb,
-		'qaqc_fd_name': qaqc_fd_name,
-		'qaqc_fd_path': qaqc_fd_path,
-		'qaqc_tile_fc_name': qaqc_tile_fc_name,
-		'qaqc_results_csv': qaqc_results_csv,
-		'qaqc_results_csv_WGS84': qaqc_results_csv_WGS84,
-		'qaqc_results_geojson': qaqc_results_geojson,
-		'tiles_shp': tiles_shp,
-		'tiles_geojson': tiles_geojson,
-		'tiles_centroids_geojson': tiles_centroids_geojson,
-		'tiles_coords_csv': tiles_coords_csv,
-		'checks_to_do': checks_to_do,
-		'las_tile_dir': las_tile_dir,
-		'classification_scheme_xml': classification_scheme_xml,
-		'dz_binary_dir': dz_binary_dir,
-		'dz_raster_dir': dz_raster_dir,
-		'dz_raster_catalog': dz_raster_catalog,
-		'dz_classes_lyr': dz_classes_lyr,
-		'dz_export_settings': dz_export_settings,
-		'dz_mxd': dz_mxd,
-		'dz_bins': dz_bins,
-	}
-
-	return settings
-
-
 def main():
 	logging.basicConfig(format='%(asctime)s:%(message)s', level=logging.INFO)
-	settings = config_settings()
 
-	gen_tile_geojson(settings['tiles_shp'], settings['tiles_geojson'])
-	gen_tile_centroids_csv(settings['tiles_shp'], settings['tiles_centroids_geojson'])
+	gen_tile_geojson(tiles_shp, tiles_geojson)
+	gen_tile_centroids_csv(tiles_shp, tiles_centroids_geojson)
 
-	nantucket = LasTileCollection(settings['las_tile_dir'])
+	nantucket = LasTileCollection(las_tile_dir)
 	
 	qaqc = QaqcTileCollection(
-		settings['dz_export_settings'],
-		settings['dz_binary_dir'],
-		settings['dz_raster_dir'],
-		nantucket.get_las_tile_paths(),
-		settings['qaqc_gdb'],
-		settings['qaqc_fd_name'],
-		settings['qaqc_tile_fc_name'],
-		settings['checks_to_do'])
+		dz_export_settings,
+		dz_binary_dir,
+		dz_raster_dir,
+		nantucket.get_las_tile_paths()[0:10],
+		qaqc_gdb,
+		qaqc_fd_name,
+		qaqc_tile_fc_name,
+		checks_to_do)
 	
 	qaqc.create_qaqc_feature_dataset()
 	qaqc.create_qaqc_tile_feature_class()
 	
 	qaqc.run_qaqc_tile_collection_checks()
 
-	qaqc.gen_qaqc_results_csv_NAD83_UTM(settings['qaqc_results_csv'])
-	qaqc.gen_qaqc_results_csv_WGS84(settings['qaqc_results_csv_WGS84'])
+	qaqc.gen_qaqc_results_csv_NAD83_UTM(qaqc_results_csv)
+	qaqc.gen_qaqc_results_csv_WGS84(qaqc_results_csv_WGS84)
 
-	qaqc.gen_qaqc_results_json_NAD83_UTM()
-	qaqc.gen_qaqc_results_shp_NAD83_UTM()
+	qaqc.gen_qaqc_results_json_NAD83_UTM(qaqc_results_geojson)
+	qaqc.gen_qaqc_results_shp_NAD83_UTM(qaqc_results_shp)
+
+	dz_mosaic = DzOrthoMosaic()
+	dz_mosaic.create_raster_catalog()
+	dz_mosaic.mosaic_dz_raster_catalog()
+	dz_mosaic.add_dz_dir_to_raster_catalog()
+	dz_mosaic.add_dz_mosaic_to_mxd()
+	dz_mosaic.update_raster_symbology()
+
 
 if __name__ == '__main__':
+
 	main()
