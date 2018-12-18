@@ -45,7 +45,7 @@ classification_scheme_dir = r'\\ngs-s-rsd\response_dl\Research\transfer\software
 classification_scheme_xml = 'noaa_topobathy_v02.xml'
 classificaiton_scheme_fpath = os.path.join(classification_scheme_dir, classification_scheme_xml)
 
-dz_classes_lyr = r'C:\QAQC_contract\dz_classes.lyr'
+dz_classes_template = r'C:\QAQC_contract\dz_classes.lyr'
 dz_export_settings = r'C:\QAQC_contract\\dz_export_settings.xml'
 dz_mxd = r'{}\QAQC_nantucket.mxd'.format(qaqc_dir)
 
@@ -224,29 +224,35 @@ class DzOrthoMosaic:
 
 	def add_dz_dir_to_raster_catalog(self):
 		logging.info('adding dz_rasters to {}...'.format(dz_raster_catalog))
-		arcpy.WorkspaceToRasterCatalog_management(qaqc_gdb, dz_raster_catalog_base_name)
+		arcpy.WorkspaceToRasterCatalog_management(qaqc_gdb, dz_raster_catalog)
 
 	def mosaic_dz_raster_catalog(self):
 		logging.info('mosaicing rasters in {}...'.format(dz_raster_catalog))
 		print(dz_raster_catalog)
 		print(dz_mosaic_raster)
-		arcpy.RasterCatalogToRasterDataset_management(dz_raster_catalog, dz_mosaic_raster)
+		try:
+			arcpy.RasterCatalogToRasterDataset_management(dz_raster_catalog, dz_mosaic_raster)
+		except Exception, e:
+			print(e)
 
 	def add_dz_mosaic_to_mxd(self):
-		md = arcpy.mapping.MapDocument(dz_mxd)
-		df = arcpy.mapping.ListDataFrames(md)[0]
-		arcpy.MakeRasterLayer_management(dz_mosaic_raster, dz_raster_catalog_base_name)
-		dz_lyr = arcpy.mapping.Layer(dz_raster_catalog_base_name)
+		mxd = arcpy.mapping.MapDocument(dz_mxd)
+		df = arcpy.mapping.ListDataFrames(mxd)[0]
+		arcpy.MakeRasterLayer_management(dz_mosaic_raster, dz_mosaic_raster_basename)
+		dz_lyr = arcpy.mapping.Layer(dz_mosaic_raster_basename)
 		arcpy.mapping.AddLayer(df, dz_lyr, 'AUTO_ARRANGE')
-		md.save()
+		mxd.save()
 
 	def update_raster_symbology(self):
-		md = arcpy.mapping.MapDocument(dz_mxd)
-		df = arcpy.mapping.ListDataFrames(md)[0]
-		raster_to_update = arcpy.mapping.ListLayers(md, dz_mosaic_raster_basename, df)[0]
-		dz_classes_lyr = arcpy.mapping.Layer(dz_classes_lyr)
+		mxd = arcpy.mapping.MapDocument(dz_mxd)
+		df = arcpy.mapping.ListDataFrames(mxd)[0]
+		print(df)
+		print(dz_mosaic_raster_basename)
+		print(arcpy.mapping.ListLayers(mxd, dz_mosaic_raster_basename, df))
+		raster_to_update = arcpy.mapping.ListLayers(mxd, dz_mosaic_raster_basename, df)[0]
+		dz_classes_lyr = arcpy.mapping.Layer(dz_classes_template)
 		arcpy.mapping.UpdateLayer(df, raster_to_update, dz_classes_lyr, True)
-		md.save()
+		mxd.save()
 
 
 class DzOrtho:
@@ -633,11 +639,12 @@ class QaqcTileCollection:
 		gdf.to_csv(output, index=False)
 
 	def gen_dz_ortho_mosaic(self): # TODO
-		DzOrtho.create_raster_catalog()
-		DzOrtho.add_dz_dir_to_raster_catalog()
-		DzOrtho.mosaic_dz_raster_catalog()
-		DzOrtho.add_dz_mosaic_to_mxd()
-		DzOrtho.update_raster_symbology()
+		dz_mosaic = DzOrthoMosaic()
+		dz_mosaic.create_raster_catalog()
+		dz_mosaic.add_dz_dir_to_raster_catalog()
+		dz_mosaic.mosaic_dz_raster_catalog()
+		dz_mosaic.add_dz_mosaic_to_mxd()
+		dz_mosaic.update_raster_symbology()
 
 
 def gen_tile_geojson(contractor_las_tiles, geojson):
@@ -712,7 +719,7 @@ def main():
 		dz_export_settings,
 		dz_binary_dir,
 		dz_raster_dir,
-		nantucket.get_las_tile_paths()[0:10],
+		nantucket.get_las_tile_paths()[0:20],
 		qaqc_gdb,
 		qaqc_fd_name,
 		qaqc_tile_fc_name,
@@ -729,12 +736,8 @@ def main():
 	qaqc.gen_qaqc_results_json_NAD83_UTM(qaqc_results_geojson)
 	qaqc.gen_qaqc_results_shp_NAD83_UTM(qaqc_results_shp)
 
-	dz_mosaic = DzOrthoMosaic()
-	dz_mosaic.create_raster_catalog()
-	dz_mosaic.mosaic_dz_raster_catalog()
-	dz_mosaic.add_dz_dir_to_raster_catalog()
-	dz_mosaic.add_dz_mosaic_to_mxd()
-	dz_mosaic.update_raster_symbology()
+	qaqc.gen_dz_ortho_mosaic()
+
 
 
 if __name__ == '__main__':
