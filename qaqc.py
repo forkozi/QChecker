@@ -493,7 +493,7 @@ class QaqcTileCollection:
 			self.dz_export_settings)
 		tiles_qaqc.run_qaqc(self.las_paths, multiprocess=False)
 
-	def gen_qaqc_results_json(self):
+	def gen_qaqc_results_json_NAD83_UTM(self):
 
 		def flatten_dict(d_obj):
 			for k, v in d_obj.items():
@@ -519,7 +519,7 @@ class QaqcTileCollection:
 		with open(self.qaqc_results_json, 'w') as f:
 			f.write(json.dumps(flattened_dicts))
 
-	def gen_qaqc_results_gdf(self):
+	def gen_qaqc_results_gdf_NAD83_UTM(self):
 		"""creates a geopandas dataframe"""
 
 		df = pd.read_json(self.qaqc_results_json)
@@ -541,12 +541,35 @@ class QaqcTileCollection:
 
 		return gdf
 
-	def gen_qaqc_results_csv(self):
-		gdf = self.gen_qaqc_results_gdf()
-		gdf.to_csv(self.qaqc_results_csv, index=False)
+	def gen_qaqc_results_gdf_NAD83_UTM(self):
+		"""creates a geopandas dataframe"""
 
-	def gen_qaqc_results_shp(self):
-		gdf = self.gen_qaqc_results_gdf()
+		df = self.get_qaqc_results_df()
+
+		df['Coordinates'] = list(zip(df.centroid_x, df.centroid_y))
+		df['Coordinates'] = df['Coordinates'].apply(Point)
+
+		nad83_utm_z19 = {'init': 'epsg:26919'}
+
+		gdf = gpd.GeoDataFrame(df, crs=nad83_utm_z19, geometry='Coordinates')
+		
+		def get_x(pt):
+			return (pt.x)
+
+		def get_y(pt):
+			return (pt.y)
+
+		gdf['centroid_x'] = map(get_x, gdf['Coordinates'])
+		gdf['centroid_y'] = map(get_y, gdf['Coordinates'])
+
+		return gdf
+
+	def gen_qaqc_results_csv_NAD83_UTM(self, output):
+		gdf = self.gen_qaqc_results_gdf_NAD83_UTM(output)
+		gdf.to_csv(output, index=False)
+
+	def gen_qaqc_results_shp_NAD83_UTM(self):
+		gdf = self.gen_qaqc_results_gdf_NAD83_UTM()
 		gdf.to_file(self.qaqc_results_shp, driver='ESRI Shapefile')
 
 	def get_qaqc_results_df(self):
@@ -578,30 +601,6 @@ class QaqcTileCollection:
 		df = pd.DataFrame(flattened_dicts)
 		return df
 
-	def gen_qaqc_results_gdf_NAD83_UTM(self):
-		"""creates a geopandas dataframe"""
-
-		df = self.get_qaqc_results_df()
-
-		df['Coordinates'] = list(zip(df.centroid_x, df.centroid_y))
-		df['Coordinates'] = df['Coordinates'].apply(Point)
-
-		nad83_utm_z19 = {'init': 'epsg:26919'}
-
-		gdf = gpd.GeoDataFrame(df, crs=nad83_utm_z19, geometry='Coordinates')
-		
-
-		def get_x(pt):
-			return (pt.x)
-
-		def get_y(pt):
-			return (pt.y)
-
-		gdf['centroid_x'] = map(get_x, gdf['Coordinates'])
-		gdf['centroid_y'] = map(get_y, gdf['Coordinates'])
-
-		return gdf
-
 	def gen_qaqc_results_csv_WGS84(self, output):
 		gdf = self.gen_qaqc_results_gdf_NAD83_UTM()
 		wgs84 = {'init': 'epsg:4326'}
@@ -618,9 +617,7 @@ class QaqcTileCollection:
 
 		gdf.to_csv(output, index=False)
 
-	def gen_qaqc_results_csv(self, output):
-		gdf = self.gen_qaqc_results_gdf_NAD83_UTM(output)
-		gdf.to_csv(output, index=False)
+
 
 	#def gen_dz_ortho_mosaic(self): # TODO
 	#	DzOrtho.create_raster_catalog()
@@ -664,9 +661,9 @@ def gen_tile_geojson(contractor_las_tiles, geojson):
 
 
 def gen_tile_centroids_csv(shp, out_geojson):
-	input = gpd.read_file(shp).to_crs({'init': 'epsg:4326'})  # wgs84 (temporary)
-	input['geometry'] = input['geometry'].centroid
-	#input.to_file(out_geojson, driver='GeoJSON')
+	gdf = gpd.read_file(shp).to_crs({'init': 'epsg:4326'})  # wgs84 (temporary)
+	gdf['geometry'] = gdf['geometry'].centroid
+	#gdf.to_file(out_geojson, driver='GeoJSON')
 
 	def get_x(pt):
 		return (pt.x)
@@ -674,10 +671,10 @@ def gen_tile_centroids_csv(shp, out_geojson):
 	def get_y(pt):
 		return (pt.y)
 
-	input['centroid_x'] = map(get_x, input['geometry'])
-	input['centroid_y'] = map(get_y, input['geometry'])
+	gdf['centroid_x'] = map(get_x, gdf['geometry'])
+	gdf['centroid_y'] = map(get_y, gdf['geometry'])
 
-	input.to_csv(out_geojson.replace('.json', '.csv'))
+	gdf.to_csv(out_geojson.replace('.json', '.csv'))
 
 
 def run_console_cmd(cmd):
@@ -703,6 +700,7 @@ def config_settings():
 	tiles_coords_csv = os.path.join(qaqc_dir, 'tiles_coords.csv')
 
 	qaqc_results_csv = r'C:\QAQC_contract\nantucket\qaqc_tile_collection_results.csv'
+	qaqc_results_csv_WGS84 = r'C:\QAQC_contract\nantucket\qaqc_tile_collection_results_WGS84.csv'
 	qaqc_results_geojson = r'C:\QAQC_contract\nantucket\qaqc_tile_collection_results.json'
 	tiles_shp = r'C:\QAQC_contract\nantucket\EXTENTS\final\Nantucket_TileGrid.shp'
 
@@ -742,6 +740,7 @@ def config_settings():
 		'qaqc_fd_path': qaqc_fd_path,
 		'qaqc_tile_fc_name': qaqc_tile_fc_name,
 		'qaqc_results_csv': qaqc_results_csv,
+		'qaqc_results_csv_WGS84': qaqc_results_csv_WGS84,
 		'qaqc_results_geojson': qaqc_results_geojson,
 		'tiles_shp': tiles_shp,
 		'tiles_geojson': tiles_geojson,
@@ -766,14 +765,11 @@ def main():
 	logging.basicConfig(format='%(asctime)s:%(message)s', level=logging.INFO)
 	settings = config_settings()
 
-	#gen_tile_geojson(
-	#       settings['tiles_shp'],
-	#       settings['tiles_geojson'])
-	gen_tile_centroids_csv(
-		   settings['tiles_shp'],
-		   settings['tiles_centroids_geojson'])
+	gen_tile_geojson(settings['tiles_shp'], settings['tiles_geojson'])
+	gen_tile_centroids_csv(settings['tiles_shp'], settings['tiles_centroids_geojson'])
 
 	nantucket = LasTileCollection(settings['las_tile_dir'])
+	
 	qaqc = QaqcTileCollection(
 		settings['dz_export_settings'],
 		settings['dz_binary_dir'],
@@ -784,15 +780,16 @@ def main():
 		settings['qaqc_tile_fc_name'],
 		settings['checks_to_do'])
 	
-	#qaqc.create_qaqc_feature_dataset()
-	#qaqc.create_qaqc_tile_feature_class()
-	#qaqc.run_qaqc_tile_collection_checks()
-	#qaqc.gen_qaqc_results_csv(settings['qaqc_results_csv'])
-	qaqc.gen_qaqc_results_csv_WGS84(settings['qaqc_results_csv'])
+	qaqc.create_qaqc_feature_dataset()
+	qaqc.create_qaqc_tile_feature_class()
+	
+	qaqc.run_qaqc_tile_collection_checks()
 
-	#qaqc.gen_qaqc_results_json()
-	#qaqc.gen_qaqc_results_csv()
-	#qaqc.gen_qaqc_results_shp()
+	qaqc.gen_qaqc_results_csv_NAD83_UTM(settings['qaqc_results_csv'])
+	qaqc.gen_qaqc_results_csv_WGS84(settings['qaqc_results_csv_WGS84'])
+
+	qaqc.gen_qaqc_results_json_NAD83_UTM()
+	qaqc.gen_qaqc_results_shp_NAD83_UTM()
 
 if __name__ == '__main__':
 	main()
