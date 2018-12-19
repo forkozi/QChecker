@@ -34,9 +34,10 @@ tiles_geojson = os.path.join(qaqc_dir, 'tiles_WGS84.json')
 tiles_centroids_geojson = os.path.join(qaqc_dir, 'tiles_centroids_WGS84.json')
 tiles_csv = os.path.join(qaqc_dir, 'tiles.csv')
 
-qaqc_results_csv = r'C:\QAQC_contract\nantucket\qaqc_results.csv'
-qaqc_results_geojson = r'C:\QAQC_contract\nantucket\qaqc_results_NAD83_UTM.json'
-qaqc_results_shp = r'C:\QAQC_contract\nantucket\qaqc_results_NAD83_UTM.shp'
+qaqc_csv = r'C:\QAQC_contract\nantucket\qaqc.csv'
+qaqc_geojson_NAD83_UTM_CENTROIDS = r'C:\QAQC_contract\nantucket\qaqc_NAD83_UTM_CENTROIDS.json'
+qaqc_geojson_NAD83_UTM_POLYGONS = r'C:\QAQC_contract\nantucket\qaqc_NAD83_UTM_POLYGONS.json'
+qaqc_shp_NAD83_UTM_POLYGONS = r'C:\QAQC_contract\nantucket\qaqc_NAD83_UTM.shp'
 
 tiles_shp = r'C:\QAQC_contract\nantucket\EXTENTS\final\Nantucket_TileGrid.shp'
 
@@ -109,22 +110,17 @@ class LasTile:
 		self.inFile = File(self.path, mode="r")
 
 		def get_useful_las_header_info():
-			# put various useful tidbits from las header into LasTile header
-			# dict
 			info_to_get = 'global_encoding,version_major,version_minor,' \
 						  'created_day,created_year,' \
 						  'data_format_id,x_min,x_max,y_min,y_max'
 			header = {}
 			for info in info_to_get.split(','):
 				header[info] = self.inFile.header.reader.get_header_property(info)
-
-			# run through variable length records (VLRs)
 			header['VLRs'] = {}
 			for vlr in self.inFile.header.vlrs:
 				# get coordinate system name (e.g., NAD_1983_2011_UTM_Zone_19N)
 				if vlr.record_id == 34737:
 					header['VLRs']['coord_sys'] = vlr.parsed_body[0].decode('utf-8').split('|')[0]
-
 			return header
 
 		self.header = get_useful_las_header_info()
@@ -163,7 +159,6 @@ class LasTile:
 			])).wkt()
 
 		self.tile_centroid_wkt = GeoObject(Point(self.centroid_x, self.centroid_y)).wkt()
-
 		self.class_counts = self.get_class_counts()
 		self.has_bathy = True if '{}26{}'.format('class', 'count') in self.class_counts.keys() else False
 		self.has_ground = True if '{}2{}'.format('class', 'count') in self.class_counts.keys() else False
@@ -234,8 +229,9 @@ class DzOrthoMosaic:
 
 	def create_raster_catalog(self):
 		try:
-			arcpy.CreateRasterCatalog_management(qaqc_gdb, dz_raster_catalog_base_name,
-												 raster_management_type='UNMANAGED')
+			arcpy.CreateRasterCatalog_management(
+				qaqc_gdb, dz_raster_catalog_base_name,
+				raster_management_type='UNMANAGED')
 		except Exception, e:
 			print(e)
 
@@ -292,9 +288,9 @@ class DzOrtho:
 		logging.info('converting {} to {}...'.format(self.dz_binary_path,
 		self.dz_raster_path))
 		try:
-			arcpy.FloatToRaster_conversion(self.dz_binary_path, 'in_memory\temp_dz')
+			arcpy.FloatToRaster_conversion(self.dz_binary_path, 'in_memory\\temp_dz')
 			sr = arcpy.SpatialReference('NAD 1983 2011 UTM Zone 19N')
-			arcpy.ProjectRaster_management('in_memory\temp_dz', self.dz_raster_path, sr)
+			arcpy.ProjectRaster_management('in_memory\\temp_dz', self.dz_raster_path, sr)
 		except Exception as e:
 			print(e)
 
@@ -560,14 +556,6 @@ class QaqcTileCollection:
 		df = pd.DataFrame(self.gen_qaqc_results_dict())
 		return df
 
-	def gen_qaqc_results_json_NAD83_UTM_CENTROIDS(self, output):
-		gdf = self.gen_qaqc_results_gdf_NAD83_UTM_CENTROIDS()
-		try:
-			os.remove(output)
-		except Exception, e:
-			print(e)
-		gdf.to_file(output, driver="GeoJSON")
-
 	def gen_qaqc_results_gdf_NAD83_UTM_CENTROIDS(self):
 		df = self.get_qaqc_results_df()
 		df['Coordinates'] = df.tile_centroid
@@ -576,6 +564,14 @@ class QaqcTileCollection:
 		gdf = gpd.GeoDataFrame(df, crs=nad83_utm_z19, geometry='Coordinates')
 		return gdf
 
+	def gen_qaqc_results_json_NAD83_UTM_CENTROIDS(self, output):
+		gdf = self.gen_qaqc_results_gdf_NAD83_UTM_CENTROIDS()
+		try:
+			os.remove(output)
+		except Exception, e:
+			print(e)
+		gdf.to_file(output, driver="GeoJSON")
+
 	def gen_qaqc_results_gdf_NAD83_UTM_POLYGONS(self):
 		df = self.get_qaqc_results_df()
 		df['Coordinates'] = df.tile_polygon
@@ -583,6 +579,14 @@ class QaqcTileCollection:
 		nad83_utm_z19 = {'init': 'epsg:26919'}
 		gdf = gpd.GeoDataFrame(df, crs=nad83_utm_z19, geometry='Coordinates')		
 		return gdf
+
+	def gen_qaqc_results_json_NAD83_UTM_POLYGONS(self, output):
+		gdf = self.gen_qaqc_results_gdf_NAD83_UTM_POLYGONS()
+		try:
+			os.remove(output)
+		except Exception, e:
+			print(e)
+		gdf.to_file(output, driver="GeoJSON")
 
 	def gen_qaqc_results_csv(self, output):
 		gdf = self.gen_qaqc_results_gdf_NAD83_UTM_CENTROIDS()
@@ -610,7 +614,8 @@ class QaqcTileCollection:
 
 
 def gen_tile_geojson_WGS84(shp, geojson):
-	gdf = gpd.read_file(shp).to_crs({'init': 'epsg:4326'})  # wgs84
+	wgs84 = {'init': 'epsg:4326'}
+	gdf = gpd.read_file(shp).to_crs(wgs84)
 	try:
 		os.remove(geojson)
 	except Exception, e:
@@ -625,7 +630,8 @@ def gen_tile_centroids_csv(shp, out_csv):
 	def get_y(pt): return (pt.y)
 	gdf['centroid_x'] = map(get_x, gdf['geometry'])
 	gdf['centroid_y'] = map(get_y, gdf['geometry'])
-	gdf = gdf.to_crs({'init': 'epsg:4326'})  # wgs84
+	wgs84 = {'init': 'epsg:4326'}
+	gdf = gdf.to_crs(wgs84)
 	gdf['geometry'] = gdf['geometry'].centroid
 	gdf['centroid_lon'] = map(get_x, gdf['geometry'])
 	gdf['centroid_lat'] = map(get_y, gdf['geometry'])
@@ -655,13 +661,14 @@ def main():
 		qaqc_tile_fc_name,
 		checks_to_do)
 	
-	#qaqc.create_qaqc_feature_dataset()
-	#qaqc.create_qaqc_tile_feature_class()
+	qaqc.create_qaqc_feature_dataset()
+	qaqc.create_qaqc_tile_feature_class()
 	qaqc.run_qaqc_tile_collection_checks()
-	qaqc.gen_qaqc_results_csv(qaqc_results_csv)  # for dashboard
-	qaqc.gen_qaqc_results_json_NAD83_UTM_CENTROIDS(qaqc_results_geojson)
-	#qaqc.gen_qaqc_results_shp_NAD83_UTM(qaqc_results_shp)
-	#qaqc.gen_dz_ortho_mosaic()
+	qaqc.gen_qaqc_results_csv(qaqc_csv)  # for dashboard
+	qaqc.gen_qaqc_results_json_NAD83_UTM_CENTROIDS(qaqc_geojson_NAD83_UTM_CENTROIDS)
+	qaqc.gen_qaqc_results_json_NAD83_UTM_POLYGONS(qaqc_geojson_NAD83_UTM_POLYGONS)
+	qaqc.gen_qaqc_results_shp_NAD83_UTM(qaqc_shp_NAD83_UTM_POLYGONS)
+	qaqc.gen_dz_ortho_mosaic()
 
 
 if __name__ == '__main__':
