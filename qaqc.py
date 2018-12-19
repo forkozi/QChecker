@@ -6,7 +6,6 @@ import geopandas as gpd
 from shapely.geometry import Point, Polygon, mapping, shape
 from shapely import wkt
 import numpy as np
-#from scipy import stats
 import subprocess
 from laspy.file import File
 import xml.etree.ElementTree as ET
@@ -98,7 +97,6 @@ class LasTileCollection():
 			label = c.find('Label').text
 			value = c.find('Values')[0].text
 			classes[label] = value
-
 		classes_json_str = json.dumps(classes, indent=2)
 		print(classes_json_str)
 
@@ -228,9 +226,6 @@ class LasTile:
 	def get_hor_datum(self):
 		return self.header['VLRs']['coord_sys']
 
-	def calc_centroid(self):
-		pass
-
 
 class DzOrthoMosaic:
 
@@ -293,22 +288,6 @@ class DzOrtho:
 	def __str__(self):
 		return self.dz_raster_path
 
-	#def update_dz_raster_symbology(self):
-	#	md = arcpy.mapping.MapDocument(dz_mxd)
-	#	df = arcpy.mapping.ListDataFrames(md)[0]
-	#	dz_to_update = arcpy.mapping.ListLayers(md, self.las_name, df)[0]
-	#	dz_classes_lyr = arcpy.mapping.Layer(self.dz_classes_lyr)
-	#	arcpy.mapping.UpdateLayer(df, dz_to_update, dz_classes_lyr, True)
-	#	md.save()
-
-	#def add_dz_to_mxd(self):
-	#	md = arcpy.mapping.MapDocument(dz_mxd)
-	#	df = arcpy.mapping.ListDataFrames(md)[0]
-	#	arcpy.MakeRasterLayer_management(self.dz_raster_path, self.las_name)
-	#	dz_lyr = arcpy.mapping.Layer(self.las_name)
-	#	arcpy.mapping.AddLayer(df, dz_lyr, 'AUTO_ARRANGE')
-	#	md.save()
-
 	def binary_to_raster(self):
 		logging.info('converting {} to {}...'.format(self.dz_binary_path,
 		self.dz_raster_path))
@@ -320,13 +299,6 @@ class DzOrtho:
 
 	#def project_dz_raster(self):
 	#    pass
-
-	#def dz_to_numpy(self): # TODO
-	#    logging.info('getting dz stat for {}...'.format(self.las_name))
-	#    dz_np = arcpy.RasterToNumPyArray(self.dz_raster_path)
-	#    print(dz_np)
-	#    dz_stats = stats.describe(dz_np.flatten())
-	#    print(dz_stats)
 
 	def update_dz_export_settings_extents(self):
 		logging.info('updating dz export settings xml with las extents...')
@@ -401,15 +373,12 @@ class QaqcTile:
 		# ####_######e_#[#######]n_las)
 		pattern = re.compile(r'[0-9]{4}_[0-9]{6}e_[0-9]{1,8}(n_las)')
 		if pattern.match(tile.name):
-
 			# then check name components
 			tile_name_parts = tile.name.split('_')
 			easting = tile_name_parts[1].replace('e', '')
 			northing = tile_name_parts[2].replace('n', '')
-
 			easting_good = self.passed_text if easting >= min_easting and easting <= max_easting else self.failed_text
 			northing_good = self.passed_text if northing >= min_northing and northing <= max_northing else self.failed_text
-
 			if easting_good and northing_good:
 				passed = self.passed_text
 			else:
@@ -499,27 +468,20 @@ class QaqcTile:
 		import logging
 		import xml.etree.ElementTree as ET
 		logging.basicConfig(format='%(asctime)s:%(message)s', level=logging.INFO)
-
 		tile = LasTile(las_path)
-
 		for c in [k for k, v in self.checks_to_do.iteritems() if v]:
 			logging.info('running {}...'.format(c))
 			result = self.checks[c](tile)
 			logging.info(result)
-
-		# output results of qaqc checks to json file
 		tile.output_check_results_to_json()
 
 	def run_qaqc_checks(self, las_paths):
 		for las_path in las_paths:
 			tile = LasTile(las_path)
-
 			for c in [k for k, v in self.checks_to_do.iteritems() if v]:
 				logging.info('running {}...'.format(c))
 				result = self.checks[c](tile)
 				logging.info(result)
-
-			# output results of qaqc checks to json file
 			tile.output_check_results_to_json()
 
 	def run_qaqc(self, las_paths, multiprocess):
@@ -578,7 +540,6 @@ class QaqcTileCollection:
 		tiles_qaqc.run_qaqc(self.las_paths, multiprocess=False)
 
 	def gen_qaqc_results_dict(self):
-
 		def flatten_dict(d_obj):
 			for k, v in d_obj.items():
 				if isinstance(v, dict):
@@ -587,9 +548,7 @@ class QaqcTileCollection:
 						yield d
 				else:
 					yield k, v
-
 		flattened_dicts = []
-
 		for las_json in os.listdir(self.json_dir):
 			try:
 				las_json = os.path.join(self.json_dir, las_json)
@@ -599,7 +558,6 @@ class QaqcTileCollection:
 					flattened_dicts.append(flattened_json_data)
 			except Exception as e:
 				print(e)
-
 		return flattened_dicts
 
 	def get_qaqc_results_df(self):
@@ -608,6 +566,10 @@ class QaqcTileCollection:
 
 	def gen_qaqc_results_json_NAD83_UTM_CENTROIDS(self, output):
 		gdf = self.gen_qaqc_results_gdf_NAD83_UTM_CENTROIDS()
+		try:
+			os.remove(output)
+		except Exception, e:
+			print(e)
 		gdf.to_file(output, driver="GeoJSON")
 
 	def gen_qaqc_results_gdf_NAD83_UTM_CENTROIDS(self):
@@ -626,24 +588,14 @@ class QaqcTileCollection:
 		gdf = gpd.GeoDataFrame(df, crs=nad83_utm_z19, geometry='Coordinates')		
 		return gdf
 
-	def gen_qaqc_results_csv_NAD83_UTM(self, output):
+	def gen_qaqc_results_csv(self, output):
 		gdf = self.gen_qaqc_results_gdf_NAD83_UTM_CENTROIDS()
-
 		def get_x(pt): return (pt.x)
 		def get_y(pt): return (pt.y)
-
 		gdf['centroid_x'] = map(get_x, gdf['Coordinates'])
 		gdf['centroid_y'] = map(get_y, gdf['Coordinates'])
-		gdf.to_csv(output, index=False)
-
-	def gen_qaqc_results_csv_WGS84(self, output):
-		gdf = self.gen_qaqc_results_gdf_NAD83_UTM_CENTROIDS()
 		wgs84 = {'init': 'epsg:4326'}
 		gdf = gdf.to_crs(wgs84)
-
-		def get_x(pt): return (pt.x)
-		def get_y(pt): return (pt.y)
-
 		gdf['centroid_lon'] = map(get_x, gdf['Coordinates'])
 		gdf['centroid_lat'] = map(get_y, gdf['Coordinates'])
 		gdf.to_csv(output, index=False)
@@ -663,29 +615,25 @@ class QaqcTileCollection:
 
 def gen_tile_geojson_WGS84(shp, geojson):
 	gdf = gpd.read_file(shp).to_crs({'init': 'epsg:4326'})  # wgs84
-	
 	try:
 		os.remove(geojson)
 	except Exception, e:
 		print(e)
-
 	gdf.to_file(geojson, driver="GeoJSON")
 
 
-def gen_tile_centroids_csv_WGS84(shp, out_geojson):
-	gdf = gpd.read_file(shp).to_crs({'init': 'epsg:4326'})  # wgs84
+def gen_tile_centroids_csv(shp, out_csv):
+	gdf = gpd.read_file(shp)
 	gdf['geometry'] = gdf['geometry'].centroid
-
-	def get_x(pt):
-		return (pt.x)
-
-	def get_y(pt):
-		return (pt.y)
-
+	def get_x(pt): return (pt.x)
+	def get_y(pt): return (pt.y)
 	gdf['centroid_x'] = map(get_x, gdf['geometry'])
 	gdf['centroid_y'] = map(get_y, gdf['geometry'])
-
-	gdf.to_csv(out_geojson.replace('.json', '.csv'))
+	gdf = gdf.to_crs({'init': 'epsg:4326'})  # wgs84
+	gdf['geometry'] = gdf['geometry'].centroid
+	gdf['centroid_lon'] = map(get_x, gdf['geometry'])
+	gdf['centroid_lat'] = map(get_y, gdf['geometry'])
+	gdf.to_csv(out_csv)
 
 
 def run_console_cmd(cmd):
@@ -697,12 +645,10 @@ def run_console_cmd(cmd):
 
 def main():
 	logging.basicConfig(format='%(asctime)s:%(message)s', level=logging.INFO)
-
+	gen_tile_centroids_csv(tiles_shp, tiles_csv)
 	gen_tile_geojson_WGS84(tiles_shp, tiles_geojson)
-	gen_tile_centroids_csv_WGS84(tiles_shp, tiles_csv)
 
 	nantucket = LasTileCollection(las_tile_dir)
-	
 	qaqc = QaqcTileCollection(
 		dz_export_settings,
 		dz_binary_dir,
@@ -713,19 +659,13 @@ def main():
 		qaqc_tile_fc_name,
 		checks_to_do)
 	
-	qaqc.create_qaqc_feature_dataset()
-	qaqc.create_qaqc_tile_feature_class()
-	
+	#qaqc.create_qaqc_feature_dataset()
+	#qaqc.create_qaqc_tile_feature_class()
 	qaqc.run_qaqc_tile_collection_checks()
-
-	qaqc.gen_qaqc_results_csv_NAD83_UTM(qaqc_results_csv)  # for dashboard
-	qaqc.gen_qaqc_results_csv_WGS84(qaqc_results_csv)  # for dashboard
-
+	qaqc.gen_qaqc_results_csv(qaqc_results_csv)  # for dashboard
 	qaqc.gen_qaqc_results_json_NAD83_UTM_CENTROIDS(qaqc_results_geojson)
-	qaqc.gen_qaqc_results_shp_NAD83_UTM(qaqc_results_shp)
-
+	#qaqc.gen_qaqc_results_shp_NAD83_UTM(qaqc_results_shp)
 	#qaqc.gen_dz_ortho_mosaic()
-
 
 
 if __name__ == '__main__':
