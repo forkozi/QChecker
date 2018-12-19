@@ -292,23 +292,19 @@ class DzOrtho:
 		logging.info('converting {} to {}...'.format(self.dz_binary_path,
 		self.dz_raster_path))
 		try:
-			arcpy.FloatToRaster_conversion(self.dz_binary_path,
-			self.dz_raster_path)
+			arcpy.FloatToRaster_conversion(self.dz_binary_path, 'in_memory\temp_dz')
+			sr = arcpy.SpatialReference('NAD 1983 2011 UTM Zone 19N')
+			arcpy.ProjectRaster_management('in_memory\temp_dz', self.dz_raster_path, sr)
 		except Exception as e:
 			print(e)
-
-	#def project_dz_raster(self):
-	#    pass
 
 	def update_dz_export_settings_extents(self):
 		logging.info('updating dz export settings xml with las extents...')
 		tree = ET.parse(self.dz_export_settings)
 		root = tree.getroot()
-
 		for extent, val in self.las_extents.iteritems():
 			for e in root.findall(extent):
 				e.text = str(val)
-
 		new_dz_settings = ET.tostring(root)
 		myfile = open(self.dz_export_settings, "w")
 		myfile.write(new_dz_settings)
