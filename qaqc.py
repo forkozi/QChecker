@@ -18,6 +18,7 @@ import re
 import fiona
 from fiona.crs import from_epsg
 from pyproj import Proj, transform
+from geodaisy import GeoObject
 
 project_name = 'nantucket'
 
@@ -130,11 +131,12 @@ class LasTile:
 			return header
 
 		self.header = get_useful_las_header_info()
-		self.las_extents = {'ExtentXMin': self.header['x_min'],
-							'ExtentXMax': self.header['x_max'],
-							'ExtentYMin': self.header['y_min'],
-							'ExtentYMax': self.header['y_max'],
-							}
+		self.las_extents = {
+			'ExtentXMin': self.header['x_min'],
+			'ExtentXMax': self.header['x_max'],
+			'ExtentYMin': self.header['y_min'],
+			'ExtentYMax': self.header['y_max'],
+			}
 
 		def calc_las_centroid():
 			tile_size = 500  # meters
@@ -147,6 +149,22 @@ class LasTile:
 			return (las_centroid_x, las_centroid_y)
 
 		self.centroid_x, self.centroid_y = calc_las_centroid()
+
+		self.tile_extents = {
+			'tile_top': self.centroid_y + 250,
+			'tile_bottom': self.centroid_y - 250,
+			'tile_left': self.centroid_x - 250,
+			'tile_right': self.centroid_x + 250,
+			}
+
+		self.tile_poly_wkt = GeoObject(Polygon([
+			(self.tile_extents['tile_top'], self.tile_extents['tile_left']), 
+			(self.tile_extents['tile_top'], self.tile_extents['tile_right']), 
+			(self.tile_extents['tile_bottom'], self.tile_extents['tile_right']), 
+			(self.tile_extents['tile_bottom'], self.tile_extents['tile_left']),
+			(self.tile_extents['tile_top'], self.tile_extents['tile_left']), 
+			])).wkt()
+
 		self.class_counts = self.get_class_counts()
 		self.has_bathy = True if '{}26{}'.format('class', 'count') in self.class_counts.keys() else False
 		self.has_ground = True if '{}2{}'.format('class', 'count') in self.class_counts.keys() else False
@@ -169,7 +187,9 @@ class LasTile:
 			'centroid_x': self.centroid_x,
 			'centroid_y': self.centroid_y,
 			'class_counts': self.class_counts,
-			'check_results': self.checks_result}
+			'check_results': self.checks_result,
+			'tile_poly': self.tile_poly_wkt,
+			}
 
 		# del keys that are not needed because of repitition
 		info_to_output['header'].pop('VLRs', None)
@@ -592,7 +612,7 @@ class QaqcTileCollection:
 		with open(output, 'w') as f:
 			f.write(json.dumps(self.gen_qaqc_results_dict()))
 
-	def gen_qaqc_results_gdf_NAD83_UTM(self):
+	def gen_qaqc_results_gdf_NAD83_UTM_CENTROIDS(self):
 		df = self.get_qaqc_results_df()
 
 		df['Coordinates'] = list(zip(df.centroid_x, df.centroid_y))
@@ -614,16 +634,28 @@ class QaqcTileCollection:
 
 		return gdf
 
+	def gen_qaqc_results_gdf_NAD83_UTM_POLYGONS(self):
+		df = self.get_qaqc_results_df()
+
+		df['Coordinates'] = df.tile_poly
+		df['Coordinates'] = df['Coordinates'].apply(wkt.loads)
+
+		nad83_utm_z19 = {'init': 'epsg:26919'}
+
+		gdf = gpd.GeoDataFrame(df, crs=nad83_utm_z19, geometry='Coordinates')		
+
+		return gdf
+
 	def gen_qaqc_results_csv_NAD83_UTM(self, output):
-		gdf = self.gen_qaqc_results_gdf_NAD83_UTM()
+		gdf = self.gen_qaqc_results_gdf_NAD83_UTM_CENTROIDS()
 		gdf.to_csv(output, index=False)
 
 	def gen_qaqc_results_shp_NAD83_UTM(self, output):
-		gdf = self.gen_qaqc_results_gdf_NAD83_UTM()
+		gdf = self.gen_qaqc_results_gdf_NAD83_UTM_POLYGONS()
 		gdf.to_file(output, driver='ESRI Shapefile')
 
 	def gen_qaqc_results_csv_WGS84(self, output):
-		gdf = self.gen_qaqc_results_gdf_NAD83_UTM()
+		gdf = self.gen_qaqc_results_gdf_NAD83_UTM_CENTROIDS()
 		wgs84 = {'init': 'epsg:4326'}
 		gdf = gdf.to_crs(wgs84)
 
@@ -638,7 +670,7 @@ class QaqcTileCollection:
 
 		gdf.to_csv(output, index=False)
 
-	def gen_dz_ortho_mosaic(self): # TODO
+	def gen_dz_ortho_mosaic(self):
 		dz_mosaic = DzOrthoMosaic()
 		dz_mosaic.create_raster_catalog()
 		dz_mosaic.add_dz_dir_to_raster_catalog()
@@ -719,7 +751,7 @@ def main():
 		dz_export_settings,
 		dz_binary_dir,
 		dz_raster_dir,
-		nantucket.get_las_tile_paths()[0:20],
+		nantucket.get_las_tile_paths()[0:10],
 		qaqc_gdb,
 		qaqc_fd_name,
 		qaqc_tile_fc_name,
@@ -730,8 +762,8 @@ def main():
 	
 	qaqc.run_qaqc_tile_collection_checks()
 
-	qaqc.gen_qaqc_results_csv_NAD83_UTM(qaqc_results_csv)
-	qaqc.gen_qaqc_results_csv_WGS84(qaqc_results_csv_WGS84)
+	qaqc.gen_qaqc_results_csv_NAD83_UTM(qaqc_results_csv)  # for dashboard
+	qaqc.gen_qaqc_results_csv_WGS84(qaqc_results_csv_WGS84)  # for dashboard
 
 	qaqc.gen_qaqc_results_json_NAD83_UTM(qaqc_results_geojson)
 	qaqc.gen_qaqc_results_shp_NAD83_UTM(qaqc_results_shp)
