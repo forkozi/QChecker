@@ -23,9 +23,7 @@ project_name = 'nantucket'
 
 qaqc_dir = r'C:\QAQC_contract\nantucket'
 qaqc_gdb = r'{}\qaqc_nantucket.gdb'.format(qaqc_dir)
-qaqc_fd_name = 'QAQC_Layers'
-qaqc_fd_path = r'{}\{}'.format(qaqc_gdb, qaqc_fd_name)
-qaqc_tile_fc_name = r'QAQC_tile_checks'
+
 las_tile_dir = r'{}\CLASSIFIED_LAS'.format(qaqc_dir)
 dz_binary_dir = r'{}\dz'.format(qaqc_dir)
 dz_raster_dir = r'{}'.format(qaqc_gdb)
@@ -151,11 +149,11 @@ class LasTile:
 			}
 
 		self.tile_poly_wkt = GeoObject(Polygon([
-			(self.tile_extents['tile_top'], self.tile_extents['tile_left']), 
-			(self.tile_extents['tile_top'], self.tile_extents['tile_right']), 
-			(self.tile_extents['tile_bottom'], self.tile_extents['tile_right']), 
-			(self.tile_extents['tile_bottom'], self.tile_extents['tile_left']),
-			(self.tile_extents['tile_top'], self.tile_extents['tile_left']), 
+			(self.tile_extents['tile_left'], self.tile_extents['tile_top']), 
+			(self.tile_extents['tile_right'], self.tile_extents['tile_top']), 
+			(self.tile_extents['tile_right'], self.tile_extents['tile_bottom']), 
+			(self.tile_extents['tile_left'], self.tile_extents['tile_bottom']),
+			(self.tile_extents['tile_left'], self.tile_extents['tile_top']), 
 			])).wkt()
 
 		self.tile_centroid_wkt = GeoObject(Point(self.centroid_x, self.centroid_y)).wkt()
@@ -259,9 +257,6 @@ class DzOrthoMosaic:
 	def update_raster_symbology(self):
 		mxd = arcpy.mapping.MapDocument(dz_mxd)
 		df = arcpy.mapping.ListDataFrames(mxd)[0]
-		print(df)
-		print(dz_mosaic_raster_basename)
-		print(arcpy.mapping.ListLayers(mxd, dz_mosaic_raster_basename, df))
 		raster_to_update = arcpy.mapping.ListLayers(mxd, dz_mosaic_raster_basename, df)[0]
 		dz_classes_lyr = arcpy.mapping.Layer(dz_classes_template)
 		arcpy.mapping.UpdateLayer(df, raster_to_update, dz_classes_lyr, True)
@@ -285,12 +280,9 @@ class DzOrtho:
 		return self.dz_raster_path
 
 	def binary_to_raster(self):
-		logging.info('converting {} to {}...'.format(self.dz_binary_path,
-		self.dz_raster_path))
 		try:
-			arcpy.FloatToRaster_conversion(self.dz_binary_path, 'in_memory\\temp_dz')
-			sr = arcpy.SpatialReference('NAD 1983 2011 UTM Zone 19N')
-			arcpy.ProjectRaster_management('in_memory\\temp_dz', self.dz_raster_path, sr)
+			logging.info('converting {} to {}...'.format(self.dz_binary_path, self.dz_raster_path))
+			arcpy.FloatToRaster_conversion(self.dz_binary_path, self.dz_raster_path)
 		except Exception as e:
 			print(e)
 
@@ -489,40 +481,15 @@ class QaqcTile:
 
 class QaqcTileCollection:
 
-	def __init__(self,
-				 dz_export_settings,
-				 dz_binary_dir,
-				 dz_raster_dir,
-				 las_paths,
-				 qaqc_gdb,
-				 qaqc_fd_name,
-				 qaqcd_tile_fc_name,
-				 checks_to_do):
+	def __init__(self, dz_export_settings, dz_binary_dir, dz_raster_dir,
+				 las_paths, qaqc_gdb, checks_to_do):
 		self.dz_binary_dir = dz_binary_dir
 		self.dz_raster_dir = dz_raster_dir
 		self.las_paths = las_paths
 		self.qaqc_gdb = qaqc_gdb
-		self.qaqc_fd_name = qaqc_fd_name
-		self.qaqc_fd_path = os.path.join(self.qaqc_gdb, self.qaqc_fd_name)
-		self.qaqc_tile_fc_name = qaqcd_tile_fc_name
-		self.qaqc_tile_fc_path = os.path.join(self.qaqc_fd_path, self.qaqc_tile_fc_name)
 		self.checks_to_do = checks_to_do
 		self.dz_export_settings = dz_export_settings
 		self.json_dir = r'C:\QAQC_contract\nantucket\qaqc_check_results'
-
-	def create_qaqc_feature_dataset(self):
-		logging.info('making {} in {}...'.format(self.qaqc_fd_name, self.qaqc_gdb))
-		try:
-			arcpy.CreateFeatureDataset_management(self.qaqc_gdb, self.qaqc_fd_name)
-		except Exception as e:
-			print(e)
-
-	def create_qaqc_tile_feature_class(self):
-		logging.info('making {} in {}...'.format(self.qaqc_tile_fc_name, self.qaqc_fd_path))
-		try:
-			arcpy.CreateFeatureclass_management(self.qaqc_fd_path, self.qaqc_tile_fc_name)
-		except Exception as e:
-			print(e)
 
 	def run_qaqc_tile_collection_checks(self):
 		tiles_qaqc = QaqcTile(self.checks_to_do,
@@ -655,20 +622,16 @@ def main():
 		dz_export_settings,
 		dz_binary_dir,
 		dz_raster_dir,
-		nantucket.get_las_tile_paths()[0:10],
+		nantucket.get_las_tile_paths()[0:50],
 		qaqc_gdb,
-		qaqc_fd_name,
-		qaqc_tile_fc_name,
 		checks_to_do)
 	
-	qaqc.create_qaqc_feature_dataset()
-	qaqc.create_qaqc_tile_feature_class()
 	qaqc.run_qaqc_tile_collection_checks()
 	qaqc.gen_qaqc_results_csv(qaqc_csv)  # for dashboard
 	qaqc.gen_qaqc_results_json_NAD83_UTM_CENTROIDS(qaqc_geojson_NAD83_UTM_CENTROIDS)
 	qaqc.gen_qaqc_results_json_NAD83_UTM_POLYGONS(qaqc_geojson_NAD83_UTM_POLYGONS)
 	qaqc.gen_qaqc_results_shp_NAD83_UTM(qaqc_shp_NAD83_UTM_POLYGONS)
-	qaqc.gen_dz_ortho_mosaic()
+	qaqc.gen_dz_ortho_mosaic()  # TODO: project to sr = arcpy.SpatialReference('NAD 1983 2011 UTM Zone 19N')
 
 
 if __name__ == '__main__':
