@@ -22,10 +22,7 @@ from geodaisy import GeoObject
 project_name = 'nantucket'
 qaqc_dir = r'C:\QAQC_contract\nantucket'
 las_tile_dir = r'{}\CLASSIFIED_LAS'.format(qaqc_dir)
-json_dir = r'C:\QAQC_contract\nantucket\qaqc_check_results'
-
 qaqc_gdb = r'{}\qaqc_nantucket.gdb'.format(qaqc_dir)
-
 
 dz_binary_dir = r'{}\dz'.format(qaqc_dir)
 dz_raster_dir = r'{}'.format(qaqc_gdb)
@@ -39,6 +36,7 @@ qaqc_csv = r'C:\QAQC_contract\nantucket\qaqc.csv'
 qaqc_geojson_NAD83_UTM_CENTROIDS = r'C:\QAQC_contract\nantucket\qaqc_NAD83_UTM_CENTROIDS.json'
 qaqc_geojson_NAD83_UTM_POLYGONS = r'C:\QAQC_contract\nantucket\qaqc_NAD83_UTM_POLYGONS.json'
 qaqc_shp_NAD83_UTM_POLYGONS = r'C:\QAQC_contract\nantucket\qaqc_NAD83_UTM.shp'
+json_dir = r'C:\QAQC_contract\nantucket\qaqc_check_results'
 
 classification_scheme_dir = r'\\ngs-s-rsd\response_dl\Research\transfer\software\LP360'
 classification_scheme_xml = 'noaa_topobathy_v02.xml'
@@ -237,10 +235,9 @@ class DzOrthoMosaic:
 
 	def mosaic_dz_raster_catalog(self):
 		logging.info('mosaicing rasters in {}...'.format(dz_raster_catalog_path))
-		print(dz_raster_catalog_path)
-		print(dz_mosaic_raster_path)
 		try:
-			arcpy.RasterCatalogToRasterDataset_management(dz_raster_catalog_path, dz_mosaic_raster_path)
+			arcpy.RasterCatalogToRasterDataset_management(
+				dz_raster_catalog_path, dz_mosaic_raster_path)
 		except Exception, e:
 			print(e)
 
@@ -591,7 +588,7 @@ def main():
 	gen_tile_geojson_WGS84(tiles_shp, tiles_geojson)
 
 	nantucket = LasTileCollection(las_tile_dir)
-	qaqc = QaqcTileCollection(nantucket.get_las_tile_paths()[0:50])
+	qaqc = QaqcTileCollection(nantucket.get_las_tile_paths()[0:10])
 	
 	qaqc.run_qaqc_tile_collection_checks()
 	qaqc.gen_qaqc_results_csv(qaqc_csv)  # for dashboard
