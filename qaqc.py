@@ -20,24 +20,25 @@ from pyproj import Proj, transform
 from geodaisy import GeoObject
 
 project_name = 'nantucket'
-
 qaqc_dir = r'C:\QAQC_contract\nantucket'
+las_tile_dir = r'{}\CLASSIFIED_LAS'.format(qaqc_dir)
+json_dir = r'C:\QAQC_contract\nantucket\qaqc_check_results'
+
 qaqc_gdb = r'{}\qaqc_nantucket.gdb'.format(qaqc_dir)
 
-las_tile_dir = r'{}\CLASSIFIED_LAS'.format(qaqc_dir)
+
 dz_binary_dir = r'{}\dz'.format(qaqc_dir)
 dz_raster_dir = r'{}'.format(qaqc_gdb)
 
 tiles_geojson = os.path.join(qaqc_dir, 'tiles_WGS84.json')
 tiles_centroids_geojson = os.path.join(qaqc_dir, 'tiles_centroids_WGS84.json')
 tiles_csv = os.path.join(qaqc_dir, 'tiles.csv')
+tiles_shp = r'C:\QAQC_contract\nantucket\EXTENTS\final\Nantucket_TileGrid.shp'
 
 qaqc_csv = r'C:\QAQC_contract\nantucket\qaqc.csv'
 qaqc_geojson_NAD83_UTM_CENTROIDS = r'C:\QAQC_contract\nantucket\qaqc_NAD83_UTM_CENTROIDS.json'
 qaqc_geojson_NAD83_UTM_POLYGONS = r'C:\QAQC_contract\nantucket\qaqc_NAD83_UTM_POLYGONS.json'
 qaqc_shp_NAD83_UTM_POLYGONS = r'C:\QAQC_contract\nantucket\qaqc_NAD83_UTM.shp'
-
-tiles_shp = r'C:\QAQC_contract\nantucket\EXTENTS\final\Nantucket_TileGrid.shp'
 
 classification_scheme_dir = r'\\ngs-s-rsd\response_dl\Research\transfer\software\LP360'
 classification_scheme_xml = 'noaa_topobathy_v02.xml'
@@ -46,12 +47,10 @@ classificaiton_scheme_fpath = os.path.join(classification_scheme_dir, classifica
 dz_classes_template = r'C:\QAQC_contract\dz_classes.lyr'
 dz_export_settings = r'C:\QAQC_contract\\dz_export_settings.xml'
 dz_mxd = r'{}\QAQC_nantucket.mxd'.format(qaqc_dir)
-
 dz_raster_catalog_base_name = r'{}_raster_catalog'.format(project_name)
-dz_raster_catalog = r'{}\{}'.format(qaqc_gdb, dz_raster_catalog_base_name)
-
+dz_raster_catalog_path = r'{}\{}'.format(qaqc_gdb, dz_raster_catalog_base_name)
 dz_mosaic_raster_basename = '{}_dz_mosaic'.format(project_name)
-dz_mosaic_raster = '{}\{}'.format(qaqc_gdb, dz_mosaic_raster_basename)
+dz_mosaic_raster_path = '{}\{}'.format(qaqc_gdb, dz_mosaic_raster_basename)
 
 dz_bins = {
 	0: (0.00, 0.04, 'darkgreen'),
@@ -77,14 +76,14 @@ checks_to_do = {
 class LasTileCollection():
 
 	def __init__(self, las_tile_dir):
-		self.las_dir = las_tile_dir
+		self.las_tile_dir = las_tile_dir
 		self.num_las = len(self.get_las_names())
 
 	def get_las_tile_paths(self):
-		return [os.path.join(self.las_dir, f) for f in os.listdir(self.las_dir) if f.endswith('.las')]
+		return [os.path.join(self.las_tile_dir, f) for f in os.listdir(self.las_tile_dir) if f.endswith('.las')]
 
 	def get_las_names(self):
-		return [f for f in os.listdir(self.las_dir) if f.endswith('.las')]
+		return [f for f in os.listdir(self.las_tile_dir) if f.endswith('.las')]
 
 	def get_las_base_names(self):
 		return [os.path.splitext(tile)[0] for tile in self.get_las_names()]
@@ -193,7 +192,6 @@ class LasTile:
 		return json.dumps(info_to_output, indent=2)
 
 	def output_check_results_to_json(self):
-		json_dir = r'C:\QAQC_contract\nantucket\qaqc_check_results' # todo: move to settings dict
 		json_file_name = r'{}\{}.json'.format(json_dir, self.name)
 		with open(json_file_name, 'w') as json_file:
 			json_file.write(str(self))
@@ -234,22 +232,22 @@ class DzOrthoMosaic:
 			print(e)
 
 	def add_dz_dir_to_raster_catalog(self):
-		logging.info('adding dz_rasters to {}...'.format(dz_raster_catalog))
-		arcpy.WorkspaceToRasterCatalog_management(qaqc_gdb, dz_raster_catalog)
+		logging.info('adding dz_rasters to {}...'.format(dz_raster_catalog_path))
+		arcpy.WorkspaceToRasterCatalog_management(qaqc_gdb, dz_raster_catalog_path)
 
 	def mosaic_dz_raster_catalog(self):
-		logging.info('mosaicing rasters in {}...'.format(dz_raster_catalog))
-		print(dz_raster_catalog)
-		print(dz_mosaic_raster)
+		logging.info('mosaicing rasters in {}...'.format(dz_raster_catalog_path))
+		print(dz_raster_catalog_path)
+		print(dz_mosaic_raster_path)
 		try:
-			arcpy.RasterCatalogToRasterDataset_management(dz_raster_catalog, dz_mosaic_raster)
+			arcpy.RasterCatalogToRasterDataset_management(dz_raster_catalog_path, dz_mosaic_raster_path)
 		except Exception, e:
 			print(e)
 
 	def add_dz_mosaic_to_mxd(self):
 		mxd = arcpy.mapping.MapDocument(dz_mxd)
 		df = arcpy.mapping.ListDataFrames(mxd)[0]
-		arcpy.MakeRasterLayer_management(dz_mosaic_raster, dz_mosaic_raster_basename)
+		arcpy.MakeRasterLayer_management(dz_mosaic_raster_path, dz_mosaic_raster_basename)
 		dz_lyr = arcpy.mapping.Layer(dz_mosaic_raster_basename)
 		arcpy.mapping.AddLayer(df, dz_lyr, 'AUTO_ARRANGE')
 		mxd.save()
@@ -265,16 +263,12 @@ class DzOrthoMosaic:
 
 class DzOrtho:
 
-	def __init__(self, las_path, las_name, las_extents,
-				 dz_binary_dir, dz_raster_dir, dz_export_settings):
+	def __init__(self, las_path, las_name, las_extents):
 		self.las_path = las_path
 		self.las_name = las_name
 		self.las_extents = las_extents
-		self.dz_binary_dir = dz_binary_dir
-		self.dz_raster_dir = dz_raster_dir
-		self.dz_binary_path = r'{}\{}_dz_dzValue.flt'.format(self.dz_binary_dir, self.las_name)
-		self.dz_raster_path = r'{}\dz_{}'.format(self.dz_raster_dir, self.las_name)
-		self.dz_export_settings = dz_export_settings
+		self.dz_binary_path = r'{}\{}_dz_dzValue.flt'.format(dz_binary_dir, self.las_name)
+		self.dz_raster_path = r'{}\dz_{}'.format(dz_raster_dir, self.las_name)
 
 	def __str__(self):
 		return self.dz_raster_path
@@ -288,20 +282,20 @@ class DzOrtho:
 
 	def update_dz_export_settings_extents(self):
 		logging.info('updating dz export settings xml with las extents...')
-		tree = ET.parse(self.dz_export_settings)
+		tree = ET.parse(dz_export_settings)
 		root = tree.getroot()
 		for extent, val in self.las_extents.iteritems():
 			for e in root.findall(extent):
 				e.text = str(val)
 		new_dz_settings = ET.tostring(root)
-		myfile = open(self.dz_export_settings, "w")
+		myfile = open(dz_export_settings, "w")
 		myfile.write(new_dz_settings)
 
 	def gen_dz_ortho(self):
 		exe = r'C:\Program Files\Common Files\LP360\LDExport.exe'
 		las = self.las_path.replace('CLASSIFIED_LAS\\', 'CLASSIFIED_LAS\\\\')
 		dz = r'C:\QAQC_contract\nantucket\dz\{}'.format(self.las_name)
-		cmd_str = '{} -s {} -f {} -o {}'.format(exe, self.dz_export_settings, las, dz)
+		cmd_str = '{} -s {} -f {} -o {}'.format(exe, dz_export_settings, las, dz)
 		print('generating dz ortho for {}...'.format(las))
 		print(cmd_str)
 		try:
@@ -323,7 +317,7 @@ class QaqcTile:
 	passed_text = 'PASSED'
 	failed_text = 'FAILED'
 
-	def __init__(self, checks_to_do, dz_binary_dir, dz_raster_dir, dz_export_settings):
+	def __init__(self):
 
 		self.checks = {
 			'naming_convention': self.check_las_naming_convention,
@@ -336,15 +330,8 @@ class QaqcTile:
 			'create_dz': self.create_dz
 		}
 
-		self.checks_to_do = checks_to_do
-		self.dz_binary_dir = dz_binary_dir
-		self.dz_raster_dir = dz_raster_dir
-		self.dz_export_settings = dz_export_settings
-
 	def check_las_naming_convention(self, tile):
-		"""for now, the checks assume Northern Hemisphere"""
-
-		# for info on UTM, see
+		# for now, the checks assume Northern Hemisphere
 		# https://www.e-education.psu.edu/natureofgeoinfo/c2_p23.html
 		min_easting = 167000
 		max_easting = 833000
@@ -353,8 +340,7 @@ class QaqcTile:
 		#min_northing_sh = 1000000 # sh = southern hemisphere
 		#max_northing_sh = 10000000
 
-		# first check general format with regex (e.g.,
-		# ####_######e_#[#######]n_las)
+		# first check general format with regex (e.g., # ####_######e_#[#######]n_las)
 		pattern = re.compile(r'[0-9]{4}_[0-9]{6}e_[0-9]{1,8}(n_las)')
 		if pattern.match(tile.name):
 			# then check name components
@@ -428,10 +414,7 @@ class QaqcTile:
 		if tile.has_bathy or tile.has_ground:
 			tile_dz = DzOrtho(tile.path,
 				tile.name,
-				tile.las_extents,
-				self.dz_binary_dir,
-				self.dz_raster_dir,
-				self.dz_export_settings)
+				tile.las_extents)
 			tile_dz.update_dz_export_settings_extents()
 			tile_dz.gen_dz_ortho()
 			tile_dz.binary_to_raster()
@@ -453,7 +436,7 @@ class QaqcTile:
 		import xml.etree.ElementTree as ET
 		logging.basicConfig(format='%(asctime)s:%(message)s', level=logging.INFO)
 		tile = LasTile(las_path)
-		for c in [k for k, v in self.checks_to_do.iteritems() if v]:
+		for c in [k for k, v in checks_to_do.iteritems() if v]:
 			logging.info('running {}...'.format(c))
 			result = self.checks[c](tile)
 			logging.info(result)
@@ -462,7 +445,7 @@ class QaqcTile:
 	def run_qaqc_checks(self, las_paths):
 		for las_path in las_paths:
 			tile = LasTile(las_path)
-			for c in [k for k, v in self.checks_to_do.iteritems() if v]:
+			for c in [k for k, v in checks_to_do.iteritems() if v]:
 				logging.info('running {}...'.format(c))
 				result = self.checks[c](tile)
 				logging.info(result)
@@ -481,21 +464,11 @@ class QaqcTile:
 
 class QaqcTileCollection:
 
-	def __init__(self, dz_export_settings, dz_binary_dir, dz_raster_dir,
-				 las_paths, qaqc_gdb, checks_to_do):
-		self.dz_binary_dir = dz_binary_dir
-		self.dz_raster_dir = dz_raster_dir
+	def __init__(self, las_paths):
 		self.las_paths = las_paths
-		self.qaqc_gdb = qaqc_gdb
-		self.checks_to_do = checks_to_do
-		self.dz_export_settings = dz_export_settings
-		self.json_dir = r'C:\QAQC_contract\nantucket\qaqc_check_results'
 
 	def run_qaqc_tile_collection_checks(self):
-		tiles_qaqc = QaqcTile(self.checks_to_do,
-			self.dz_binary_dir,
-			self.dz_raster_dir,
-			self.dz_export_settings)
+		tiles_qaqc = QaqcTile()
 		tiles_qaqc.run_qaqc(self.las_paths, multiprocess=False)
 
 	def gen_qaqc_results_dict(self):
@@ -508,9 +481,9 @@ class QaqcTileCollection:
 				else:
 					yield k, v
 		flattened_dicts = []
-		for las_json in os.listdir(self.json_dir):
+		for las_json in os.listdir(json_dir):
 			try:
-				las_json = os.path.join(self.json_dir, las_json)
+				las_json = os.path.join(json_dir, las_json)
 				with open(las_json, 'r') as json_file:
 					json_data = json.load(json_file)
 					flattened_json_data = {k:v for k,v in flatten_dict(json_data)}
@@ -618,13 +591,7 @@ def main():
 	gen_tile_geojson_WGS84(tiles_shp, tiles_geojson)
 
 	nantucket = LasTileCollection(las_tile_dir)
-	qaqc = QaqcTileCollection(
-		dz_export_settings,
-		dz_binary_dir,
-		dz_raster_dir,
-		nantucket.get_las_tile_paths()[0:50],
-		qaqc_gdb,
-		checks_to_do)
+	qaqc = QaqcTileCollection(nantucket.get_las_tile_paths()[0:50])
 	
 	qaqc.run_qaqc_tile_collection_checks()
 	qaqc.gen_qaqc_results_csv(qaqc_csv)  # for dashboard
