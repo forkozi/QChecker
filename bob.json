@@ -1,0 +1,44 @@
+{
+  "header": {
+    "y_min": 4587500.0,
+    "y_max": 4587999.99,
+    "created_day": 313,
+    "created_year": 2017,
+    "x_max": 392999.99,
+    "x_min": 392500.0
+  },
+  "tile_extents": {
+    "ExtentXMax": 392999.99,
+    "ExtentYMax": 4587999.99,
+    "ExtentYMin": 4587500.0,
+    "ExtentXMin": 392500.0
+  },
+  "centroid_x": 392750.0,
+  "tile_name": "2016_392500e_4588000n_las",
+  "check_results": {
+    "gps_time": "Satellite GPS Time",
+    "version_passed": "PASSED",
+    "naming_convention_passed": "PASSED",
+    "pdrf_passed": "PASSED",
+    "hor_datum_passed": "PASSED",
+    "naming_convention": "2016_392500e_4588000n_las",
+    "gps_time_passed": "PASSED",
+    "pdrf": 3,
+    "point_src_ids": null,
+    "hor_datum": "NAD_1983_2011_UTM_Zone_19N",
+    "version": "1.2",
+    "ver_datum": null
+  },
+  "class_counts": {
+    "class26count": 486,
+    "class27count": 43687,
+    "class25count": 666258,
+    "class1count": 93753,
+    "class7count": 218740,
+    "class22count": 178309,
+    "class28count": 463393
+  },
+  "centroid_y": 4587750.0,
+  "tile_centroid": "POINT (392750.0 4587750.0)",
+  "tile_polygon": "POLYGON ((392500.0 4588000.0, 393000.0 4588000.0, 393000.0 4587500.0, 392500.0 4587500.0, 392500.0 4588000.0))"
+}

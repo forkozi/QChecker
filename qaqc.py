@@ -23,20 +23,21 @@ project_name = 'nantucket'
 qaqc_dir = r'C:\QAQC_contract\nantucket'
 las_tile_dir = r'{}\CLASSIFIED_LAS'.format(qaqc_dir)
 qaqc_gdb = r'{}\qaqc_nantucket.gdb'.format(qaqc_dir)
+tile_size = 500  # meters
 
 dz_binary_dir = r'{}\dz'.format(qaqc_dir)
 dz_raster_dir = r'{}'.format(qaqc_gdb)
 
-tiles_geojson = os.path.join(qaqc_dir, 'tiles_WGS84.json')
-tiles_centroids_geojson = os.path.join(qaqc_dir, 'tiles_centroids_WGS84.json')
-tiles_csv = os.path.join(qaqc_dir, 'tiles.csv')
-tiles_shp = r'C:\QAQC_contract\nantucket\EXTENTS\final\Nantucket_TileGrid.shp'
+contractor_geojson_WGS84 = os.path.join(qaqc_dir, 'tiles_WGS84.json')
+contractor_centroids_shp_NAD83_UTM = os.path.join(qaqc_dir, 'tiles_centroids_NAD83_UTM.shp')
+contractor_csv = os.path.join(qaqc_dir, 'tiles.csv')
+contractor_shp = r'{}\EXTENTS\final\Nantucket_TileGrid.shp'.format(qaqc_dir)
 
-qaqc_csv = r'C:\QAQC_contract\nantucket\qaqc.csv'
-qaqc_geojson_NAD83_UTM_CENTROIDS = r'C:\QAQC_contract\nantucket\qaqc_NAD83_UTM_CENTROIDS.json'
-qaqc_geojson_NAD83_UTM_POLYGONS = r'C:\QAQC_contract\nantucket\qaqc_NAD83_UTM_POLYGONS.json'
-qaqc_shp_NAD83_UTM_POLYGONS = r'C:\QAQC_contract\nantucket\qaqc_NAD83_UTM.shp'
-json_dir = r'C:\QAQC_contract\nantucket\qaqc_check_results'
+qaqc_csv = r'{}\qaqc.csv'.format(qaqc_dir)
+qaqc_geojson_NAD83_UTM_CENTROIDS = r'{}\qaqc_NAD83_UTM_CENTROIDS.json'.format(qaqc_dir)
+qaqc_geojson_NAD83_UTM_POLYGONS = r'{}\qaqc_NAD83_UTM_POLYGONS.json'.format(qaqc_dir)
+qaqc_shp_NAD83_UTM_POLYGONS = r'{}\qaqc_NAD83_UTM.shp'.format(qaqc_dir)
+json_dir = r'{}\qaqc_check_results'.format(qaqc_dir)
 
 classification_scheme_dir = r'\\ngs-s-rsd\response_dl\Research\transfer\software\LP360'
 classification_scheme_xml = 'noaa_topobathy_v02.xml'
@@ -78,7 +79,9 @@ class LasTileCollection():
 		self.num_las = len(self.get_las_names())
 
 	def get_las_tile_paths(self):
-		return [os.path.join(self.las_tile_dir, f) for f in os.listdir(self.las_tile_dir) if f.endswith('.las')]
+		return [os.path.join(self.las_tile_dir, f) 
+		  for f in os.listdir(self.las_tile_dir) 
+		  if f.endswith('.las')]
 
 	def get_las_names(self):
 		return [f for f in os.listdir(self.las_tile_dir) if f.endswith('.las')]
@@ -127,7 +130,6 @@ class LasTile:
 			}
 
 		def calc_las_centroid():
-			tile_size = 500  # meters
 			data_nw_x = self.las_extents['ExtentXMin']
 			data_nw_y = self.las_extents['ExtentYMax']
 			las_nw_x = data_nw_x - (data_nw_x % tile_size)
@@ -139,10 +141,10 @@ class LasTile:
 		self.centroid_x, self.centroid_y = calc_las_centroid()
 
 		self.tile_extents = {
-			'tile_top': self.centroid_y + 250,
-			'tile_bottom': self.centroid_y - 250,
-			'tile_left': self.centroid_x - 250,
-			'tile_right': self.centroid_x + 250,
+			'tile_top': self.centroid_y + tile_size / 2,
+			'tile_bottom': self.centroid_y - tile_size / 2,
+			'tile_left': self.centroid_x - tile_size / 2,
+			'tile_right': self.centroid_x + tile_size / 2,
 			}
 
 		self.tile_poly_wkt = GeoObject(Polygon([
@@ -155,8 +157,8 @@ class LasTile:
 
 		self.tile_centroid_wkt = GeoObject(Point(self.centroid_x, self.centroid_y)).wkt()
 		self.class_counts = self.get_class_counts()
-		self.has_bathy = True if '{}26{}'.format('class', 'count') in self.class_counts.keys() else False
-		self.has_ground = True if '{}2{}'.format('class', 'count') in self.class_counts.keys() else False
+		self.has_bathy = True if 'class26' in self.class_counts.keys() else False
+		self.has_ground = True if 'class2' in self.class_counts.keys() else False
 
 		self.checks_result = {
 			'naming_convention': None,
@@ -189,21 +191,20 @@ class LasTile:
 		info_to_output['header'].pop('data_format_id', None)
 		return json.dumps(info_to_output, indent=2)
 
-	def output_check_results_to_json(self):
+	def output_las_qaqc_to_json(self):
 		json_file_name = r'{}\{}.json'.format(json_dir, self.name)
 		with open(json_file_name, 'w') as json_file:
 			json_file.write(str(self))
 
 	def get_class_counts(self):
 		class_counts = np.unique(self.inFile.classification, return_counts=True)
-		class_counts = dict(zip(['class{}count'.format(str(c)) for c in class_counts[0]],
-								[str(c) for c in class_counts[1]]))
+		class_counts = dict(zip(['class{}'.format(str(c)) for c in class_counts[0]],
+								[int(c) for c in class_counts[1]]))
 		print(class_counts)
 		return class_counts
 
 	def get_gps_time_type(self):
-		gps_time_types = {0: 'GPS Week Time',
-						  1: 'Satellite GPS Time'}
+		gps_time_types = {0: 'GPS Week Time', 1: 'Satellite GPS Time'}
 		return gps_time_types[self.header['global_encoding']]
 
 	def get_las_version(self):
@@ -437,7 +438,7 @@ class QaqcTile:
 			logging.info('running {}...'.format(c))
 			result = self.checks[c](tile)
 			logging.info(result)
-		tile.output_check_results_to_json()
+		tile.output_las_qaqc_to_json()
 
 	def run_qaqc_checks(self, las_paths):
 		for las_path in las_paths:
@@ -446,7 +447,7 @@ class QaqcTile:
 				logging.info('running {}...'.format(c))
 				result = self.checks[c](tile)
 				logging.info(result)
-			tile.output_check_results_to_json()
+			tile.output_las_qaqc_to_json()
 
 	def run_qaqc(self, las_paths, multiprocess):
 		if multiprocess:
@@ -464,9 +465,9 @@ class QaqcTileCollection:
 	def __init__(self, las_paths):
 		self.las_paths = las_paths
 
-	def run_qaqc_tile_collection_checks(self):
+	def run_qaqc_tile_collection_checks(self, multiprocess):
 		tiles_qaqc = QaqcTile()
-		tiles_qaqc.run_qaqc(self.las_paths, multiprocess=False)
+		tiles_qaqc.run_qaqc(self.las_paths, multiprocess)
 
 	def gen_qaqc_results_dict(self):
 		def flatten_dict(d_obj):
@@ -501,7 +502,7 @@ class QaqcTileCollection:
 		gdf = gpd.GeoDataFrame(df, crs=nad83_utm_z19, geometry='Coordinates')
 		return gdf
 
-	def gen_qaqc_results_json_NAD83_UTM_CENTROIDS(self, output):
+	def gen_qaqc_json_NAD83_UTM_CENTROIDS(self, output):
 		gdf = self.gen_qaqc_results_gdf_NAD83_UTM_CENTROIDS()
 		try:
 			os.remove(output)
@@ -517,7 +518,7 @@ class QaqcTileCollection:
 		gdf = gpd.GeoDataFrame(df, crs=nad83_utm_z19, geometry='Coordinates')		
 		return gdf
 
-	def gen_qaqc_results_json_NAD83_UTM_POLYGONS(self, output):
+	def gen_qaqc_json_NAD83_UTM_POLYGONS(self, output):
 		gdf = self.gen_qaqc_results_gdf_NAD83_UTM_POLYGONS()
 		try:
 			os.remove(output)
@@ -525,7 +526,7 @@ class QaqcTileCollection:
 			print(e)
 		gdf.to_file(output, driver="GeoJSON")
 
-	def gen_qaqc_results_csv(self, output):
+	def gen_qaqc_csv(self, output):
 		gdf = self.gen_qaqc_results_gdf_NAD83_UTM_CENTROIDS()
 		def get_x(pt): return (pt.x)
 		def get_y(pt): return (pt.y)
@@ -537,9 +538,16 @@ class QaqcTileCollection:
 		gdf['centroid_lat'] = map(get_y, gdf['Coordinates'])
 		gdf.to_csv(output, index=False)
 
-	def gen_qaqc_results_shp_NAD83_UTM(self, output):
+	def gen_qaqc_shp_NAD83_UTM(self, output):
 		gdf = self.gen_qaqc_results_gdf_NAD83_UTM_POLYGONS()
 		gdf.to_file(output, driver='ESRI Shapefile')
+		sr = arcpy.SpatialReference('NAD 1983 UTM Zone 19N')  # 2011?
+		arcpy.DefineProjection_management(output, sr)
+		mxd = arcpy.mapping.MapDocument(dz_mxd)
+		df = arcpy.mapping.ListDataFrames(mxd)[0]
+		qaqc_lyr = arcpy.mapping.Layer(output)
+		arcpy.mapping.AddLayer(df, qaqc_lyr, 'TOP')  # add qaqc tile shp
+		mxd.save()
 
 	def gen_dz_ortho_mosaic(self):
 		dz_mosaic = DzOrthoMosaic()
@@ -575,6 +583,22 @@ def gen_tile_centroids_csv(shp, out_csv):
 	gdf.to_csv(out_csv)
 
 
+def gen_tile_centroids_shp_NAD83_UTM():
+	gdf = gpd.read_file(contractor_shp)
+	gdf['geometry'] = gdf['geometry'].centroid
+	gdf.to_file(contractor_centroids_shp_NAD83_UTM, driver='ESRI Shapefile')
+	#sr = arcpy.SpatialReference('NAD 1983 UTM Zone 19N')  # 2011?
+	#arcpy.DefineProjection_management(output, sr)
+
+
+def add_layer_to_mxd(layer):
+	mxd = arcpy.mapping.MapDocument(dz_mxd)
+	df = arcpy.mapping.ListDataFrames(mxd)[0]
+	lyr = arcpy.mapping.Layer(layer)
+	arcpy.mapping.AddLayer(df, lyr, 'TOP')
+	mxd.save()
+
+
 def run_console_cmd(cmd):
 	process = subprocess.Popen(cmd.split(' '))
 	output, error = process.communicate()
@@ -584,18 +608,22 @@ def run_console_cmd(cmd):
 
 def main():
 	logging.basicConfig(format='%(asctime)s:%(message)s', level=logging.INFO)
-	gen_tile_centroids_csv(tiles_shp, tiles_csv)
-	gen_tile_geojson_WGS84(tiles_shp, tiles_geojson)
 
-	nantucket = LasTileCollection(las_tile_dir)
-	qaqc = QaqcTileCollection(nantucket.get_las_tile_paths()[0:10])
+	gen_tile_centroids_csv(contractor_shp, contractor_csv)
+	gen_tile_centroids_shp_NAD83_UTM()
+	gen_tile_geojson_WGS84(contractor_shp, contractor_geojson_WGS84)
+	add_layer_to_mxd(contractor_centroids_shp_NAD83_UTM)
+
+	#nantucket = LasTileCollection(las_tile_dir)
+	#qaqc = QaqcTileCollection(nantucket.get_las_tile_paths())
 	
-	qaqc.run_qaqc_tile_collection_checks()
-	qaqc.gen_qaqc_results_csv(qaqc_csv)  # for dashboard
-	qaqc.gen_qaqc_results_json_NAD83_UTM_CENTROIDS(qaqc_geojson_NAD83_UTM_CENTROIDS)
-	qaqc.gen_qaqc_results_json_NAD83_UTM_POLYGONS(qaqc_geojson_NAD83_UTM_POLYGONS)
-	qaqc.gen_qaqc_results_shp_NAD83_UTM(qaqc_shp_NAD83_UTM_POLYGONS)
-	qaqc.gen_dz_ortho_mosaic()  # TODO: project to sr = arcpy.SpatialReference('NAD 1983 2011 UTM Zone 19N')
+	#qaqc.run_qaqc_tile_collection_checks(multiprocess=False)
+	#qaqc.gen_qaqc_csv(qaqc_csv)  # for dashboard
+	#qaqc.gen_qaqc_json_NAD83_UTM_CENTROIDS(qaqc_geojson_NAD83_UTM_CENTROIDS)
+	#qaqc.gen_qaqc_json_NAD83_UTM_POLYGONS(qaqc_geojson_NAD83_UTM_POLYGONS)
+	#qaqc.gen_qaqc_shp_NAD83_UTM(qaqc_shp_NAD83_UTM_POLYGONS)
+	#qaqc.gen_dz_ortho_mosaic()  # TODO: project to sr
+
 
 
 if __name__ == '__main__':
