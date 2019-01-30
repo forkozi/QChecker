@@ -20,5 +20,6 @@
   "qaqc_gdb": "C:\\QAQC_contract\\nantucket\\qaqc_nantucket.gdb",
   "dz_binary_dir": "C:\\QAQC_contract\\nantucket\\dz",
   "tile_size": 500,
-  "contractor_shp": "C:\\QAQC_contract\\nantucket\\EXTENTS\\final\\Nantucket_TileGrid.shp"
+  "contractor_shp": "C:\\QAQC_contract\\nantucket\\EXTENTS\\final\\Nantucket_TileGrid.shp",
+  "expected_classes": [2, 26],
 }

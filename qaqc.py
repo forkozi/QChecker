@@ -32,6 +32,8 @@ dz_raster_dir = data['dz_raster_dir']
 dz_export_settings = data['dz_export_settings']
 dz_classes_template = data['dz_classes_template']
 
+expected_classes = data['expected_classes']
+
 contractor_shp = data['contractor_shp']
 checks_to_do = data['checks_to_do']
 
@@ -222,7 +224,7 @@ class DzOrthoMosaic:
             arcpy.CreateRasterCatalog_management(
                 qaqc_gdb, dz_raster_catalog_base_name,
                 raster_management_type='UNMANAGED')
-        except Exception, e:
+        except Exception as e:
             print(e)
 
     def add_dz_dir_to_raster_catalog(self):
@@ -234,7 +236,7 @@ class DzOrthoMosaic:
         try:
             arcpy.RasterCatalogToRasterDataset_management(
                 dz_raster_catalog_path, dz_mosaic_raster_path)
-        except Exception, e:
+        except Exception as e:
             print(e)
 
     def add_dz_mosaic_to_mxd(self):
@@ -467,16 +469,9 @@ class QaqcTile:
 
 class QaqcTileCollection:
 
-    expected_classes_path = r'C:\QAQC_contract\nantucket\expected_classes.txt'
-
-    def __init__(self, las_paths):
+    def __init__(self, las_paths, expected_classes):
         self.las_paths = las_paths
-        self.expected_classes = self.get_expected_classes()
-
-    def get_expected_classes(self):
-        with open(self.expected_classes_path) as f:
-            expected_classes = [int(c) for c in f.read().split(',')]
-        return expected_classes
+        self.expected_classes = expected_classes
 
     def run_qaqc_tile_collection_checks(self, multiprocess):
         tiles_qaqc = QaqcTile(self.expected_classes)
@@ -519,7 +514,7 @@ class QaqcTileCollection:
         gdf = self.gen_qaqc_results_gdf_NAD83_UTM_CENTROIDS()
         try:
             os.remove(output)
-        except Exception, e:
+        except Exception as e:
             print(e)
         gdf.to_file(output, driver="GeoJSON")
 
@@ -535,7 +530,7 @@ class QaqcTileCollection:
         gdf = self.gen_qaqc_results_gdf_NAD83_UTM_POLYGONS()
         try:
             os.remove(output)
-        except Exception, e:
+        except Exception as e:
             print(e)
         gdf.to_file(output, driver="GeoJSON")
 
@@ -576,7 +571,7 @@ def gen_tile_geojson_WGS84(shp, geojson):
     gdf = gpd.read_file(shp).to_crs(wgs84)
     try:
         os.remove(geojson)
-    except Exception, e:
+    except Exception as e:
         print(e)
     gdf.to_file(geojson, driver="GeoJSON")
 
@@ -619,7 +614,7 @@ def run_console_cmd(cmd):
     return returncode, output
 
 
-def main():
+def run_qaqc():
     logging.basicConfig(format='%(asctime)s:%(message)s', level=logging.INFO)
 
     gen_tile_centroids_csv(contractor_shp, contractor_csv)
@@ -628,7 +623,7 @@ def main():
     add_layer_to_mxd(contractor_centroids_shp_NAD83_UTM)
 
     nantucket = LasTileCollection(las_tile_dir)
-    qaqc = QaqcTileCollection(nantucket.get_las_tile_paths()[0:5])
+    qaqc = QaqcTileCollection(nantucket.get_las_tile_paths()[0:5], expected_classes)
     
     qaqc.run_qaqc_tile_collection_checks(multiprocess=False)
     qaqc.gen_qaqc_csv(qaqc_csv)  # for dashboard
@@ -640,4 +635,4 @@ def main():
 
 if __name__ == '__main__':
 
-    main()
+    run_qaqc()
