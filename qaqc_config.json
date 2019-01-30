@@ -1,0 +1,24 @@
+{
+  "project_name": "nantucket",
+  "dz_raster_dir": "C:\\QAQC_contract\\nantucket\\qaqc_nantucket.gdb",
+  "dz_mxd": "C:\\QAQC_contract\\nantucket\\QAQC_nantucket.mxd",
+  "las_tile_dir": "C:\\QAQC_contract\\nantucket\\CLASSIFIED_LAS",
+  "qaqc_dir": "C:\\QAQC_contract\\nantucket",
+  "dz_export_settings": "C:\\QAQC_contract\\\\dz_export_settings.xml",
+  "checks_to_do": {
+    "gps_time_type": true,
+    "version": true,
+    "unexpected_classes": true,
+    "ver_datum": false,
+    "pdrf": true,
+    "naming_convention": true,
+    "create_dz": false,
+    "point_source_ids": false,
+    "hor_datum": true
+  },
+  "dz_classes_template": "C:\\QAQC_contract\\dz_classes.lyr",
+  "qaqc_gdb": "C:\\QAQC_contract\\nantucket\\qaqc_nantucket.gdb",
+  "dz_binary_dir": "C:\\QAQC_contract\\nantucket\\dz",
+  "tile_size": 500,
+  "contractor_shp": "C:\\QAQC_contract\\nantucket\\EXTENTS\\final\\Nantucket_TileGrid.shp"
+}
