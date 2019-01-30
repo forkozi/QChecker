@@ -24,6 +24,7 @@ qaqc_dir = r'C:\QAQC_contract\nantucket'
 las_tile_dir = r'{}\CLASSIFIED_LAS'.format(qaqc_dir)
 qaqc_gdb = r'{}\qaqc_nantucket.gdb'.format(qaqc_dir)
 tile_size = 500  # meters
+expected_classes_path = r'C:\QAQC_contract\nantucket\expected_classes.txt'
 
 dz_binary_dir = r'{}\dz'.format(qaqc_dir)
 dz_raster_dir = r'{}'.format(qaqc_gdb)
@@ -61,14 +62,15 @@ dz_bins = {
 }
 
 checks_to_do = {
-	'naming_convention': True,
-	'version': True,
-	'pdrf': True,
-	'gps_time_type': True,
-	'hor_datum': True,
+	'naming_convention': False,
+	'version': False,
+	'pdrf': False,
+	'gps_time_type': False,
+	'hor_datum': False,
 	'ver_datum': False,
 	'point_source_ids': False,
-	'create_dz': True
+	'unexpected_classes': True,
+	'create_dz': False
 }
 
 
@@ -102,7 +104,7 @@ class LasTileCollection():
 
 class LasTile:
 
-	def __init__(self, las_path):
+	def __init__(self, las_path, to_pyramid):
 		self.path = las_path
 		self.name = os.path.splitext(las_path.split(os.sep)[-1])[0]
 		self.inFile = File(self.path, mode="r")
@@ -156,7 +158,7 @@ class LasTile:
 			])).wkt()
 
 		self.tile_centroid_wkt = GeoObject(Point(self.centroid_x, self.centroid_y)).wkt()
-		self.class_counts = self.get_class_counts()
+		self.classes_present, self.class_counts = self.get_class_counts()
 		self.has_bathy = True if 'class26' in self.class_counts.keys() else False
 		self.has_ground = True if 'class2' in self.class_counts.keys() else False
 
@@ -168,7 +170,11 @@ class LasTile:
 			'hor_datum': None,
 			'ver_datum': None,
 			'point_src_ids': None,
+			'unexpected_classes': None,
 		}
+
+		if to_pyramid:
+			self.create_las_pyramids()
 
 	def __str__(self):
 		info_to_output = {
@@ -198,10 +204,11 @@ class LasTile:
 
 	def get_class_counts(self):
 		class_counts = np.unique(self.inFile.classification, return_counts=True)
+		classes_present = [c for c in class_counts[0]]
 		class_counts = dict(zip(['class{}'.format(str(c)) for c in class_counts[0]],
 								[int(c) for c in class_counts[1]]))
 		print(class_counts)
-		return class_counts
+		return classes_present, class_counts
 
 	def get_gps_time_type(self):
 		gps_time_types = {0: 'GPS Week Time', 1: 'Satellite GPS Time'}
@@ -215,6 +222,17 @@ class LasTile:
 
 	def get_hor_datum(self):
 		return self.header['VLRs']['coord_sys']
+
+	def create_las_pyramids(self):
+		exe = r'C:\Program Files\Common Files\LP360\LDPyramid.exe'
+		thin_factor = 12
+		cmd_str = '{} -f {} {}'.format(exe, thin_factor, self.path)
+		print('generating pyramids for {}...'.format(self.path))
+		print(cmd_str)
+		try:
+			returncode, output = run_console_cmd(cmd_str)
+		except Exception as e:
+			print(e)
 
 
 class DzOrthoMosaic:
@@ -325,7 +343,8 @@ class QaqcTile:
 			'hor_datum': self.check_hor_datum,
 			'ver_datum': self.check_ver_datum,
 			'point_source_ids': self.check_point_source_ids,
-			'create_dz': self.create_dz
+			'create_dz': self.create_dz,
+			'unexpected_classes': self.check_unexpected_classes,
 		}
 
 	def check_las_naming_convention(self, tile):
@@ -388,7 +407,7 @@ class QaqcTile:
 		tile.checks_result['gps_time_passed'] = passed
 		return passed
 
-	def check_hor_datum(self, tile):
+	def check_hor_datum(self, tile):  # TODO
 		hor_datum = tile.get_hor_datum()
 		if 2 == 2:
 			passed = self.passed_text
@@ -398,6 +417,16 @@ class QaqcTile:
 		tile.checks_result['hor_datum_passed'] = passed
 		return passed
 
+	def check_unexpected_classes(self, tile):  # TODO
+		unexpected_classes = list(set(tile.classes_present).difference(expected_classes))
+		if not unexpected_classes:
+			passed = self.passed_text
+		else:
+			passed = self.failed_text
+		tile.checks_result['unexpected_classes'] = str(unexpected_classes)
+		tile.checks_result['unexpected_classes_passed'] = passed
+
+		
 	def check_ver_datum(self):
 		pass
 
@@ -433,7 +462,7 @@ class QaqcTile:
 		import logging
 		import xml.etree.ElementTree as ET
 		logging.basicConfig(format='%(asctime)s:%(message)s', level=logging.INFO)
-		tile = LasTile(las_path)
+		tile = LasTile(las_path, to_pyramid=False)
 		for c in [k for k, v in checks_to_do.iteritems() if v]:
 			logging.info('running {}...'.format(c))
 			result = self.checks[c](tile)
@@ -442,7 +471,7 @@ class QaqcTile:
 
 	def run_qaqc_checks(self, las_paths):
 		for las_path in las_paths:
-			tile = LasTile(las_path)
+			tile = LasTile(las_path, to_pyramid=True)
 			for c in [k for k, v in checks_to_do.iteritems() if v]:
 				logging.info('running {}...'.format(c))
 				result = self.checks[c](tile)
@@ -464,6 +493,12 @@ class QaqcTileCollection:
 
 	def __init__(self, las_paths):
 		self.las_paths = las_paths
+		self.expected_classes = self.get_expected_classes()
+
+	def get_expected_classes():
+		with open(expected_classes_path) as f:
+			expected_classes = [int(c) for c in f.read().split(',')]
+		return expected_classes
 
 	def run_qaqc_tile_collection_checks(self, multiprocess):
 		tiles_qaqc = QaqcTile()
@@ -614,16 +649,15 @@ def main():
 	gen_tile_geojson_WGS84(contractor_shp, contractor_geojson_WGS84)
 	add_layer_to_mxd(contractor_centroids_shp_NAD83_UTM)
 
-	#nantucket = LasTileCollection(las_tile_dir)
-	#qaqc = QaqcTileCollection(nantucket.get_las_tile_paths())
+	nantucket = LasTileCollection(las_tile_dir)
+	qaqc = QaqcTileCollection(nantucket.get_las_tile_paths()[0:5])
 	
-	#qaqc.run_qaqc_tile_collection_checks(multiprocess=False)
-	#qaqc.gen_qaqc_csv(qaqc_csv)  # for dashboard
-	#qaqc.gen_qaqc_json_NAD83_UTM_CENTROIDS(qaqc_geojson_NAD83_UTM_CENTROIDS)
-	#qaqc.gen_qaqc_json_NAD83_UTM_POLYGONS(qaqc_geojson_NAD83_UTM_POLYGONS)
-	#qaqc.gen_qaqc_shp_NAD83_UTM(qaqc_shp_NAD83_UTM_POLYGONS)
+	qaqc.run_qaqc_tile_collection_checks(multiprocess=False)
+	qaqc.gen_qaqc_csv(qaqc_csv)  # for dashboard
+	qaqc.gen_qaqc_json_NAD83_UTM_CENTROIDS(qaqc_geojson_NAD83_UTM_CENTROIDS)
+	qaqc.gen_qaqc_json_NAD83_UTM_POLYGONS(qaqc_geojson_NAD83_UTM_POLYGONS)
+	qaqc.gen_qaqc_shp_NAD83_UTM(qaqc_shp_NAD83_UTM_POLYGONS)
 	#qaqc.gen_dz_ortho_mosaic()  # TODO: project to sr
-
 
 
 if __name__ == '__main__':
