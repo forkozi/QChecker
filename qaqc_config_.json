@@ -1,0 +1,32 @@
+{
+  "project_name": "nantucket",
+  "tile_size": 500,
+  "hor_datum": "NAD_1983_2011_UTM_Zone_19N",
+  "expected_classes": [ 2, 26 ],
+
+  "dz_mxd": "C:\\QAQC_contract\\nantucket\\QAQC_nantucket.mxd",
+  "dz_export_settings": "C:\\QAQC_contract\\\\dz_export_settings.xml",
+  "dz_classes_template": "C:\\QAQC_contract\\dz_classes.lyr",
+  "contractor_shp": "C:\\QAQC_contract\\nantucket\\EXTENTS\\final\\Nantucket_TileGrid.shp",
+
+  "qaqc_dir": "C:\\QAQC_contract\\nantucket",
+  "las_tile_dir": "C:\\QAQC_contract\\nantucket\\CLASSIFIED_LAS",
+  "qaqc_gdb": "C:\\QAQC_contract\\nantucket\\qaqc_nantucket.gdb",
+  "dz_binary_dir": "C:\\QAQC_contract\\nantucket\\dz",
+
+  "checks_to_do": {
+    "gps_time_type": true,
+    "version": true,
+    "unexpected_classes": true,
+    "ver_datum": false,
+    "pdrf": true,
+    "naming_convention": true,
+    "point_source_ids": false,
+    "hor_datum": true
+  },
+
+  "surfaces_to_make": {
+    "dz": false,
+    "hillshade": false
+  }
+}

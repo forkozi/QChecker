@@ -19,16 +19,17 @@ from geodaisy import GeoObject
 qaqc_config = r'Z:\qaqc\qaqc_config.json'
 with open(qaqc_config) as f:
     data = json.load(f)
+print(data)
 
 project_name = data['project_name']
 las_tile_dir = data['las_tile_dir']
 qaqc_dir = data['qaqc_dir']
 qaqc_gdb = data['qaqc_gdb']
 tile_size = data['tile_size']
+exp_hor_datum = data['hor_datum']
 
 dz_mxd  = data['dz_mxd']
 dz_binary_dir = data['dz_binary_dir']
-dz_raster_dir = data['dz_raster_dir']
 dz_export_settings = data['dz_export_settings']
 dz_classes_template = data['dz_classes_template']
 
@@ -37,6 +38,7 @@ expected_classes = data['expected_classes']
 contractor_shp = data['contractor_shp']
 checks_to_do = data['checks_to_do']
 
+dz_raster_dir = qaqc_gdb
 dz_raster_catalog_base_name = r'{}_raster_catalog'.format(project_name)
 dz_raster_catalog_path = r'{}\{}'.format(qaqc_gdb, dz_raster_catalog_base_name)
 dz_mosaic_raster_basename = '{}_dz_mosaic'.format(project_name)
@@ -388,7 +390,7 @@ class QaqcTile:
 
     def check_hor_datum(self, tile):  # TODO
         hor_datum = tile.get_hor_datum()
-        if 2 == 2:
+        if hor_datum == exp_hor_datum:
             passed = self.passed_text
         else:
             passed = self.failed_text
@@ -396,7 +398,7 @@ class QaqcTile:
         tile.checks_result['hor_datum_passed'] = passed
         return passed
 
-    def check_unexpected_classes(self, tile):  # TODO
+    def check_unexpected_classes(self, tile):
         unexpected_classes = list(set(tile.classes_present).difference(self.expected_classes))
         if not unexpected_classes:
             passed = self.passed_text
