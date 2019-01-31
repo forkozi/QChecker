@@ -6,8 +6,7 @@
     <ProjectGuid>f842e6fd-4c69-40e3-a39e-92b094b3b673</ProjectGuid>
     <ProjectHome>
     </ProjectHome>
-    <StartupFile>
-    </StartupFile>
+    <StartupFile>qaqc_gui.py</StartupFile>
     <SearchPath>C:\Program Files (x86)\ArcGIS\Desktop10.5\arcpy;C:\Program Files (x86)\ArcGIS\Desktop10.5\arcpy;C:\Program Files (x86)\ArcGIS\Desktop10.5\ArcToolbox\Scripts;C:\Program Files (x86)\ArcGIS\Desktop10.5\arcpy;C:\Program Files (x86)\ArcGIS\Desktop10.5\ArcToolbox\Scripts;C:\Program Files (x86)\ArcGIS\Desktop10.5\arcpy;C:\Program Files (x86)\ArcGIS\Desktop10.5\ArcToolbox\Scripts;C:\Program Files (x86)\ArcGIS\Desktop10.5\arcpy;C:\Program Files (x86)\ArcGIS\Desktop10.5\ArcToolbox\Scripts;C:\Program Files (x86)\ArcGIS\Desktop10.5\arcpy;C:\Program Files (x86)\ArcGIS\Desktop10.5\ArcToolbox\Scripts;C:\Program Files (x86)\ArcGIS\Desktop10.5\arcpy;C:\Program Files (x86)\ArcGIS\Desktop10.5\ArcToolbox\Scripts;C:\Program Files (x86)\ArcGIS\Desktop10.5\arcpy;C:\Program Files (x86)\ArcGIS\Desktop10.5\ArcToolbox\Scripts;C:\Program Files (x86)\ArcGIS\Desktop10.5\arcpy;C:\Program Files (x86)\ArcGIS\Desktop10.5\ArcToolbox\Scripts;C:\Program Files (x86)\ArcGIS\Desktop10.5\arcpy;C:\Program Files (x86)\ArcGIS\Desktop10.5\ArcToolbox\Scripts;C:\Program Files (x86)\ArcGIS\Desktop10.5\arcpy;C:\Program Files (x86)\ArcGIS\Desktop10.5\ArcToolbox\Scripts;C:\Program Files (x86)\ArcGIS\Desktop10.5\arcpy;C:\Program Files (x86)\ArcGIS\Desktop10.5\ArcToolbox\Scripts;C:\Program Files (x86)\ArcGIS\Desktop10.5\arcpy;C:\Program Files (x86)\ArcGIS\Desktop10.5\ArcToolbox\Scripts;C:\Program Files (x86)\ArcGIS\Desktop10.5\arcpy;C:\Program Files (x86)\ArcGIS\Desktop10.5\ArcToolbox\Scripts;C:\Program Files (x86)\ArcGIS\Desktop10.5\arcpy;C:\Program Files (x86)\ArcGIS\Desktop10.5\ArcToolbox\Scripts;C:\Program Files (x86)\ArcGIS\Desktop10.5\arcpy;C:\Program Files (x86)\ArcGIS\Desktop10.5\ArcToolbox\Scripts;C:\Program Files (x86)\ArcGIS\Desktop10.5\arcpy;C:\Program Files (x86)\ArcGIS\Desktop10.5\ArcToolbox\Scripts;C:\Program Files (x86)\ArcGIS\Desktop10.5\arcpy;C:\Program Files (x86)\ArcGIS\Desktop10.5\bin64;C:\Program Files (x86)\ArcGIS\Desktop10.5\ArcToolbox\Scripts;C:\Program Files (x86)\ArcGIS\Desktop10.5\arcpy;C:\Program Files (x86)\ArcGIS\Desktop10.5\bin64;C:\Program Files (x86)\ArcGIS\Desktop10.5\ArcToolbox\Scripts;C:\Users\Nick.Forfinski-Sarko\AppData\Local\Continuum\anaconda3\envs\qaqc_dash_p37_64bit\Library\share\gdal</SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
     <OutputPath>.</OutputPath>
@@ -31,6 +30,7 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="qaqc.py" />
+    <Compile Include="qaqc_gui.py" />
   </ItemGroup>
   <ItemGroup>
     <InterpreterReference Include="CondaEnv|CondaEnv|qaqc_dash_p37_64bit" />
