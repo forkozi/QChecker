@@ -2,6 +2,9 @@ from Tkinter import *
 import Tkinter, Tkconstants, tkFileDialog
 import json
 import pandas as pd
+import os
+
+from qaqc import *
  
 LARGE_FONT = ('Verdanna', 12)
 LARGE_FONT_BOLD = ('Verdanna', 12, 'bold')
@@ -11,7 +14,7 @@ SMALL_FONT = ('Verdanna', 8)
 
 window = Tk()
 window.title("RSD Lidar QAQC")
-window.geometry('375x800')
+window.geometry('400x800')
 
 section_rows = {
     'metadata': 0,
@@ -47,41 +50,40 @@ metadata = {
     'project_name': ['Project Name', None],
     'hor_datum': ['Horizontal Datum', None],
     'tile_size': ['Tile Size (m)', None],
-    'exp_classes': ['Expected Classes (comma sep.)', None],
+    'expected_classes': ['Expected Classes (comma sep.)', None],
     }
 
-m = 'project_name'
+item = 'project_name'
 row = 1
-meta_label = Label(meta_frame, text=metadata[m][0])
+meta_label = Label(meta_frame, text=metadata[item][0])
 meta_label.grid(column=0, row=row, sticky=W)
-proj_name_var = StringVar()
-proj_name_var.set("(Select Project ID)")
-metadata[m][1] = OptionMenu(meta_frame, proj_name_var, *get_proj_names())
-metadata[m][1].grid(column=1, row=row, sticky=EW)
+metadata[item][1] = StringVar()
+metadata[item][1].set("(Select Project ID)")
+proj_down_down = OptionMenu(meta_frame, metadata[item][1], *get_proj_names())
+proj_down_down.grid(column=1, row=row, sticky=EW)
 
-m = 'hor_datum'
+item = 'hor_datum'
 row = 2
-meta_label = Label(meta_frame, text=metadata[m][0])
+meta_label = Label(meta_frame, text=metadata[item][0])
 meta_label.grid(column=0, row=row, sticky=W)
-wkt_var = StringVar()
-wkt_var.set("(Select WKT ID)")
-metadata[m][1] = OptionMenu(meta_frame, wkt_var, *get_wkt_ids())
-metadata[m][1].grid(column=1, row=row, sticky=EW)
+metadata[item][1] = StringVar()
+metadata[item][1].set("(Select WKT ID)")
+wkt_ids_drop_down = OptionMenu(meta_frame, metadata[item][1], *get_wkt_ids())
+wkt_ids_drop_down.grid(column=1, row=row, sticky=EW)
 
-m = 'tile_size'
+item = 'expected_classes'
 row = 3
-meta_label = Label(meta_frame, text=metadata[m][0])
+meta_label = Label(meta_frame, text=metadata[item][0])
 meta_label.grid(column=0, row=row, sticky=W)
-metadata[m][1] = Entry(meta_frame, width=30)
-metadata[m][1].grid(column=1, row=row, sticky=EW)
+metadata[item][1] = Entry(meta_frame, width=30)
+metadata[item][1].grid(column=1, row=row, sticky=EW)
 
-m = 'exp_classes'
+item = 'tile_size'
 row = 4
-meta_label = Label(meta_frame, text=metadata[m][0])
+meta_label = Label(meta_frame, text=metadata[item][0])
 meta_label.grid(column=0, row=row, sticky=W)
-metadata[m][1] = Entry(meta_frame, width=30)
-metadata[m][1].grid(column=1, row=row, sticky=EW)
-
+metadata[item][1] = Entry(meta_frame, width=5)
+metadata[item][1].grid(column=1, row=row, sticky=EW)
 
 #####################################################################
 '''Files'''
@@ -93,33 +95,44 @@ label = Label(files_frame, text='Select Files', font=LARGE_FONT_BOLD)
 label.grid(row=0, columnspan=3, pady=(10, 0), sticky=W)
 
 def get_file():
-    return tkFileDialog.askopenfilename()
+    dir_str = tkFileDialog.askopenfilename()
+    displayed_dir = r'...\{}'.format(dir_str.split('/')[-1])  # tk uses forward slashes
+    print displayed_dir
+    return dir_str, displayed_dir
 
 def file0_clicked():
-    files_to_set['contractor_shp'][1].configure(text=get_file())
+    user_dir, displayed_dir = get_file()
+    files_to_set['contractor_shp'][1].configure(text=displayed_dir)
+    files_to_set['contractor_shp'][2] = user_dir
 def file1_clicked():
-    files_to_set['dz_classes_template'][1].configure(text=get_file())
-def file1_clicked():
-    files_to_set['dz_export_settings'][1].configure(text=get_file())
-def file1_clicked():
-    files_to_set['dz_mxd'][1].configure(text=get_file())
+    user_dir, displayed_dir = get_file()
+    files_to_set['dz_classes_template'][1].configure(text=displayed_dir)
+    files_to_set['dz_classes_template'][2] = user_dir
+def file2_clicked():
+    user_dir, displayed_dir = get_file()
+    files_to_set['dz_export_settings'][1].configure(text=displayed_dir)
+    files_to_set['dz_export_settings'][2] = user_dir
+def file3_clicked():
+    user_dir, displayed_dir = get_file()
+    files_to_set['dz_mxd'][1].configure(text=displayed_dir)
+    files_to_set['dz_mxd'][2] = user_dir
 
 files_to_set = {
-    'contractor_shp': ['Contractor Tile Shapefile', None, file0_clicked, '.shp'],
-    'dz_classes_template': ['Dz Classes Template', None, file1_clicked, '.lyr'],
-    'dz_export_settings': ['Dz Export Settings', None, file1_clicked, '.xml'],
-    'dz_mxd': ['QAQC ArcGIS Map', None, file1_clicked, '.mxd'],
+    'contractor_shp': ['Contractor Tile Shapefile', None, 'fpath',file0_clicked, '.shp'],
+    'dz_classes_template': ['Dz Classes Template', None, 'fpath', file1_clicked, '.lyr'],
+    'dz_export_settings': ['Dz Export Settings', None, 'fpath', file2_clicked, '.xml'],
+    'dz_mxd': ['QAQC ArcGIS Map', None, 'fpath', file3_clicked, '.mxd'],
     }
 
 for i, d in enumerate(files_to_set, 1):
     check_label = Label(files_frame, text=files_to_set[d][0])
     check_label.grid(column=0, row=i, sticky=W)
 
-    btn = Button(files_frame, text="...", command=files_to_set[d][2])
+    btn = Button(files_frame, text="...", command=files_to_set[d][3])
     btn.grid(column=1, row=i, sticky=W)
 
     files_to_set[d][1] = Label(files_frame, 
-                               text='(Select {} file)'.format(files_to_set[d][3]))
+                               text='(Select {} file)'.format(files_to_set[d][4]))
     files_to_set[d][1].grid(column=2, row=i, sticky=W)
 
 #####################################################################
@@ -132,29 +145,40 @@ label = Label(dirs_frame, text='Select Directories', font=LARGE_FONT_BOLD)
 label.grid(row=0, columnspan=3, pady=(10, 0), sticky=W)
 
 def get_dir():
-    return tkFileDialog.askdirectory()
+    dir_str = tkFileDialog.askdirectory()
+    displayed_dir = '...\{}\\'.format(dir_str.split('/')[-1])  # tk uses forward slashes
+    print displayed_dir
+    return dir_str, displayed_dir
 
 def dir0_clicked():
-    dirs_to_set['qaqc_dir'][1].configure(text=get_dir())
+    user_dir, displayed_dir = get_dir()
+    dirs_to_set['qaqc_dir'][1].configure(text=displayed_dir)
+    dirs_to_set['qaqc_dir'][2] = user_dir
 def dir1_clicked():
-    dirs_to_set['las_tile_dir'][1].configure(text=get_dir())
+    user_dir, displayed_dir = get_dir()
+    dirs_to_set['qaqc_gdb'][1].configure(text=displayed_dir)
+    dirs_to_set['qaqc_gdb'][2] = user_dir
 def dir2_clicked():
-    dirs_to_set['qaqc_gdb'][1].configure(text=get_dir())
+    user_dir, displayed_dir = get_dir()
+    dirs_to_set['las_tile_dir'][1].configure(text=displayed_dir)
+    dirs_to_set['las_tile_dir'][2] = user_dir
 def dir3_clicked():
-    dirs_to_set['dz_binary_dir'][1].configure(text=get_dir())
+    user_dir, displayed_dir = get_dir()
+    dirs_to_set['dz_binary_dir'][1].configure(text=displayed_dir)
+    dirs_to_set['dz_binary_dir'][2] = user_dir
 
 dirs_to_set = {
-    'qaqc_dir': ['QAQC Home', None, dir0_clicked],
-    'las_tile_dir': ['Las Tiles', None, dir1_clicked],
-    'qaqc_gdb': ['QAQC GeoDatabase', None, dir2_clicked],
-    'dz_binary_dir': ['Dz Surfaces', None, dir3_clicked],
+    'qaqc_dir': ['QAQC Home', None, 'fpath', dir0_clicked],
+    'qaqc_gdb': ['QAQC GeoDatabase', None, 'fpath', dir1_clicked],
+    'las_tile_dir': ['Las Tiles', None, 'fpath', dir2_clicked],
+    'dz_binary_dir': ['Dz Surfaces', None, 'fpath', dir3_clicked],
     }
 
 for i, d in enumerate(dirs_to_set, 1):
     check_label = Label(dirs_frame, text=dirs_to_set[d][0])
     check_label.grid(column=0, row=i, sticky=W)
 
-    btn = Button(dirs_frame, text="...", command=dirs_to_set[d][2])
+    btn = Button(dirs_frame, text="...", command=dirs_to_set[d][3])
     btn.grid(column=1, row=i, sticky=W)
 
     dirs_to_set[d][1] = Label(dirs_frame, text="(Select Directory)")
@@ -206,7 +230,7 @@ for i, s in enumerate(surfaces_to_make, 1):
     surfaces_to_make[s][1] = BooleanVar()
     surfaces_to_make[s][1].set(True)
     chk = Checkbutton(surf_frame, text=surfaces_to_make[s][0], 
-                      var=surfaces_to_make[s], 
+                      var=surfaces_to_make[s][1], 
                       anchor=W, justify=LEFT)
     chk.grid(column=0, row=i, sticky=W)
 
@@ -225,13 +249,16 @@ def save_settings():
         settings['checks_to_do'].update({k: v[1].get()})
 
     for k, v in dirs_to_set.iteritems():
-        settings.update({k: v[1].cget('text')})
+        settings.update({k: v[2]})
 
     for k, v in files_to_set.iteritems():
-        settings.update({k: v[1].cget('text')})
+        settings.update({k: v[2]})
 
     for k, v in metadata.iteritems():
         settings.update({k: v[1].get()})
+
+    for k, v in surfaces_to_make.iteritems():
+        settings['checks_to_do'].update({k: v[1].get()})
 
     print(settings)
     with open('Z:\qaqc\qaqc_config.json', 'w') as f:
@@ -240,6 +267,7 @@ def save_settings():
 def run_qaqc_process():
     verify_input()
     save_settings()
+    run_qaqc() #  from qaqc.py
     
 
 btn = Button(run_frame, text="Run QAQC Processes", 

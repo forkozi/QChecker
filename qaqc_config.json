@@ -1,24 +1,26 @@
 {
-  "dz_mxd": "(Select .mxd file)",
-  "las_tile_dir": "(Select Directory)",
-  "project_name": "",
-  "qaqc_dir": "(Select Directory)",
-  "dz_export_settings": "(Select .xml file)",
-  "hor_datum": "",
+  "dz_mxd": "C:/QAQC_contract/nantucket/QAQC_nantucket.mxd",
+  "las_tile_dir": "C:/QAQC_contract/nantucket/CLASSIFIED_LAS",
+  "expected_classes": "2,26",
+  "project_name": "FL1608-TB-N_DogIsland_p",
+  "qaqc_dir": "C:/QAQC_contract/TEST_QAQC_PROJECT",
+  "dz_export_settings": "Z:/qaqc/noaa_topobathy_v02.xml",
+  "hor_datum": "NAD_1983_2011_UTM_Zone_16N",
   "checks_to_do": {
+    "hillshade": false,
     "gps_time_type": true,
     "version": true,
+    "dz": true,
     "hor_datum": true,
     "pdrf": true,
     "naming_convention": true,
     "unexpected_classes": true,
-    "ver_datum": true,
-    "point_source_ids": true
+    "ver_datum": false,
+    "point_source_ids": false
   },
-  "dz_classes_template": "(Select .lyr file)",
-  "qaqc_gdb": "(Select Directory)",
-  "dz_binary_dir": "(Select Directory)",
-  "tile_size": "",
-  "contractor_shp": "(Select .shp file)",
-  "exp_classes": ""
+  "dz_classes_template": "C:/QAQC_contract/dz_classes.lyr",
+  "qaqc_gdb": "C:/QAQC_contract/nantucket/qaqc_nantucket.gdb",
+  "dz_binary_dir": "C:/QAQC_contract/nantucket/dz",
+  "tile_size": "500",
+  "contractor_shp": "C:/QAQC_contract/nantucket/EXTENTS/final/MarthasVineyard_TileGrid.shp"
 }

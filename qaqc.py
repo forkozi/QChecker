@@ -25,7 +25,7 @@ project_name = data['project_name']
 las_tile_dir = data['las_tile_dir']
 qaqc_dir = data['qaqc_dir']
 qaqc_gdb = data['qaqc_gdb']
-tile_size = data['tile_size']
+tile_size = int(data['tile_size'])
 exp_hor_datum = data['hor_datum']
 
 dz_mxd  = data['dz_mxd']
@@ -33,7 +33,7 @@ dz_binary_dir = data['dz_binary_dir']
 dz_export_settings = data['dz_export_settings']
 dz_classes_template = data['dz_classes_template']
 
-expected_classes = data['expected_classes']
+expected_classes = [n for n in data['expected_classes'].split(',')]
 
 contractor_shp = data['contractor_shp']
 checks_to_do = data['checks_to_do']
