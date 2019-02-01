@@ -1,24 +1,23 @@
 {
-  "dz_mxd": "(Select .mxd file)",
-  "las_tile_dir": "(Select Directory)",
-  "project_name": "",
-  "qaqc_dir": "(Select Directory)",
-  "dz_export_settings": "(Select .xml file)",
-  "hor_datum": "",
+  "project_name": "nantucket",
+  "tile_size": 500,
+  "contractor_shp": "C:\\QAQC_contract\\nantucket\\EXTENTS\\final\\Nantucket_TileGrid.shp",
+  "dz_classes_template": "C:\\QAQC_contract\\dz_classes.lyr",
+  "dz_export_settings": "C:\\QAQC_contract\\\\dz_export_settings.xml",
+  "dz_mxd": "C:\\QAQC_contract\\nantucket\\QAQC_nantucket.mxd",
+  "qaqc_gdb": "C:\\QAQC_contract\\nantucket\\qaqc_nantucket.gdb",
+  "qaqc_dir": "C:\\QAQC_contract\\nantucket",
+  "las_tile_dir": "C:\\QAQC_contract\\nantucket\\CLASSIFIED_LAS",
+  "dz_binary_dir": "C:\\QAQC_contract\\nantucket\\dz",
   "checks_to_do": {
-    "gps_time_type": true,
-    "version": true,
-    "hor_datum": true,
-    "pdrf": true,
     "naming_convention": true,
+    "version": true,
+    "pdrf": true,
+    "gps_time_type": true,
+    "hor_datum": true,
+    "ver_datum": false,
+    "point_source_ids": false,
     "unexpected_classes": true,
-    "ver_datum": true,
-    "point_source_ids": true
-  },
-  "dz_classes_template": "(Select .lyr file)",
-  "qaqc_gdb": "(Select Directory)",
-  "dz_binary_dir": "(Select Directory)",
-  "tile_size": "",
-  "contractor_shp": "(Select .shp file)",
-  "exp_classes": ""
+    "create_dz": false
+  }
 }
