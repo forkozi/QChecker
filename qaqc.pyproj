@@ -26,6 +26,9 @@
     <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="parse_wkt.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="qaqc_config.py">
       <SubType>Code</SubType>
     </Compile>

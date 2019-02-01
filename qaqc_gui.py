@@ -1,6 +1,7 @@
 from Tkinter import *
 import Tkinter, Tkconstants, tkFileDialog
 import json
+import pandas as pd
  
 LARGE_FONT = ('Verdanna', 12)
 LARGE_FONT_BOLD = ('Verdanna', 12, 'bold')
@@ -10,7 +11,7 @@ SMALL_FONT = ('Verdanna', 8)
 
 window = Tk()
 window.title("RSD Lidar QAQC")
-window.geometry('300x775')
+window.geometry('375x800')
 
 section_rows = {
     'metadata': 0,
@@ -30,6 +31,18 @@ meta_frame.grid(row=section_rows['metadata'], sticky=NSEW)
 label = Label(meta_frame, text='Populate Metadata', font=LARGE_FONT_BOLD)
 label.grid(row=0, columnspan=3, pady=(10, 0), sticky=W)
 
+def get_wkt_ids():
+    wkts_file = 'Z:\qaqc\wkts_NAD83_2011_UTM.csv'
+    wkts_df = pd.read_csv(wkts_file)
+    wkt_ids = wkts_df.iloc[:, 1]
+    return tuple(wkt_ids)
+
+def get_proj_names():
+    with open('Z:\qaqc\project_list.txt', 'r') as f:
+       project_ids = [s.strip() for s in f.readlines()]
+    print project_ids
+    return tuple(project_ids)
+
 metadata = {
     'project_name': ['Project Name', None],
     'hor_datum': ['Horizontal Datum', None],
@@ -37,13 +50,37 @@ metadata = {
     'exp_classes': ['Expected Classes (comma sep.)', None],
     }
 
-for i, m in enumerate(metadata, 1):
-    meta_label = Label(meta_frame, text=metadata[m][0])
-    meta_label.grid(column=0, row=i, sticky=W)
+m = 'project_name'
+row = 1
+meta_label = Label(meta_frame, text=metadata[m][0])
+meta_label.grid(column=0, row=row, sticky=W)
+proj_name_var = StringVar()
+proj_name_var.set("(Select Project ID)")
+metadata[m][1] = OptionMenu(meta_frame, proj_name_var, *get_proj_names())
+metadata[m][1].grid(column=1, row=row, sticky=EW)
 
-    metadata[m][1] = Entry(meta_frame, width=20)
-    metadata[m][1].grid(column=1, row=i, sticky=EW)
+m = 'hor_datum'
+row = 2
+meta_label = Label(meta_frame, text=metadata[m][0])
+meta_label.grid(column=0, row=row, sticky=W)
+wkt_var = StringVar()
+wkt_var.set("(Select WKT ID)")
+metadata[m][1] = OptionMenu(meta_frame, wkt_var, *get_wkt_ids())
+metadata[m][1].grid(column=1, row=row, sticky=EW)
 
+m = 'tile_size'
+row = 3
+meta_label = Label(meta_frame, text=metadata[m][0])
+meta_label.grid(column=0, row=row, sticky=W)
+metadata[m][1] = Entry(meta_frame, width=30)
+metadata[m][1].grid(column=1, row=row, sticky=EW)
+
+m = 'exp_classes'
+row = 4
+meta_label = Label(meta_frame, text=metadata[m][0])
+meta_label.grid(column=0, row=row, sticky=W)
+metadata[m][1] = Entry(meta_frame, width=30)
+metadata[m][1].grid(column=1, row=row, sticky=EW)
 
 
 #####################################################################
@@ -178,6 +215,9 @@ for i, s in enumerate(surfaces_to_make, 1):
 run_frame = Frame(window)
 run_frame.grid(row=section_rows['run_button'], sticky=NSEW, pady=(10, 0))
 
+def verify_input():
+    pass
+
 def save_settings():
     settings = {'checks_to_do': {}}
 
@@ -197,7 +237,13 @@ def save_settings():
     with open('Z:\qaqc\qaqc_config.json', 'w') as f:
         json.dump(settings, f)
 
-btn = Button(run_frame, text="Run QAQC Processes", command=save_settings, height=2)
-btn.grid(column=0, row=0, sticky=EW, padx=(80, 0))
+def run_qaqc_process():
+    verify_input()
+    save_settings()
+    
+
+btn = Button(run_frame, text="Run QAQC Processes", 
+             command=run_qaqc_process, height=2)
+btn.grid(column=0, row=0, sticky=EW, padx=(120, 0))
 
 window.mainloop()

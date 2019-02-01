@@ -1,1 +1,24 @@
-{"dz_mxd": "Select .mxd file", "las_tile_dir": "(Select Directory)", "project_name": "", "qaqc_dir": "(Select Directory)", "dz_export_settings": "Select .xml file", "hor_datum": "", "checks_to_do": {"gps_time_type": true, "version": true, "hor_datum": true, "pdrf": true, "naming_convention": true, "unexpected_classes": true, "ver_datum": true, "point_source_ids": true}, "dz_classes_template": "Select .lyr file", "qaqc_gdb": "(Select Directory)", "dz_binary_dir": "(Select Directory)", "tile_size": "500", "contractor_shp": "Select .shp file", "exp_classes": ""}
+{
+  "dz_mxd": "(Select .mxd file)",
+  "las_tile_dir": "(Select Directory)",
+  "project_name": "",
+  "qaqc_dir": "(Select Directory)",
+  "dz_export_settings": "(Select .xml file)",
+  "hor_datum": "",
+  "checks_to_do": {
+    "gps_time_type": true,
+    "version": true,
+    "hor_datum": true,
+    "pdrf": true,
+    "naming_convention": true,
+    "unexpected_classes": true,
+    "ver_datum": true,
+    "point_source_ids": true
+  },
+  "dz_classes_template": "(Select .lyr file)",
+  "qaqc_gdb": "(Select Directory)",
+  "dz_binary_dir": "(Select Directory)",
+  "tile_size": "",
+  "contractor_shp": "(Select .shp file)",
+  "exp_classes": ""
+}
