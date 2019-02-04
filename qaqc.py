@@ -24,7 +24,7 @@ print(data)
 project_name = data['project_name']
 las_tile_dir = data['las_tile_dir']
 qaqc_dir = data['qaqc_dir']
-qaqc_gdb = data['qaqc_gdb']
+qaqc_gdb = raster_dir = data['qaqc_gdb']
 tile_size = data['tile_size']
 exp_hor_datum = data['hor_datum']
 
@@ -37,12 +37,8 @@ expected_classes = data['expected_classes']
 
 contractor_shp = data['contractor_shp']
 checks_to_do = data['checks_to_do']
-
-dz_raster_dir = qaqc_gdb
-dz_raster_catalog_base_name = r'{}_raster_catalog'.format(project_name)
-dz_raster_catalog_path = r'{}\{}'.format(qaqc_gdb, dz_raster_catalog_base_name)
-dz_mosaic_raster_basename = '{}_dz_mosaic'.format(project_name)
-dz_mosaic_raster_path = '{}\{}'.format(qaqc_gdb, dz_mosaic_raster_basename)
+surfaces_to_make = data['surfaces_to_make']
+mosaics_to_make = data['mosaics_to_make']
 
 qaqc_csv = r'{}\qaqc.csv'.format(qaqc_dir)
 qaqc_geojson_NAD83_UTM_CENTROIDS = r'{}\qaqc_NAD83_UTM_CENTROIDS.json'.format(qaqc_dir)
@@ -216,56 +212,60 @@ class LasTile:
             print(e)
 
 
-class DzOrthoMosaic:
+class Mosaic:
 
-    def __init__(self):
-        pass
+    def __init__(self, mtype):
+        self.mtype = mtype
+        self.raster_catalog_base_name = r'{}_{}_raster_catalog'.format(self.mtype, project_name)
+        self.raster_catalog_path = r'{}\{}'.format(qaqc_gdb, raster_catalog_base_name)
+        self.mosaic_raster_basename = '{}_{}_mosaic'.format(self.mtype, project_name)
+        self.mosaic_raster_path = '{}\{}'.format(qaqc_gdb, self.mosaic_raster_basename)
 
     def create_raster_catalog(self):
         try:
             arcpy.CreateRasterCatalog_management(
-                qaqc_gdb, dz_raster_catalog_base_name,
+                qaqc_gdb, self.raster_catalog_base_name,
                 raster_management_type='UNMANAGED')
         except Exception as e:
             print(e)
 
-    def add_dz_dir_to_raster_catalog(self):
-        logging.info('adding dz_rasters to {}...'.format(dz_raster_catalog_path))
-        arcpy.WorkspaceToRasterCatalog_management(qaqc_gdb, dz_raster_catalog_path)
+    def add_dir_to_raster_catalog(self):
+        logging.info('adding {}_rasters to {}...'.format(self.mtype, self.raster_catalog_path))
+        arcpy.WorkspaceToRasterCatalog_management(qaqc_gdb, self.raster_catalog_path)
 
-    def mosaic_dz_raster_catalog(self):
-        logging.info('mosaicing rasters in {}...'.format(dz_raster_catalog_path))
+    def mosaic_raster_catalog(self):
+        logging.info('mosaicing {} rasters in {}...'.format(self.mtype, self.raster_catalog_path))
         try:
             arcpy.RasterCatalogToRasterDataset_management(
-                dz_raster_catalog_path, dz_mosaic_raster_path)
+                self.raster_catalog_path, self.mosaic_raster_path)
         except Exception as e:
             print(e)
 
-    def add_dz_mosaic_to_mxd(self):
+    def add_mosaic_to_mxd(self):
         mxd = arcpy.mapping.MapDocument(dz_mxd)
         df = arcpy.mapping.ListDataFrames(mxd)[0]
-        arcpy.MakeRasterLayer_management(dz_mosaic_raster_path, dz_mosaic_raster_basename)
-        dz_lyr = arcpy.mapping.Layer(dz_mosaic_raster_basename)
+        arcpy.MakeRasterLayer_managementself(self.mosaic_raster_path, self.mosaic_raster_basename)
+        dz_lyr = arcpy.mapping.Layer(self.mosaic_raster_basename)
         arcpy.mapping.AddLayer(df, dz_lyr, 'AUTO_ARRANGE')
         mxd.save()
 
     def update_raster_symbology(self):
         mxd = arcpy.mapping.MapDocument(dz_mxd)
         df = arcpy.mapping.ListDataFrames(mxd)[0]
-        raster_to_update = arcpy.mapping.ListLayers(mxd, dz_mosaic_raster_basename, df)[0]
+        raster_to_update = arcpy.mapping.ListLayers(mxd, self.mosaic_raster_basename, df)[0]
         dz_classes_lyr = arcpy.mapping.Layer(dz_classes_template)
         arcpy.mapping.UpdateLayer(df, raster_to_update, dz_classes_lyr, True)
         mxd.save()
 
 
-class DzOrtho:
+class Dz:
 
     def __init__(self, las_path, las_name, las_extents):
         self.las_path = las_path
         self.las_name = las_name
         self.las_extents = las_extents
         self.dz_binary_path = r'{}\{}_dz_dzValue.flt'.format(dz_binary_dir, self.las_name)
-        self.dz_raster_path = r'{}\dz_{}'.format(dz_raster_dir, self.las_name)
+        self.dz_raster_path = r'{}\dz_{}'.format(raster_dir, self.las_name)
 
     def __str__(self):
         return self.dz_raster_path
@@ -324,9 +324,15 @@ class QaqcTile:
             'hor_datum': self.check_hor_datum,
             'ver_datum': self.check_ver_datum,
             'point_source_ids': self.check_point_source_ids,
-            'create_dz': self.create_dz,
             'unexpected_classes': self.check_unexpected_classes,
-        }
+            }
+
+        self.surfaces = {
+            'dz': self.create_dz,
+            'dz_mosaic': None,
+            'hillshade': self.create_hillshade,
+            'hillshade_mosaic': None,
+            }
 
     def check_las_naming_convention(self, tile):
         # for now, the checks assume Northern Hemisphere
@@ -417,11 +423,9 @@ class QaqcTile:
         pass
 
     def create_dz(self, tile):
-        from qaqc import DzOrtho
+        from qaqc import Dz
         if tile.has_bathy or tile.has_ground:
-            tile_dz = DzOrtho(tile.path,
-                tile.name,
-                tile.las_extents)
+            tile_dz = Dz(tile.path, tile.name, tile.las_extents)
             tile_dz.update_dz_export_settings_extents()
             tile_dz.gen_dz_ortho()
             tile_dz.binary_to_raster()
@@ -456,6 +460,12 @@ class QaqcTile:
                 logging.info('running {}...'.format(c))
                 result = self.checks[c](tile)
                 logging.info(result)
+
+            for c in [k for k, v in surfaces_to_make.iteritems() if v]:
+                logging.info('running {}...'.format(c))
+                result = self.surfaces[c](tile)
+                logging.info(result)
+
             tile.output_las_qaqc_to_json()
 
     def run_qaqc(self, las_paths, multiprocess):
@@ -559,13 +569,13 @@ class QaqcTileCollection:
         arcpy.mapping.AddLayer(df, qaqc_lyr, 'TOP')  # add qaqc tile shp
         mxd.save()
 
-    def gen_dz_ortho_mosaic(self):
-        dz_mosaic = DzOrthoMosaic()
-        dz_mosaic.create_raster_catalog()
-        dz_mosaic.add_dz_dir_to_raster_catalog()
-        dz_mosaic.mosaic_dz_raster_catalog()
-        dz_mosaic.add_dz_mosaic_to_mxd()
-        dz_mosaic.update_raster_symbology()
+    def gen_mosaic(self, mtype):
+        mosaic = Mosaic(mtype)
+        mosaic.create_raster_catalog()
+        mosaic.add_dir_to_raster_catalog()
+        mosaic.mosaic_raster_catalog()
+        mosaic.add_mosaic_to_mxd()
+        mosaic.update_raster_symbology()
 
 
 def gen_tile_geojson_WGS84(shp, geojson):
@@ -619,20 +629,18 @@ def run_console_cmd(cmd):
 def run_qaqc():
     logging.basicConfig(format='%(asctime)s:%(message)s', level=logging.INFO)
 
-    gen_tile_centroids_csv(contractor_shp, contractor_csv)
     gen_tile_centroids_shp_NAD83_UTM()
-    gen_tile_geojson_WGS84(contractor_shp, contractor_geojson_WGS84)
     add_layer_to_mxd(contractor_centroids_shp_NAD83_UTM)
 
     nantucket = LasTileCollection(las_tile_dir)
     qaqc = QaqcTileCollection(nantucket.get_las_tile_paths()[0:5], expected_classes)
     
     qaqc.run_qaqc_tile_collection_checks(multiprocess=False)
-    qaqc.gen_qaqc_csv(qaqc_csv)  # for dashboard
-    qaqc.gen_qaqc_json_NAD83_UTM_CENTROIDS(qaqc_geojson_NAD83_UTM_CENTROIDS)
-    qaqc.gen_qaqc_json_NAD83_UTM_POLYGONS(qaqc_geojson_NAD83_UTM_POLYGONS)
     qaqc.gen_qaqc_shp_NAD83_UTM(qaqc_shp_NAD83_UTM_POLYGONS)
-    #qaqc.gen_dz_ortho_mosaic()  # TODO: project to sr
+
+    for k, v in mosaics_to_make.iteritems():
+        if v:
+            qaqc.gen_mosaic(k)
 
 
 if __name__ == '__main__':
