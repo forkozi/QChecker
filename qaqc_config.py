@@ -2,10 +2,8 @@ import json
 
 
 config_data = {
-    'project_name': 'nantucket',
+    'project_name': 'FL1608-TB-N_DogIsland_p',
     'tile_size': 500,
-    'expected_classes': '2,26',
-    'hor_datum': 'NAD_1983_2011_UTM_Zone_4N',
     'contractor_shp': r'C:\QAQC_contract\nantucket\EXTENTS\final\Nantucket_TileGrid.shp',
     'dz_classes_template': r'C:\QAQC_contract\dz_classes.lyr',
     'dz_export_settings': r'C:\QAQC_contract\dz_export_settings.xml',
@@ -13,7 +11,6 @@ config_data = {
     'qaqc_gdb': r'C:\QAQC_contract\nantucket\qaqc_nantucket.gdb',
     'qaqc_dir': r'C:\QAQC_contract\nantucket',
     'las_tile_dir': r'C:\QAQC_contract\nantucket\CLASSIFIED_LAS',
-    'dz_binary_dir': r'C:\QAQC_contract\nantucket\dz',
     'checks_to_do': {
         'naming_convention': True,
         'version': True,
@@ -22,16 +19,27 @@ config_data = {
         'hor_datum': True,
         'ver_datum': False,
         'point_source_ids': False,
-        'unexpected_classes': True,
-        'create_dz': False,
+        'expected_classes': True,
+    },
+    'checks_keys': {
+        'expected_classes': '2,26',
+        'pdrf': '6',
+        'naming_convention': 'yyyy_[easting]e_[northing]n_las',
+        'hor_datum': 'NAD_1983_2011_UTM_Zone_4N',
+        'gps_time_type': 'Satellite GPS Time',
+        'version': '1.4',
+        'point_source_ids': '?',
+        'ver_datum': 'MHW',
     },
     'surfaces_to_make': {
-        'dz': True,
-        'hillshade': False,
+        'Dz': True,
+        'Hillshade': False,
+        'Dz_dir': '"C:/QAQC_contract/nantucket/dz',
+        'Hillshade_dir': '"C:/QAQC_contract/nantucket/hillshade',
     },  
     'mosaics_to_make': {
-        'dz': False,
-        'hillshade': False,
+        'Dz': False,
+        'Hillshade': False,
     },
 }
 

@@ -6,13 +6,15 @@ import os
 import time
 import json
 import pandas as pd
+import matplotlib
 
+matplotlib.use('Agg')
 
 LARGE_FONT = ('Verdanna', 12)
 LARGE_FONT_BOLD = ('Verdanna', 12, 'bold')
 NORM_FONT = ('Verdanna', 10)
 NORM_FONT_BOLD = ('Verdanna', 10, 'bold')
-SMALL_FONT = ('Verdanna', 8)
+NORM_FONT_ITALIC = ('Verdanna', 10, 'italic')
 
 
 class QaqcApp(tk.Tk):
@@ -70,9 +72,7 @@ class QaqcApp(tk.Tk):
 
         self.components.update({'metadata': {
             'project_name': ['Project Name', None],
-            'hor_datum': ['Horizontal Datum', None],
             'tile_size': ['Tile Size (m)', None],
-            'expected_classes': ['Expected Classes (comma sep.)', None],
             }})
 
         self.components.update({'files_to_set': {
@@ -93,29 +93,38 @@ class QaqcApp(tk.Tk):
                          self.configuration['qaqc_gdb']],
             'las_tile_dir': ['Las Tiles', None, 
                              self.configuration['las_tile_dir']],
-            'dz_binary_dir': ['Dz Surfaces', None, 
-                              self.configuration['dz_binary_dir']],
             }})
 
         self.components.update({'checks_to_do': {
             'naming_convention': ['Naming Convention', None],
             'version': ['Version', None],
-            'pdrf': ['Point Data Record Format (PDRF)', None],
+            'pdrf': ['Point Data Record Format', None],
             'gps_time_type': ['GPS Time Type', None],
             'hor_datum': ['Horizontal Datum', None],
             'ver_datum': ['Vertical Datum', None],
-            'point_source_ids': ['Point Source IDs (Flight Line #)', None],
-            'unexpected_classes': ['Unexpected Classes', None],
+            'point_source_ids': ['Point Source IDs', None],
+            'expected_classes': ['Expected Classes', None],
             }})
 
         self.components.update({'surfaces_to_make': {
-            'dz': ['Dz', None],
-            'hillshade': ['Hillshade', None],
+            'Dz': ['Dz', None, None, self.configuration['surfaces_to_make']['Dz_dir']],
+            'Hillshade': ['Hillshade', None, None, self.configuration['surfaces_to_make']['Hillshade_dir']],
             }})
 
         self.components.update({'mosaics_to_make': {
-            'dz': ['Dz', None],
-            'hillshade': ['Hillshade', None],
+            'Dz': ['Dz Mosaic', None],
+            'Hillshade': ['Hillshade Mosaic', None],
+            }})
+
+        self.components.update({'checks_keys': {
+            'naming_convention': [None, None],
+            'version': [None, None],
+            'pdrf': [None, None],
+            'gps_time_type': [None, None],
+            'hor_datum': [None, None],
+            'ver_datum': [None, None],
+            'point_source_ids': [None, None],
+            'expected_classes': [None, None],        
             }})
 
     def load_config(self):
@@ -143,9 +152,14 @@ class QaqcApp(tk.Tk):
         for k, v in self.components['checks_to_do'].iteritems():
             self.configuration['checks_to_do'][k] = v[1].get()
 
+        # checks_keys
+        for k, v in self.components['checks_keys'].iteritems():
+            self.configuration['checks_keys'][k] = v[0].get()
+
         # surfaces_to_make
         for k, v in self.components['surfaces_to_make'].iteritems():
             self.configuration['surfaces_to_make'][k] = v[1].get()
+            self.configuration['surfaces_to_make'][k + '_dir'] = v[3]
 
         # mosaics_to_make
         for k, v in self.components['mosaics_to_make'].iteritems():
@@ -161,7 +175,7 @@ class QaqcApp(tk.Tk):
         about = tk.Toplevel()
         tk.Toplevel.iconbitmap(about, 'qaqc.ico')
         about.wm_title('About QAQC Checker')
-        splash_img = tk.PhotoImage(file='qaqc.gif')
+        splash_img = tk.PhotoImage(file='Z:\qaqc\SplashScreen.gif')
         label = tk.Label(about, image=splash_img)
         label.pack()
         b1 = ttk.Button(about, text='Ok', command=about.destroy)
@@ -186,7 +200,7 @@ class QaqcApp(tk.Tk):
 class Splash(tk.Toplevel):
     def __init__(self, parent):
         tk.Toplevel.__init__(self, parent)
-        splash_img = tk.PhotoImage(file='Z:\qaqc\qaqc.gif', master=self)
+        splash_img = tk.PhotoImage(file='Z:\qaqc\SplashScreen.gif', master=self)
         label = tk.Label(self, image=splash_img)
         label.pack()
         self.update()
@@ -216,8 +230,9 @@ class MainGuiPage(ttk.Frame):
 
     @staticmethod
     def build_display_str(str):
+        print(str)
         str = str.replace('/', '\\')
-        return r'...\{}'.format(str.split('\\')[-1])
+        return r'...\{}'.format(os.path.join(*str.split('\\')[-2:]))
 
     def build_gui(self):
 
@@ -234,14 +249,8 @@ class MainGuiPage(ttk.Frame):
         meta_frame = ttk.Frame(self)
         meta_frame.grid(row=self.section_rows['metadata'], sticky=tk.NSEW)
 
-        label = tk.Label(meta_frame, text='Populate Metadata', font=LARGE_FONT_BOLD)
+        label = tk.Label(meta_frame, text='Metadata', font=LARGE_FONT_BOLD)
         label.grid(row=0, columnspan=3, pady=(10, 0), sticky=tk.W)
-
-        def get_wkt_ids():
-            wkts_file = 'Z:\qaqc\wkts_NAD83_2011_UTM.csv'
-            wkts_df = pd.read_csv(wkts_file)
-            wkt_ids = wkts_df.iloc[:, 1]
-            return tuple(wkt_ids)
 
         def get_proj_names():
             with open('Z:\qaqc\project_list.txt', 'r') as f:
@@ -257,25 +266,8 @@ class MainGuiPage(ttk.Frame):
         proj_down_down = tk.OptionMenu(meta_frame, self.components['metadata'][item][1], *get_proj_names())
         proj_down_down.grid(column=1, row=row, sticky=tk.EW)
 
-        item = 'hor_datum'
-        row = 2
-        meta_label = tk.Label(meta_frame, text=self.components['metadata'][item][0])
-        meta_label.grid(column=0, row=row, sticky=tk.W)
-        self.components['metadata'][item][1] = tk.StringVar()
-        self.components['metadata'][item][1].set(self.configuration[item])
-        wkt_ids_drop_down = tk.OptionMenu(meta_frame, self.components['metadata'][item][1], *get_wkt_ids())
-        wkt_ids_drop_down.grid(column=1, row=row, sticky=tk.EW)
-
-        item = 'expected_classes'
-        row = 3
-        meta_label = tk.Label(meta_frame, text=self.components['metadata'][item][0])
-        meta_label.grid(column=0, row=row, sticky=tk.W)
-        self.components['metadata'][item][1] = tk.StringVar(meta_frame, value=self.configuration[item])
-        self.components['metadata'][item][1] = tk.Entry(meta_frame, textvariable=self.components['metadata'][item][1], width=30)
-        self.components['metadata'][item][1].grid(column=1, row=row, sticky=tk.EW)
-
         item = 'tile_size'
-        row = 4
+        row = 2
         meta_label = tk.Label(meta_frame, text=self.components['metadata'][item][0])
         meta_label.grid(column=0, row=row, sticky=tk.W)
         self.components['metadata'][item][1] = tk.StringVar(meta_frame, value=self.configuration[item])
@@ -288,7 +280,7 @@ class MainGuiPage(ttk.Frame):
         files_frame = ttk.Frame(self)
         files_frame.grid(row=self.section_rows['files'], sticky=tk.NSEW)
 
-        label = tk.Label(files_frame, text='Select Files', font=LARGE_FONT_BOLD)
+        label = tk.Label(files_frame, text='Files', font=LARGE_FONT_BOLD)
         label.grid(row=0, columnspan=3, pady=(10, 0), sticky=tk.W)
 
         def bind_files_command(f):
@@ -317,7 +309,7 @@ class MainGuiPage(ttk.Frame):
         dirs_frame = ttk.Frame(self)
         dirs_frame.grid(row=self.section_rows['dirs'], sticky=tk.NSEW)
 
-        label = tk.Label(dirs_frame, text='Select Directories', font=LARGE_FONT_BOLD)
+        label = tk.Label(dirs_frame, text='Directories', font=LARGE_FONT_BOLD)
         label.grid(row=0, columnspan=3, pady=(10, 0), sticky=tk.W)
 
         def bind_dirs_command(d):
@@ -330,8 +322,8 @@ class MainGuiPage(ttk.Frame):
             return func
 
         for i, d in enumerate(self.components['dirs_to_set'], 1):
-            check_label = tk.Label(dirs_frame, text=self.components['dirs_to_set'][d][0])
-            check_label.grid(column=0, row=i, sticky=tk.W)
+            dir_label = tk.Label(dirs_frame, text=self.components['dirs_to_set'][d][0])
+            dir_label.grid(column=0, row=i, sticky=tk.W)
             
             display_str = self.build_display_str(self.configuration[d])
             self.components['dirs_to_set'][d][1] = tk.Label(dirs_frame, text=display_str)
@@ -340,14 +332,126 @@ class MainGuiPage(ttk.Frame):
             btn = tk.Button(dirs_frame, text="...", command=bind_dirs_command(d))
             btn.grid(column=1, row=i, sticky=tk.W)
 
+    @staticmethod
+    def get_wkt_ids():
+        wkts_file = 'Z:\qaqc\wkts_NAD83_2011_UTM.csv'
+        wkts_df = pd.read_csv(wkts_file)
+        wkt_ids = wkts_df.iloc[:, 1]
+        return tuple(wkt_ids)
+
+    @staticmethod
+    def get_gps_time_types():
+        return ('Satellite GPS Time', 'GPS Week Seconds')  # TODO: verify names
+
+    @staticmethod
+    def get_versions():
+        return ('1.2', '1.4')
+
+    @staticmethod
+    def get_ver_datums():
+        return ('MHW', 'MLLW', 'GRS80', 'WGS84')
+
+    def update_pdrf(self):
+        version = self.components['checks_keys']['version'][0].get()
+        if version == '1.2':
+            pdrf = '3'
+        elif version == '1.4':
+            pdrf = '6'
+        else:
+            pdrf = None
+        self.components['checks_keys']['pdrf'][0].set(pdrf)
+
     def build_checks(self):
         '''Checks'''
-
         checks_frame = ttk.Frame(self)
         checks_frame.grid(row=self.section_rows['checks'], sticky=tk.NSEW)
 
-        label = tk.Label(checks_frame, text='Select Checks', font=LARGE_FONT_BOLD)
+        label = tk.Label(checks_frame, text='Checks', font=LARGE_FONT_BOLD)
         label.grid(row=0, columnspan=3, pady=(10, 0), sticky=tk.W)
+
+        '''corresponding check key'''
+        # naming_convention
+        self.components['checks_keys']['naming_convention'][0] = tk.StringVar()
+        self.components['checks_keys']['naming_convention'][0].set(
+            self.configuration['checks_keys']['naming_convention'])
+        self.components['checks_keys']['naming_convention'][1] = tk.Entry(
+            checks_frame, 
+            state='disabled', 
+            textvariable=self.components['checks_keys']['naming_convention'][0], width=30)
+
+        # version
+        self.components['checks_keys']['version'][0] = tk.StringVar()
+        self.components['checks_keys']['version'][0].set(
+            self.configuration['checks_keys']['version'])
+        self.components['checks_keys']['version'][1] = tk.OptionMenu(
+            checks_frame, 
+            self.components['checks_keys']['version'][0], 
+            *self.get_versions(), 
+            command=lambda x: self.update_pdrf())
+        self.components['checks_keys']['version'][1].configure(anchor='w')
+
+        # -------------------------------------------------------------------
+        # pdrf
+        self.components['checks_keys']['pdrf'][0] = tk.StringVar()
+        self.components['checks_keys']['pdrf'][0].set(
+            self.configuration['checks_keys']['pdrf'])
+        self.components['checks_keys']['pdrf'][1] = tk.Entry(
+            checks_frame, 
+            state='disabled', 
+            textvariable=self.components['checks_keys']['pdrf'][0], width=30)
+
+        # -------------------------------------------------------------------
+        # gps_time_type
+        self.components['checks_keys']['gps_time_type'][0] = tk.StringVar()
+        self.components['checks_keys']['gps_time_type'][0].set(
+            self.configuration['checks_keys']['gps_time_type'])
+        self.components['checks_keys']['gps_time_type'][1] = tk.OptionMenu(
+            checks_frame, 
+            self.components['checks_keys']['gps_time_type'][0], 
+            *self.get_gps_time_types())
+        self.components['checks_keys']['gps_time_type'][1].configure(anchor='w')
+
+        # -------------------------------------------------------------------
+        # hor_datum
+        self.components['checks_keys']['hor_datum'][0] = tk.StringVar()
+        self.components['checks_keys']['hor_datum'][0].set(
+            self.configuration['checks_keys']['hor_datum'])
+        self.components['checks_keys']['hor_datum'][1] = tk.OptionMenu(
+            checks_frame, 
+            self.components['checks_keys']['hor_datum'][0], 
+            *self.get_wkt_ids())
+        self.components['checks_keys']['hor_datum'][1].configure(anchor='w')
+
+        # -------------------------------------------------------------------
+        # ver_datum
+        self.components['checks_keys']['ver_datum'][0] = tk.StringVar()
+        self.components['checks_keys']['ver_datum'][0].set(
+            self.configuration['checks_keys']['ver_datum'])
+        self.components['checks_keys']['ver_datum'][1] = tk.OptionMenu(
+            checks_frame, 
+            self.components['checks_keys']['ver_datum'][0], 
+            *self.get_ver_datums())
+        self.components['checks_keys']['ver_datum'][1].configure(anchor='w')
+
+        # -------------------------------------------------------------------
+        # point_source_ids
+        self.components['checks_keys']['point_source_ids'][0] = tk.StringVar()
+        self.components['checks_keys']['point_source_ids'][0].set(
+            self.configuration['checks_keys']['point_source_ids'])
+        self.components['checks_keys']['point_source_ids'][1] = tk.Entry(
+            checks_frame, 
+            state='disabled', 
+            textvariable=self.components['checks_keys']['point_source_ids'][0], width=30)
+
+        # -------------------------------------------------------------------
+        # unexpected_classes
+        self.components['checks_keys']['expected_classes'][0] = tk.StringVar()
+        self.components['checks_keys']['expected_classes'][0].set(
+            self.configuration['checks_keys']['expected_classes'])
+        self.components['checks_keys']['expected_classes'][1] = tk.Entry(
+            checks_frame, 
+            textvariable=self.components['checks_keys']['expected_classes'][0], 
+            width=30)
 
         for i, c in enumerate(self.components['checks_to_do'], 1):
             self.components['checks_to_do'][c][1] = tk.BooleanVar()
@@ -359,29 +463,70 @@ class MainGuiPage(ttk.Frame):
                 var=self.components['checks_to_do'][c][1], 
                 anchor=tk.W, justify=tk.LEFT)
             chk.grid(column=0, row=i, sticky=tk.W)
+            self.components['checks_keys'][c][1].grid(column=1, row=i, sticky=tk.EW)
+
 
     def build_surfaces(self):
+        
         '''Surfaces'''
-
         surf_frame = ttk.Frame(self)
         surf_frame.grid(row=self.section_rows['surfaces'], sticky=tk.NSEW)
 
-        label = tk.Label(surf_frame, text='Select Surfaces', font=LARGE_FONT_BOLD)
+        label = tk.Label(surf_frame, text='Surfaces', font=LARGE_FONT_BOLD)
         label.grid(row=0, columnspan=3, pady=(10, 0), sticky=tk.W)
 
         for i, s in enumerate(self.components['surfaces_to_make'], 1):
+
+            # --------------------------------------------------------------------------
+            subframe = ttk.Frame(surf_frame)
+            subframe.grid(row=i, column=0, sticky=tk.EW)
+
             self.components['surfaces_to_make'][s][1] = tk.BooleanVar()
             is_checked = self.configuration['surfaces_to_make'][s]
             self.components['surfaces_to_make'][s][1].set(is_checked)
             chk = tk.Checkbutton(
-                surf_frame, 
+                subframe, 
                 text=self.components['surfaces_to_make'][s][0], 
                 var=self.components['surfaces_to_make'][s][1], 
                 anchor=tk.W, justify=tk.LEFT)
-            chk.grid(column=0, row=i, sticky=tk.W)
+            chk.grid(column=0, row=0, sticky=tk.EW)
 
+            # --------------------------------------------------------------------------
+            def bind_dirs_command(s):
+                def func():
+                    dir_str = tkFileDialog.askdirectory()
+                    display_str = self.build_display_str(dir_str)
+                    self.components['surfaces_to_make'][s][2].configure(text=display_str)
+                    self.components['surfaces_to_make'][s][3] = dir_str 
+                func.__name__ = s
+                return func
+
+            surface_label = tk.Label(subframe, text='Diretory'.format(s))
+            surface_label.grid(column=1, row=0, sticky=tk.EW, padx=(20, 0))
+
+            display_str = self.build_display_str(self.configuration['surfaces_to_make'][s + '_dir'])
+            self.components['surfaces_to_make'][s][2] = tk.Label(
+                subframe, text=display_str, width=20, justify=tk.LEFT, anchor=tk.W)
+            self.components['surfaces_to_make'][s][2].grid(column=3, row=0, sticky=tk.EW)
+
+            btn = tk.Button(subframe, text="...", command=bind_dirs_command(s))
+            btn.grid(column=2, row=0, sticky=tk.EW)
+
+            # --------------------------------------------------------------------------
+            self.components['mosaics_to_make'][s][1] = tk.BooleanVar()
+            is_checked = self.configuration['surfaces_to_make'][s]
+            self.components['mosaics_to_make'][s][1].set(is_checked)
+            chk = tk.Checkbutton(
+                subframe, 
+                text=self.components['mosaics_to_make'][s][0], 
+                var=self.components['mosaics_to_make'][s][1], 
+                anchor=tk.W, justify=tk.LEFT, width=15)
+            chk.grid(column=0, row=1, sticky=tk.EW)
+            
+            sep = ttk.Separator(subframe, orient=tk.HORIZONTAL)
+            sep.grid(row=2, columnspan=4, padx=(10, 0), pady=(0, 5), sticky=tk.EW)
+            
     def build_run_button(self):
-
         run_frame = ttk.Frame(self)
         run_frame.grid(row=self.section_rows['run_button'], sticky=tk.NSEW, pady=(10, 0))
 

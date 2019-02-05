@@ -21,19 +21,25 @@ with open(qaqc_config) as f:
     data = json.load(f)
 print(data)
 
-project_name = data['project_name']
+project_name = arcpy.ValidateTableName(data['project_name'])
 las_tile_dir = data['las_tile_dir']
 qaqc_dir = data['qaqc_dir']
 qaqc_gdb = raster_dir = data['qaqc_gdb']
-tile_size = data['tile_size']
-exp_hor_datum = data['hor_datum']
+tile_size = float(data['tile_size'])
+
+# checks "answer key"
+hor_datum_key = data['checks_keys']['hor_datum']
+ver_datum_key = data['checks_keys']['ver_datum']
+expected_classes_key = data['checks_keys']['expected_classes']
+pdrf_key = data['checks_keys']['pdrf']
+gps_time_type_key = data['checks_keys']['gps_time_type']
+version_key = data['checks_keys']['version']
+point_source_ids_key = data['checks_keys']['point_source_ids']
 
 dz_mxd  = data['dz_mxd']
-dz_binary_dir = data['dz_binary_dir']
+dz_binary_dir = data['surfaces_to_make']['Dz_dir']
 dz_export_settings = data['dz_export_settings']
 dz_classes_template = data['dz_classes_template']
-
-expected_classes = data['expected_classes']
 
 contractor_shp = data['contractor_shp']
 checks_to_do = data['checks_to_do']
@@ -216,12 +222,13 @@ class Mosaic:
 
     def __init__(self, mtype):
         self.mtype = mtype
-        self.raster_catalog_base_name = r'{}_{}_raster_catalog'.format(self.mtype, project_name)
-        self.raster_catalog_path = r'{}\{}'.format(qaqc_gdb, raster_catalog_base_name)
-        self.mosaic_raster_basename = '{}_{}_mosaic'.format(self.mtype, project_name)
+        self.raster_catalog_base_name = r'{}_{}_raster_catalog'.format(project_name, self.mtype)
+        self.raster_catalog_path = r'{}\{}'.format(qaqc_gdb, self.raster_catalog_base_name)
+        self.mosaic_raster_basename = '{}_{}_mosaic'.format(project_name, self.mtype)
         self.mosaic_raster_path = '{}\{}'.format(qaqc_gdb, self.mosaic_raster_basename)
 
     def create_raster_catalog(self):
+        logging.info('creating raster catalog {}'.format(self.raster_catalog_base_name))
         try:
             arcpy.CreateRasterCatalog_management(
                 qaqc_gdb, self.raster_catalog_base_name,
@@ -236,15 +243,19 @@ class Mosaic:
     def mosaic_raster_catalog(self):
         logging.info('mosaicing {} rasters in {}...'.format(self.mtype, self.raster_catalog_path))
         try:
-            arcpy.RasterCatalogToRasterDataset_management(
-                self.raster_catalog_path, self.mosaic_raster_path)
+            arcpy.Delete_management(self.mosaic_raster_path)
         except Exception as e:
+            pass
+        try:
+            arcpy.RasterCatalogToRasterDataset_management(self.raster_catalog_path, 
+                                                          self.mosaic_raster_path)
+        except Exception as e:            
             print(e)
 
     def add_mosaic_to_mxd(self):
         mxd = arcpy.mapping.MapDocument(dz_mxd)
         df = arcpy.mapping.ListDataFrames(mxd)[0]
-        arcpy.MakeRasterLayer_managementself(self.mosaic_raster_path, self.mosaic_raster_basename)
+        arcpy.MakeRasterLayer_management(self.mosaic_raster_path, self.mosaic_raster_basename)
         dz_lyr = arcpy.mapping.Layer(self.mosaic_raster_basename)
         arcpy.mapping.AddLayer(df, dz_lyr, 'AUTO_ARRANGE')
         mxd.save()
@@ -324,14 +335,14 @@ class QaqcTile:
             'hor_datum': self.check_hor_datum,
             'ver_datum': self.check_ver_datum,
             'point_source_ids': self.check_point_source_ids,
-            'unexpected_classes': self.check_unexpected_classes,
+            'expected_classes': self.check_unexpected_classes,
             }
 
         self.surfaces = {
-            'dz': self.create_dz,
-            'dz_mosaic': None,
-            'hillshade': self.create_hillshade,
-            'hillshade_mosaic': None,
+            'Dz': self.create_dz,
+            'Dz_mosaic': None,
+            'Hillshade': self.create_hillshade,
+            'Hillshade_mosaic': None,
             }
 
     def check_las_naming_convention(self, tile):
@@ -365,7 +376,7 @@ class QaqcTile:
 
     def check_las_version(self, tile):
         version = tile.get_las_version()
-        if version in ['1.2', '1.4']:
+        if version == version_key:
             passed = self.passed_text
         else:
             passed = self.failed_text
@@ -374,19 +385,19 @@ class QaqcTile:
         return passed
 
     def check_las_pdrf(self, tile):
-        las_pdrf = tile.get_las_pdrf()
+        pdrf = tile.get_las_pdrf()
         las_version = tile.get_las_version()
-        if las_pdrf == 3 and las_version == '1.2' or las_pdrf == 6 and las_version == '1.4':
+        if pdrf == pdrf_key:
             passed = self.passed_text
         else:
             passed = self.failed_text
-        tile.checks_result['pdrf'] = las_pdrf
+        tile.checks_result['pdrf'] = pdrf
         tile.checks_result['pdrf_passed'] = passed
         return passed
 
     def check_las_gps_time(self, tile):
         gps_time_type = tile.get_gps_time_type()
-        if gps_time_type == 'Satellite GPS Time':
+        if gps_time_type == gps_time_type_key:
             passed = self.passed_text
         else:
             passed = self.failed_text
@@ -396,7 +407,7 @@ class QaqcTile:
 
     def check_hor_datum(self, tile):  # TODO
         hor_datum = tile.get_hor_datum()
-        if hor_datum == exp_hor_datum:
+        if hor_datum == hor_datum_key:
             passed = self.passed_text
         else:
             passed = self.failed_text
@@ -633,7 +644,7 @@ def run_qaqc():
     add_layer_to_mxd(contractor_centroids_shp_NAD83_UTM)
 
     nantucket = LasTileCollection(las_tile_dir)
-    qaqc = QaqcTileCollection(nantucket.get_las_tile_paths()[0:5], expected_classes)
+    qaqc = QaqcTileCollection(nantucket.get_las_tile_paths()[0:15], expected_classes_key)
     
     qaqc.run_qaqc_tile_collection_checks(multiprocess=False)
     qaqc.gen_qaqc_shp_NAD83_UTM(qaqc_shp_NAD83_UTM_POLYGONS)
@@ -644,5 +655,5 @@ def run_qaqc():
 
 
 if __name__ == '__main__':
-
+    arcpy.env.overwriteOutput = True
     run_qaqc()
