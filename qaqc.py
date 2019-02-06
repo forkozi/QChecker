@@ -30,14 +30,13 @@ tile_size = float(data['tile_size'])
 # checks "answer key"
 hor_datum_key = data['checks_keys']['hor_datum']
 ver_datum_key = data['checks_keys']['ver_datum']
-expected_classes_key = data['checks_keys']['expected_classes']
+expected_classes_key = [int(n) for n in data['checks_keys']['expected_classes'].split(',')]
 pdrf_key = data['checks_keys']['pdrf']
 gps_time_type_key = data['checks_keys']['gps_time_type']
 version_key = data['checks_keys']['version']
 point_source_ids_key = data['checks_keys']['point_source_ids']
 
 dz_mxd  = data['dz_mxd']
-dz_binary_dir = data['surfaces_to_make'][1]
 dz_export_settings = data['dz_export_settings']
 dz_classes_template = data['dz_classes_template']
 
@@ -191,6 +190,7 @@ class LasTile:
         class_counts = dict(zip(['class{}'.format(str(c)) for c in class_counts[0]],
                                 [int(c) for c in class_counts[1]]))
         print(class_counts)
+        print(classes_present)
         return classes_present, class_counts
 
     def get_gps_time_type(self):
@@ -269,22 +269,27 @@ class Mosaic:
         mxd.save()
 
 
-class Dz:
+class Surface:
 
-    def __init__(self, las_path, las_name, las_extents):
+    def __init__(self, las_path, las_name, las_extents, stype):
+        self.stype = stype
         self.las_path = las_path
         self.las_name = las_name
         self.las_extents = las_extents
-        self.dz_binary_path = r'{}\{}_dz_dzValue.flt'.format(dz_binary_dir, self.las_name)
-        self.dz_raster_path = r'{}\dz_{}'.format(raster_dir, self.las_name)
+
+        self.binary_path = {'Dz': r'{}\{}_dz_dzValue.flt'.format(surfaces_to_make[self.stype][1], self.las_name),
+                            'Hillshade': ''}
+
+        self.raster_path = {'Dz': r'{}\dz_{}'.format(raster_dir, self.las_name),
+                            'Hillshade': ''}
 
     def __str__(self):
-        return self.dz_raster_path
+        return self.raster_path[self.stype]
 
     def binary_to_raster(self):
         try:
-            logging.info('converting {} to {}...'.format(self.dz_binary_path, self.dz_raster_path))
-            arcpy.FloatToRaster_conversion(self.dz_binary_path, self.dz_raster_path)
+            logging.info('converting {} to {}...'.format(self.binary_path[self.stype], self.raster_path[self.stype]))
+            arcpy.FloatToRaster_conversion(self.binary_path[self.stype], self.raster_path[self.stype])
         except Exception as e:
             print(e)
 
@@ -299,7 +304,7 @@ class Dz:
         myfile = open(dz_export_settings, "w")
         myfile.write(new_dz_settings)
 
-    def gen_dz_ortho(self):
+    def gen_dz_surface(self):
         exe = r'C:\Program Files\Common Files\LP360\LDExport.exe'
         las = self.las_path.replace('CLASSIFIED_LAS\\', 'CLASSIFIED_LAS\\\\')
         dz = r'C:\QAQC_contract\nantucket\dz\{}'.format(self.las_name)
@@ -310,6 +315,9 @@ class Dz:
             returncode, output = run_console_cmd(cmd_str)
         except Exception as e:
             print(e)
+
+    def gen_hillshade_surface():
+        pass
 
 
 class QaqcTile:
@@ -415,6 +423,7 @@ class QaqcTile:
             passed = self.failed_text
         tile.checks_result['unexpected_classes'] = str(unexpected_classes)
         tile.checks_result['unexpected_classes_passed'] = passed
+        return passed
 
     def check_ver_datum(self):
         pass
@@ -426,11 +435,11 @@ class QaqcTile:
         pass
 
     def create_dz(self, tile):
-        from qaqc import Dz
+        from qaqc import Surface
         if tile.has_bathy or tile.has_ground:
-            tile_dz = Dz(tile.path, tile.name, tile.las_extents)
+            tile_dz = Surface(tile.path, tile.name, tile.las_extents, 'Dz')
             tile_dz.update_dz_export_settings_extents()
-            tile_dz.gen_dz_ortho()
+            tile_dz.gen_dz_surface()
             tile_dz.binary_to_raster()
         else:
             logging.info('{} has no bathy or ground points; no dz ortho generated'.format(tile.name))
@@ -464,7 +473,7 @@ class QaqcTile:
                 result = self.checks[c](tile)
                 logging.info(result)
 
-            for c in [k for k, v in surfaces_to_make.iteritems() if v]:
+            for c in [k for k, v in surfaces_to_make.iteritems() if v[0]]:
                 logging.info('running {}...'.format(c))
                 result = self.surfaces[c](tile)
                 logging.info(result)
@@ -640,10 +649,9 @@ def run_qaqc():
     
     qaqc.run_qaqc_tile_collection_checks(multiprocess=False)
     qaqc.gen_qaqc_shp_NAD83_UTM(qaqc_shp_NAD83_UTM_POLYGONS)
-
-    for k, v in mosaics_to_make.iteritems():
-        if v:
-            qaqc.gen_mosaic(k)
+    
+    for m in [k for k, v in mosaics_to_make.iteritems() if v[0]]:
+        qaqc.gen_mosaic(k)
 
 
 if __name__ == '__main__':

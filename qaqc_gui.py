@@ -107,13 +107,13 @@ class QaqcApp(tk.Tk):
             }})
 
         self.components.update({'surfaces_to_make': {
-            'Dz': ['Dz', None, None, self.configuration['surfaces_to_make']['Dz_dir']],
-            'Hillshade': ['Hillshade', None, None, self.configuration['surfaces_to_make']['Hillshade_dir']],
+            'Dz': ['Dz', None, None, self.configuration['surfaces_to_make']['Dz'][1]],
+            'Hillshade': ['Hillshade', None, None, self.configuration['surfaces_to_make']['Hillshade'][1]],
             }})
 
         self.components.update({'mosaics_to_make': {
-            'Dz': ['Dz Mosaic', None, None, self.configuration['mosaics_to_make']['Dz_path']],
-            'Hillshade': ['Hillshade Mosaic', None, None, self.configuration['mosaics_to_make']['Hillshade_path']],
+            'Dz': ['Dz Mosaic', None, None, self.configuration['mosaics_to_make']['Dz'][1]],
+            'Hillshade': ['Hillshade Mosaic', None, None, self.configuration['mosaics_to_make']['Hillshade'][1]],
             }})
 
         self.components.update({'checks_keys': {
@@ -235,15 +235,50 @@ class MainGuiPage(ttk.Frame):
         str = str.replace('/', '\\')
         return r'...\{}'.format(os.path.join(*str.split('\\')[-1:]))
 
-    def build_gui(self):
+    def get_checked_classes(self, popup, vars):
+        checked_classes = []
+        for k, v in vars.iteritems():
+            if v.get():
+                checked_classes.append(k)
+        print checked_classes
+        self.components['checks_keys']['expected_classes'][0].set(','.join(checked_classes))
+        popup.destroy()
 
+    def get_class_status(self, c):
+        if c in self.components['checks_keys']['expected_classes'][0].get().split(','):
+            return True
+        else:
+            return False
+
+    def pick_classes(self):
+        with open('Z:\qaqc\las_classes.txt', 'r') as f:
+            las_classes = [row.replace('\n', '').split(',') for row in f.readlines()]
+        popup = tk.Toplevel()
+        popup.wm_title('Pick Expected Classes')
+        vars = {}
+        for i, c in enumerate(las_classes):
+            vars.update({c[0]: tk.BooleanVar()})
+            vars[c[0]].set(self.get_class_status(c[0]))
+            print vars[c[0]].get()
+            class_check = tk.Checkbutton(popup, 
+                                         text='{}: {}'.format(c[0], c[1]), 
+                                         var=vars[c[0]], 
+                                         anchor=tk.W, 
+                                         justify=tk.LEFT, 
+                                         width=40)
+            class_check.pack(side='top', fill='x', pady=(0, 0))
+        b1 = tk.Button(popup, text='Ok', command=lambda: self.get_checked_classes(popup, vars))
+        b1.pack(side='top', fill='x', pady=(0, 0))
+        popup.mainloop()
+
+    def build_gui(self):
         self.build_metadata()
         self.build_files()
         self.build_dirs()
         self.build_checks()
         self.build_surfaces()
-        self.build_run_button()
-                    
+        self.build_run_button()                 
+
     def build_metadata(self):
         '''Metadata'''
 
@@ -367,6 +402,7 @@ class MainGuiPage(ttk.Frame):
         self.components['checks_keys']['pdrf'][0].set(pdrf)
 
     def build_checks(self):
+
         '''Checks'''
         checks_frame = ttk.Frame(self)
         checks_frame.grid(row=self.section_rows['checks'], sticky=tk.NSEW)
@@ -374,89 +410,99 @@ class MainGuiPage(ttk.Frame):
         label = tk.Label(checks_frame, text='Checks', font=LARGE_FONT_BOLD)
         label.grid(row=0, columnspan=3, pady=(10, 0), sticky=tk.W)
 
-        '''corresponding check key'''
-        # naming_convention
-        self.components['checks_keys']['naming_convention'][0] = tk.StringVar()
-        self.components['checks_keys']['naming_convention'][0].set(
-            self.configuration['checks_keys']['naming_convention'])
-        self.components['checks_keys']['naming_convention'][1] = tk.Entry(
-            checks_frame, 
-            state='disabled', 
-            textvariable=self.components['checks_keys']['naming_convention'][0], width=30)
+        def build_naming_convention_key():
+            # naming_convention
+            self.components['checks_keys']['naming_convention'][0] = tk.StringVar()
+            self.components['checks_keys']['naming_convention'][0].set(
+                self.configuration['checks_keys']['naming_convention'])
+            self.components['checks_keys']['naming_convention'][1] = tk.Entry(
+                checks_frame, 
+                state='disabled', 
+                textvariable=self.components['checks_keys']['naming_convention'][0], width=30)
 
-        # version
-        self.components['checks_keys']['version'][0] = tk.StringVar()
-        self.components['checks_keys']['version'][0].set(
-            self.configuration['checks_keys']['version'])
-        self.components['checks_keys']['version'][1] = tk.OptionMenu(
-            checks_frame, 
-            self.components['checks_keys']['version'][0], 
-            *self.get_versions(), 
-            command=lambda x: self.update_pdrf())
-        self.components['checks_keys']['version'][1].configure(anchor='w')
+        def build_version_key():
+            self.components['checks_keys']['version'][0] = tk.StringVar()
+            self.components['checks_keys']['version'][0].set(
+                self.configuration['checks_keys']['version'])
+            self.components['checks_keys']['version'][1] = tk.OptionMenu(
+                checks_frame, 
+                self.components['checks_keys']['version'][0], 
+                *self.get_versions(), 
+                command=lambda x: self.update_pdrf())
+            self.components['checks_keys']['version'][1].configure(anchor='w')
 
-        # -------------------------------------------------------------------
-        # pdrf
-        self.components['checks_keys']['pdrf'][0] = tk.StringVar()
-        self.components['checks_keys']['pdrf'][0].set(
-            self.configuration['checks_keys']['pdrf'])
-        self.components['checks_keys']['pdrf'][1] = tk.Entry(
-            checks_frame, 
-            state='disabled', 
-            textvariable=self.components['checks_keys']['pdrf'][0], width=30)
+        def build_pdrf_key():
+            # pdrf
+            self.components['checks_keys']['pdrf'][0] = tk.StringVar()
+            self.components['checks_keys']['pdrf'][0].set(
+                self.configuration['checks_keys']['pdrf'])
+            self.components['checks_keys']['pdrf'][1] = tk.Entry(
+                checks_frame, 
+                state='disabled', 
+                textvariable=self.components['checks_keys']['pdrf'][0], width=30)
 
-        # -------------------------------------------------------------------
-        # gps_time_type
-        self.components['checks_keys']['gps_time_type'][0] = tk.StringVar()
-        self.components['checks_keys']['gps_time_type'][0].set(
-            self.configuration['checks_keys']['gps_time_type'])
-        self.components['checks_keys']['gps_time_type'][1] = tk.OptionMenu(
-            checks_frame, 
-            self.components['checks_keys']['gps_time_type'][0], 
-            *self.get_gps_time_types())
-        self.components['checks_keys']['gps_time_type'][1].configure(anchor='w')
+        def build_gps_time_type_key():
+            # gps_time_type
+            self.components['checks_keys']['gps_time_type'][0] = tk.StringVar()
+            self.components['checks_keys']['gps_time_type'][0].set(
+                self.configuration['checks_keys']['gps_time_type'])
+            self.components['checks_keys']['gps_time_type'][1] = tk.OptionMenu(
+                checks_frame, 
+                self.components['checks_keys']['gps_time_type'][0], 
+                *self.get_gps_time_types())
+            self.components['checks_keys']['gps_time_type'][1].configure(anchor='w')
 
-        # -------------------------------------------------------------------
-        # hor_datum
-        self.components['checks_keys']['hor_datum'][0] = tk.StringVar()
-        self.components['checks_keys']['hor_datum'][0].set(
-            self.configuration['checks_keys']['hor_datum'])
-        self.components['checks_keys']['hor_datum'][1] = tk.OptionMenu(
-            checks_frame, 
-            self.components['checks_keys']['hor_datum'][0], 
-            *self.get_wkt_ids())
-        self.components['checks_keys']['hor_datum'][1].configure(anchor='w')
+        def build_hor_datum_key():
+            # hor_datum
+            self.components['checks_keys']['hor_datum'][0] = tk.StringVar()
+            self.components['checks_keys']['hor_datum'][0].set(
+                self.configuration['checks_keys']['hor_datum'])
+            self.components['checks_keys']['hor_datum'][1] = tk.OptionMenu(
+                checks_frame, 
+                self.components['checks_keys']['hor_datum'][0], 
+                *self.get_wkt_ids())
+            self.components['checks_keys']['hor_datum'][1].configure(anchor='w')
 
-        # -------------------------------------------------------------------
-        # ver_datum
-        self.components['checks_keys']['ver_datum'][0] = tk.StringVar()
-        self.components['checks_keys']['ver_datum'][0].set(
-            self.configuration['checks_keys']['ver_datum'])
-        self.components['checks_keys']['ver_datum'][1] = tk.OptionMenu(
-            checks_frame, 
-            self.components['checks_keys']['ver_datum'][0], 
-            *self.get_ver_datums())
-        self.components['checks_keys']['ver_datum'][1].configure(anchor='w')
+        def build_ver_datum_key():
+            # ver_datum
+            self.components['checks_keys']['ver_datum'][0] = tk.StringVar()
+            self.components['checks_keys']['ver_datum'][0].set(
+                self.configuration['checks_keys']['ver_datum'])
+            self.components['checks_keys']['ver_datum'][1] = tk.OptionMenu(
+                checks_frame, 
+                self.components['checks_keys']['ver_datum'][0], 
+                *self.get_ver_datums())
+            self.components['checks_keys']['ver_datum'][1].configure(anchor='w')
 
-        # -------------------------------------------------------------------
-        # point_source_ids
-        self.components['checks_keys']['point_source_ids'][0] = tk.StringVar()
-        self.components['checks_keys']['point_source_ids'][0].set(
-            self.configuration['checks_keys']['point_source_ids'])
-        self.components['checks_keys']['point_source_ids'][1] = tk.Entry(
-            checks_frame, 
-            state='disabled', 
-            textvariable=self.components['checks_keys']['point_source_ids'][0], width=30)
+        def build_point_source_ids_key():
+            # point_source_ids
+            self.components['checks_keys']['point_source_ids'][0] = tk.StringVar()
+            self.components['checks_keys']['point_source_ids'][0].set(
+                self.configuration['checks_keys']['point_source_ids'])
+            self.components['checks_keys']['point_source_ids'][1] = tk.Entry(
+                checks_frame, 
+                state='disabled', 
+                textvariable=self.components['checks_keys']['point_source_ids'][0], width=30)
 
-        # -------------------------------------------------------------------
-        # unexpected_classes
-        self.components['checks_keys']['expected_classes'][0] = tk.StringVar()
-        self.components['checks_keys']['expected_classes'][0].set(
-            self.configuration['checks_keys']['expected_classes'])
-        self.components['checks_keys']['expected_classes'][1] = tk.Entry(
-            checks_frame, 
-            textvariable=self.components['checks_keys']['expected_classes'][0], 
-            width=30)
+        def build_expected_classes_key():
+            # unexpected_classes
+            self.components['checks_keys']['expected_classes'][0] = tk.StringVar()
+            self.components['checks_keys']['expected_classes'][0].set(
+                self.configuration['checks_keys']['expected_classes'])
+            self.components['checks_keys']['expected_classes'][1] = tk.Button(
+                checks_frame,
+                textvariable=self.components['checks_keys']['expected_classes'][0],
+                command=self.pick_classes,
+                justify=tk.LEFT, anchor=tk.W)
+        
+        build_naming_convention_key()
+        build_version_key()
+        build_pdrf_key()
+        build_gps_time_type_key()
+        build_hor_datum_key()
+        build_ver_datum_key()
+        build_point_source_ids_key()
+        build_expected_classes_key()
 
         for i, c in enumerate(self.components['checks_to_do'], 1):
             self.components['checks_to_do'][c][1] = tk.BooleanVar()
@@ -510,7 +556,7 @@ class MainGuiPage(ttk.Frame):
             surface_label = tk.Label(subframe, text='Diretory'.format(s))
             surface_label.grid(column=1, row=0, sticky=tk.EW, padx=(20, 0))
 
-            display_str = self.build_display_str(self.configuration['surfaces_to_make'][s][0])
+            display_str = self.build_display_str(self.configuration['surfaces_to_make'][s][1])
             self.components['surfaces_to_make'][s][2] = tk.Label(
                 subframe, text=display_str, width=22, justify=tk.LEFT, anchor=tk.W)
             self.components['surfaces_to_make'][s][2].grid(column=3, row=0, sticky=tk.EW)
@@ -543,7 +589,7 @@ class MainGuiPage(ttk.Frame):
             surface_label = tk.Label(subframe, text='Path'.format(s))
             surface_label.grid(column=1, row=1, sticky=tk.EW, padx=(20, 0))
 
-            display_str = self.build_display_str(self.configuration['mosaics_to_make'][s][0])
+            display_str = self.build_display_str(self.configuration['mosaics_to_make'][s][1])
             self.components['mosaics_to_make'][s][2] = tk.Label(
                 subframe, text=display_str, width=22, justify=tk.LEFT, anchor=tk.W)
             self.components['mosaics_to_make'][s][2].grid(column=3, row=1, sticky=tk.EW)
@@ -566,7 +612,6 @@ class MainGuiPage(ttk.Frame):
         pass
 
     def run_qaqc_process(self):
-        pass
         #verify_input()
         run_qaqc() #  from qaqc.py
     
