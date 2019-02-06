@@ -32,14 +32,12 @@ config_data = {
         'ver_datum': 'MHW',
     },
     'surfaces_to_make': {
-        'Dz': True,
-        'Hillshade': False,
-        'Dz_dir': '"C:/QAQC_contract/nantucket/dz',
-        'Hillshade_dir': '"C:/QAQC_contract/nantucket/hillshade',
+        'Hillshade': [False, 'C:/QAQC_contract/nantucket/hillshade'],
+        'Dz': [True, 'C:/QAQC_contract/nantucket/dz'],
     },  
     'mosaics_to_make': {
-        'Dz': False,
-        'Hillshade': False,
+        'Hillshade': [False, 'C:/QAQC_contract/nantucket/qaqc_nantucket.gdb/FL1608_TB_N_DogIsland_p_hillshade_mosaic'],
+        'Dz': [True, 'C:/QAQC_contract/nantucket/qaqc_nantucket.gdb/FL1608_TB_N_DogIsland_p_dz_mosaic'],
     },
 }
 

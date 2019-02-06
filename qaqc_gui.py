@@ -112,8 +112,8 @@ class QaqcApp(tk.Tk):
             }})
 
         self.components.update({'mosaics_to_make': {
-            'Dz': ['Dz Mosaic', None],
-            'Hillshade': ['Hillshade Mosaic', None],
+            'Dz': ['Dz Mosaic', None, None, self.configuration['mosaics_to_make']['Dz_path']],
+            'Hillshade': ['Hillshade Mosaic', None, None, self.configuration['mosaics_to_make']['Hillshade_path']],
             }})
 
         self.components.update({'checks_keys': {
@@ -158,12 +158,13 @@ class QaqcApp(tk.Tk):
 
         # surfaces_to_make
         for k, v in self.components['surfaces_to_make'].iteritems():
-            self.configuration['surfaces_to_make'][k] = v[1].get()
-            self.configuration['surfaces_to_make'][k + '_dir'] = v[3]
+            self.configuration['surfaces_to_make'][k][0] = v[1].get()
+            self.configuration['surfaces_to_make'][k][1] = v[3]
 
         # mosaics_to_make
         for k, v in self.components['mosaics_to_make'].iteritems():
-            self.configuration['mosaics_to_make'][k] = v[1].get()
+            self.configuration['mosaics_to_make'][k][0] = v[1].get()
+            self.configuration['mosaics_to_make'][k][1] = v[3]
 
         config = 'Z:\qaqc\qaqc_config.json'
         print('saving {}...\n{}'.format(config, self.configuration))
@@ -232,7 +233,7 @@ class MainGuiPage(ttk.Frame):
     def build_display_str(str):
         print(str)
         str = str.replace('/', '\\')
-        return r'...\{}'.format(os.path.join(*str.split('\\')[-2:]))
+        return r'...\{}'.format(os.path.join(*str.split('\\')[-1:]))
 
     def build_gui(self):
 
@@ -271,7 +272,11 @@ class MainGuiPage(ttk.Frame):
         meta_label = tk.Label(meta_frame, text=self.components['metadata'][item][0])
         meta_label.grid(column=0, row=row, sticky=tk.W)
         self.components['metadata'][item][1] = tk.StringVar(meta_frame, value=self.configuration[item])
-        self.components['metadata'][item][1] = tk.Entry(meta_frame, textvariable=self.components['metadata'][item][1], width=5)
+        self.components['metadata'][item][1] = tk.Entry(
+            meta_frame, 
+            textvariable=self.components['metadata'][item][1], 
+             state='disabled', 
+            width=5)
         self.components['metadata'][item][1].grid(column=1, row=row, sticky=tk.EW)
 
     def build_files(self):
@@ -478,17 +483,18 @@ class MainGuiPage(ttk.Frame):
         for i, s in enumerate(self.components['surfaces_to_make'], 1):
 
             # --------------------------------------------------------------------------
+            # Tiles
             subframe = ttk.Frame(surf_frame)
             subframe.grid(row=i, column=0, sticky=tk.EW)
 
             self.components['surfaces_to_make'][s][1] = tk.BooleanVar()
-            is_checked = self.configuration['surfaces_to_make'][s]
+            is_checked = self.configuration['surfaces_to_make'][s][0]
             self.components['surfaces_to_make'][s][1].set(is_checked)
             chk = tk.Checkbutton(
                 subframe, 
                 text=self.components['surfaces_to_make'][s][0], 
                 var=self.components['surfaces_to_make'][s][1], 
-                anchor=tk.W, justify=tk.LEFT)
+                anchor=tk.W, justify=tk.LEFT, width=13)
             chk.grid(column=0, row=0, sticky=tk.EW)
 
             # --------------------------------------------------------------------------
@@ -504,27 +510,49 @@ class MainGuiPage(ttk.Frame):
             surface_label = tk.Label(subframe, text='Diretory'.format(s))
             surface_label.grid(column=1, row=0, sticky=tk.EW, padx=(20, 0))
 
-            display_str = self.build_display_str(self.configuration['surfaces_to_make'][s + '_dir'])
+            display_str = self.build_display_str(self.configuration['surfaces_to_make'][s][0])
             self.components['surfaces_to_make'][s][2] = tk.Label(
-                subframe, text=display_str, width=20, justify=tk.LEFT, anchor=tk.W)
+                subframe, text=display_str, width=22, justify=tk.LEFT, anchor=tk.W)
             self.components['surfaces_to_make'][s][2].grid(column=3, row=0, sticky=tk.EW)
 
             btn = tk.Button(subframe, text="...", command=bind_dirs_command(s))
             btn.grid(column=2, row=0, sticky=tk.EW)
 
             # --------------------------------------------------------------------------
+            # Mosaics
             self.components['mosaics_to_make'][s][1] = tk.BooleanVar()
-            is_checked = self.configuration['surfaces_to_make'][s]
+            is_checked = self.configuration['mosaics_to_make'][s][0]
             self.components['mosaics_to_make'][s][1].set(is_checked)
             chk = tk.Checkbutton(
                 subframe, 
                 text=self.components['mosaics_to_make'][s][0], 
                 var=self.components['mosaics_to_make'][s][1], 
-                anchor=tk.W, justify=tk.LEFT, width=15)
+                anchor=tk.W, justify=tk.LEFT, width=13)
             chk.grid(column=0, row=1, sticky=tk.EW)
+
+            # --------------------------------------------------------------------------
+            def bind_file_command(s):
+                def func():
+                    file_str = tkFileDialog.askopenfilename()
+                    display_str = self.build_display_str(file_str)
+                    self.components['mosaics_to_make'][s][2].configure(text=display_str)
+                    self.components['mosaics_to_make'][s][3] = file_str 
+                func.__name__ = s
+                return func
+
+            surface_label = tk.Label(subframe, text='Path'.format(s))
+            surface_label.grid(column=1, row=1, sticky=tk.EW, padx=(20, 0))
+
+            display_str = self.build_display_str(self.configuration['mosaics_to_make'][s][0])
+            self.components['mosaics_to_make'][s][2] = tk.Label(
+                subframe, text=display_str, width=22, justify=tk.LEFT, anchor=tk.W)
+            self.components['mosaics_to_make'][s][2].grid(column=3, row=1, sticky=tk.EW)
+
+            btn = tk.Button(subframe, text="...", command=bind_file_command(s))
+            btn.grid(column=2, row=1, sticky=tk.EW)
             
             sep = ttk.Separator(subframe, orient=tk.HORIZONTAL)
-            sep.grid(row=2, columnspan=4, padx=(10, 0), pady=(0, 5), sticky=tk.EW)
+            sep.grid(row=2, columnspan=4, padx=(10, 0), pady=(5, 5), sticky=tk.EW)
             
     def build_run_button(self):
         run_frame = ttk.Frame(self)

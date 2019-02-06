@@ -37,7 +37,7 @@ version_key = data['checks_keys']['version']
 point_source_ids_key = data['checks_keys']['point_source_ids']
 
 dz_mxd  = data['dz_mxd']
-dz_binary_dir = data['surfaces_to_make']['Dz_dir']
+dz_binary_dir = data['surfaces_to_make'][1]
 dz_export_settings = data['dz_export_settings']
 dz_classes_template = data['dz_classes_template']
 
@@ -310,14 +310,6 @@ class Dz:
             returncode, output = run_console_cmd(cmd_str)
         except Exception as e:
             print(e)
-
-
-class Hillshade:
-    def __init__(self):
-        pass
-
-    def gen_hillshade_img(self):
-        pass
 
 
 class QaqcTile:
