@@ -127,6 +127,8 @@ class QaqcApp(tk.Tk):
             'expected_classes': [None, None],        
             }})
 
+        self.components.update({'supp_las_domain': None})
+
     def load_config(self):
         if os.path.isfile(self.config_file):
             with open(self.config_file) as cf:
@@ -165,6 +167,9 @@ class QaqcApp(tk.Tk):
         for k, v in self.components['mosaics_to_make'].iteritems():
             self.configuration['mosaics_to_make'][k][0] = v[1].get()
             self.configuration['mosaics_to_make'][k][1] = v[3]
+
+        # supp_las_domain
+        self.configuration['supp_las_domain'] = self.components['supp_las_domain'].get()
 
         config = 'Z:\qaqc\qaqc_config.json'
         print('saving {}...\n{}'.format(config, self.configuration))
@@ -213,8 +218,10 @@ class MainGuiPage(ttk.Frame):
         ttk.Frame.__init__(self, parent)
 
         self.parent = parent  # container made in QaqcApp
-        self.configuration = controller.configuration  # from QaqcApp
-        self.components = controller.components  # from QaqcApp
+        self.config = controller.configuration  # from QaqcApp
+        self.gui = controller.components  # from QaqcApp
+        self.las_classes_file = 'Z:\qaqc\las_classes.json'
+
        
         self.section_rows = {
             'metadata': 0,
@@ -241,32 +248,59 @@ class MainGuiPage(ttk.Frame):
             if v.get():
                 checked_classes.append(k)
         print checked_classes
-        self.components['checks_keys']['expected_classes'][0].set(','.join(checked_classes))
+        self.gui['checks_keys']['expected_classes'][0].set(','.join(checked_classes))
         popup.destroy()
 
     def get_class_status(self, c):
-        if c in self.components['checks_keys']['expected_classes'][0].get().split(','):
+        if c in self.gui['checks_keys']['expected_classes'][0].get().split(','):
             return True
         else:
             return False
 
     def pick_classes(self):
-        with open('Z:\qaqc\las_classes.txt', 'r') as f:
-            las_classes = [row.replace('\n', '').split(',') for row in f.readlines()]
+
+        with open(self.las_classes_file) as cf:
+            las_classes = json.load(cf)
+
+        las_version = self.gui['checks_keys']['version'][0].get()
+
+        def get_domains():
+            domains = las_classes[las_version]['supplemental'].keys()
+            return tuple(domains)
+
         popup = tk.Toplevel()
         popup.wm_title('Pick Expected Classes')
         vars = {}
-        for i, c in enumerate(las_classes):
-            vars.update({c[0]: tk.BooleanVar()})
-            vars[c[0]].set(self.get_class_status(c[0]))
-            print vars[c[0]].get()
-            class_check = tk.Checkbutton(popup, 
-                                         text='{}: {}'.format(c[0], c[1]), 
-                                         var=vars[c[0]], 
-                                         anchor=tk.W, 
-                                         justify=tk.LEFT, 
-                                         width=40)
+
+        label = tk.Label(popup, text='LAS {} Classes'.format(las_version), font=NORM_FONT_BOLD)
+        label.pack(side='top', fill='x', pady=(0, 0))
+        
+        # core Las spec classes
+        for k, v in sorted(las_classes[las_version]['classes'].iteritems()):
+            vars.update({k: tk.BooleanVar()})
+            vars[k].set(self.get_class_status(k))
+            class_check = tk.Checkbutton(popup, text='{}: {}'.format(k, v), 
+                                         var=vars[k], anchor=tk.W, 
+                                         justify=tk.LEFT, width=40)
             class_check.pack(side='top', fill='x', pady=(0, 0))
+
+
+        # supplemental Las classes
+        label = tk.Label(popup, text='Supplemental {} Classes'.format(las_version), font=NORM_FONT_BOLD)
+        label.pack(side='top', fill='x', pady=(0, 0))
+
+        supp_classes_domain = tk.OptionMenu(popup, self.gui['supp_las_domain'], *get_domains())
+        supp_classes_domain.pack(side='top', fill='x', pady=(0, 0))
+
+        for k, v in sorted(las_classes[las_version]['supplemental'][self.gui['supp_las_domain'].get()]['classes'].iteritems()):
+            vars.update({k: tk.BooleanVar()})
+            vars[k].set(self.get_class_status(k))
+            class_check = tk.Checkbutton(popup, text='{}: {}'.format(k, v), 
+                                         var=vars[k], anchor=tk.W, 
+                                         justify=tk.LEFT, width=40)
+            class_check.pack(side='top', fill='x', pady=(0, 0))
+
+
         b1 = tk.Button(popup, text='Ok', command=lambda: self.get_checked_classes(popup, vars))
         b1.pack(side='top', fill='x', pady=(0, 0))
         popup.mainloop()
@@ -275,9 +309,9 @@ class MainGuiPage(ttk.Frame):
         self.build_metadata()
         self.build_files()
         self.build_dirs()
-        self.build_checks()
-        self.build_surfaces()
-        self.build_run_button()                 
+        self.add_checks()
+        self.add_surfaces()
+        self.add_run_button()                 
 
     def build_metadata(self):
         '''Metadata'''
@@ -295,24 +329,24 @@ class MainGuiPage(ttk.Frame):
 
         item = 'project_name'
         row = 1
-        meta_label = tk.Label(meta_frame, text=self.components['metadata'][item][0])
+        meta_label = tk.Label(meta_frame, text=self.gui['metadata'][item][0])
         meta_label.grid(column=0, row=row, sticky=tk.W)
-        self.components['metadata'][item][1] = tk.StringVar()
-        self.components['metadata'][item][1].set(self.configuration[item])
-        proj_down_down = tk.OptionMenu(meta_frame, self.components['metadata'][item][1], *get_proj_names())
+        self.gui['metadata'][item][1] = tk.StringVar()
+        self.gui['metadata'][item][1].set(self.config[item])
+        proj_down_down = tk.OptionMenu(meta_frame, self.gui['metadata'][item][1], *get_proj_names())
         proj_down_down.grid(column=1, row=row, sticky=tk.EW)
 
         item = 'tile_size'
         row = 2
-        meta_label = tk.Label(meta_frame, text=self.components['metadata'][item][0])
+        meta_label = tk.Label(meta_frame, text=self.gui['metadata'][item][0])
         meta_label.grid(column=0, row=row, sticky=tk.W)
-        self.components['metadata'][item][1] = tk.StringVar(meta_frame, value=self.configuration[item])
-        self.components['metadata'][item][1] = tk.Entry(
+        self.gui['metadata'][item][1] = tk.StringVar(meta_frame, value=self.config[item])
+        self.gui['metadata'][item][1] = tk.Entry(
             meta_frame, 
-            textvariable=self.components['metadata'][item][1], 
+            textvariable=self.gui['metadata'][item][1], 
              state='disabled', 
             width=5)
-        self.components['metadata'][item][1].grid(column=1, row=row, sticky=tk.EW)
+        self.gui['metadata'][item][1].grid(column=1, row=row, sticky=tk.EW)
 
     def build_files(self):
         '''Files'''
@@ -327,18 +361,18 @@ class MainGuiPage(ttk.Frame):
             def func():
                 file_str = tkFileDialog.askopenfilename()
                 display_str = self.build_display_str(file_str)
-                self.components['files_to_set'][f][1].configure(text=display_str)
-                self.components['files_to_set'][f][2] = file_str 
+                self.gui['files_to_set'][f][1].configure(text=display_str)
+                self.gui['files_to_set'][f][2] = file_str 
             func.__name__ = f
             return func
 
-        for i, f in enumerate(self.components['files_to_set'], 1):
-            check_label = tk.Label(files_frame, text=self.components['files_to_set'][f][0])
+        for i, f in enumerate(self.gui['files_to_set'], 1):
+            check_label = tk.Label(files_frame, text=self.gui['files_to_set'][f][0])
             check_label.grid(column=0, row=i, sticky=tk.W)
 
-            display_str = self.build_display_str(self.configuration[f])
-            self.components['files_to_set'][f][1] = tk.Label(files_frame, text=display_str)
-            self.components['files_to_set'][f][1].grid(column=2, row=i, sticky=tk.W)
+            display_str = self.build_display_str(self.config[f])
+            self.gui['files_to_set'][f][1] = tk.Label(files_frame, text=display_str)
+            self.gui['files_to_set'][f][1].grid(column=2, row=i, sticky=tk.W)
 
             btn = tk.Button(files_frame, text="...", command=bind_files_command(f))
             btn.grid(column=1, row=i, sticky=tk.W)
@@ -356,18 +390,18 @@ class MainGuiPage(ttk.Frame):
             def func():
                 dir_str = tkFileDialog.askdirectory()
                 display_str = self.build_display_str(dir_str)
-                self.components['dirs_to_set'][d][1].configure(text=display_str)
-                self.components['dirs_to_set'][d][2] = dir_str 
+                self.gui['dirs_to_set'][d][1].configure(text=display_str)
+                self.gui['dirs_to_set'][d][2] = dir_str 
             func.__name__ = d
             return func
 
-        for i, d in enumerate(self.components['dirs_to_set'], 1):
-            dir_label = tk.Label(dirs_frame, text=self.components['dirs_to_set'][d][0])
+        for i, d in enumerate(self.gui['dirs_to_set'], 1):
+            dir_label = tk.Label(dirs_frame, text=self.gui['dirs_to_set'][d][0])
             dir_label.grid(column=0, row=i, sticky=tk.W)
             
-            display_str = self.build_display_str(self.configuration[d])
-            self.components['dirs_to_set'][d][1] = tk.Label(dirs_frame, text=display_str)
-            self.components['dirs_to_set'][d][1].grid(column=2, row=i, sticky=tk.W)
+            display_str = self.build_display_str(self.config[d])
+            self.gui['dirs_to_set'][d][1] = tk.Label(dirs_frame, text=display_str)
+            self.gui['dirs_to_set'][d][1].grid(column=2, row=i, sticky=tk.W)
 
             btn = tk.Button(dirs_frame, text="...", command=bind_dirs_command(d))
             btn.grid(column=1, row=i, sticky=tk.W)
@@ -391,17 +425,115 @@ class MainGuiPage(ttk.Frame):
     def get_ver_datums():
         return ('MHW', 'MLLW', 'GRS80', 'WGS84')
 
-    def update_pdrf(self):
-        version = self.components['checks_keys']['version'][0].get()
+    def update_version_affected_info(self):
+        version = self.gui['checks_keys']['version'][0].get()
         if version == '1.2':
             pdrf = '3'
+            exp_classes = '02,26'
+            supp_las_domain = 'RSD Supplemental Classes'
         elif version == '1.4':
             pdrf = '6'
+            exp_classes = '02,40'
+            supp_las_domain = 'Topo-Bathy Lidar Domain Profile'
         else:
             pdrf = None
-        self.components['checks_keys']['pdrf'][0].set(pdrf)
+                    
+        self.gui['checks_keys']['pdrf'][0].set(pdrf)
+        self.gui['checks_keys']['expected_classes'][0].set(exp_classes)
+        self.gui['supp_las_domain'].set(supp_las_domain)
 
-    def build_checks(self):
+    def add_checks(self):
+
+        def add_naming_convention_key():
+            # naming_convention
+            self.gui['checks_keys']['naming_convention'][0] = tk.StringVar()
+            self.gui['checks_keys']['naming_convention'][0].set(
+                self.config['checks_keys']['naming_convention'])
+            self.gui['checks_keys']['naming_convention'][1] = tk.Entry(
+                checks_frame, 
+                state='disabled', 
+                textvariable=self.gui['checks_keys']['naming_convention'][0], width=30)
+
+        def add_version_key():
+            self.gui['checks_keys']['version'][0] = tk.StringVar()
+            self.gui['checks_keys']['version'][0].set(
+                self.config['checks_keys']['version'])
+            self.gui['checks_keys']['version'][1] = tk.OptionMenu(
+                checks_frame, 
+                self.gui['checks_keys']['version'][0], 
+                *self.get_versions(), 
+                command=lambda x: self.update_version_affected_info())
+            self.gui['checks_keys']['version'][1].configure(anchor='w')
+
+        def add_pdrf_key():
+            # pdrf
+            self.gui['checks_keys']['pdrf'][0] = tk.StringVar()
+            self.gui['checks_keys']['pdrf'][0].set(
+                self.config['checks_keys']['pdrf'])
+            self.gui['checks_keys']['pdrf'][1] = tk.Entry(
+                checks_frame, 
+                state='disabled', 
+                textvariable=self.gui['checks_keys']['pdrf'][0], width=30)
+
+        def add_gps_time_type_key():
+            # gps_time_type
+            self.gui['checks_keys']['gps_time_type'][0] = tk.StringVar()
+            self.gui['checks_keys']['gps_time_type'][0].set(
+                self.config['checks_keys']['gps_time_type'])
+            self.gui['checks_keys']['gps_time_type'][1] = tk.OptionMenu(
+                checks_frame,
+                self.gui['checks_keys']['gps_time_type'][0], 
+                *self.get_gps_time_types())
+            self.gui['checks_keys']['gps_time_type'][1].config(state='disabled')
+            self.gui['checks_keys']['gps_time_type'][1].configure(anchor='w')
+
+        def add_hor_datum_key():
+            # hor_datum
+            self.gui['checks_keys']['hor_datum'][0] = tk.StringVar()
+            self.gui['checks_keys']['hor_datum'][0].set(
+                self.config['checks_keys']['hor_datum'])
+            self.gui['checks_keys']['hor_datum'][1] = tk.OptionMenu(
+                checks_frame, 
+                self.gui['checks_keys']['hor_datum'][0], 
+                *self.get_wkt_ids())
+            self.gui['checks_keys']['hor_datum'][1].configure(anchor='w')
+
+        def add_ver_datum_key():
+            # ver_datum
+            self.gui['checks_keys']['ver_datum'][0] = tk.StringVar()
+            self.gui['checks_keys']['ver_datum'][0].set(
+                self.config['checks_keys']['ver_datum'])
+            self.gui['checks_keys']['ver_datum'][1] = tk.OptionMenu(
+                checks_frame, 
+                self.gui['checks_keys']['ver_datum'][0], 
+                *self.get_ver_datums())
+            self.gui['checks_keys']['ver_datum'][1].configure(anchor='w')
+            self.gui['checks_keys']['ver_datum'][1].config(state='disabled')
+
+        def add_point_source_ids_key():
+            # point_source_ids
+            self.gui['checks_keys']['point_source_ids'][0] = tk.StringVar()
+            self.gui['checks_keys']['point_source_ids'][0].set(
+                self.config['checks_keys']['point_source_ids'])
+            self.gui['checks_keys']['point_source_ids'][1] = tk.Entry(
+                checks_frame, 
+                state='disabled', 
+                textvariable=self.gui['checks_keys']['point_source_ids'][0], width=30)
+
+        def add_expected_classes_key():
+            # unexpected_classes
+            self.gui['checks_keys']['expected_classes'][0] = tk.StringVar()
+            self.gui['checks_keys']['expected_classes'][0].set(
+                self.config['checks_keys']['expected_classes'])
+            self.gui['checks_keys']['expected_classes'][1] = tk.Button(
+                checks_frame,
+                textvariable=self.gui['checks_keys']['expected_classes'][0],
+                command=self.pick_classes,
+                justify=tk.LEFT, anchor=tk.W)
+
+        def add_supp_las_domain():
+            self.gui['supp_las_domain'] = tk.StringVar()
+            self.gui['supp_las_domain'].set(self.config['supp_las_domain'])
 
         '''Checks'''
         checks_frame = ttk.Frame(self)
@@ -410,115 +542,97 @@ class MainGuiPage(ttk.Frame):
         label = tk.Label(checks_frame, text='Checks', font=LARGE_FONT_BOLD)
         label.grid(row=0, columnspan=3, pady=(10, 0), sticky=tk.W)
 
-        def build_naming_convention_key():
-            # naming_convention
-            self.components['checks_keys']['naming_convention'][0] = tk.StringVar()
-            self.components['checks_keys']['naming_convention'][0].set(
-                self.configuration['checks_keys']['naming_convention'])
-            self.components['checks_keys']['naming_convention'][1] = tk.Entry(
-                checks_frame, 
-                state='disabled', 
-                textvariable=self.components['checks_keys']['naming_convention'][0], width=30)
+        add_naming_convention_key()
+        add_version_key()
+        add_pdrf_key()
+        add_gps_time_type_key()
+        add_hor_datum_key()
+        add_ver_datum_key()
+        add_point_source_ids_key()
+        add_expected_classes_key()
+        add_supp_las_domain()
 
-        def build_version_key():
-            self.components['checks_keys']['version'][0] = tk.StringVar()
-            self.components['checks_keys']['version'][0].set(
-                self.configuration['checks_keys']['version'])
-            self.components['checks_keys']['version'][1] = tk.OptionMenu(
-                checks_frame, 
-                self.components['checks_keys']['version'][0], 
-                *self.get_versions(), 
-                command=lambda x: self.update_pdrf())
-            self.components['checks_keys']['version'][1].configure(anchor='w')
-
-        def build_pdrf_key():
-            # pdrf
-            self.components['checks_keys']['pdrf'][0] = tk.StringVar()
-            self.components['checks_keys']['pdrf'][0].set(
-                self.configuration['checks_keys']['pdrf'])
-            self.components['checks_keys']['pdrf'][1] = tk.Entry(
-                checks_frame, 
-                state='disabled', 
-                textvariable=self.components['checks_keys']['pdrf'][0], width=30)
-
-        def build_gps_time_type_key():
-            # gps_time_type
-            self.components['checks_keys']['gps_time_type'][0] = tk.StringVar()
-            self.components['checks_keys']['gps_time_type'][0].set(
-                self.configuration['checks_keys']['gps_time_type'])
-            self.components['checks_keys']['gps_time_type'][1] = tk.OptionMenu(
-                checks_frame, 
-                self.components['checks_keys']['gps_time_type'][0], 
-                *self.get_gps_time_types())
-            self.components['checks_keys']['gps_time_type'][1].configure(anchor='w')
-
-        def build_hor_datum_key():
-            # hor_datum
-            self.components['checks_keys']['hor_datum'][0] = tk.StringVar()
-            self.components['checks_keys']['hor_datum'][0].set(
-                self.configuration['checks_keys']['hor_datum'])
-            self.components['checks_keys']['hor_datum'][1] = tk.OptionMenu(
-                checks_frame, 
-                self.components['checks_keys']['hor_datum'][0], 
-                *self.get_wkt_ids())
-            self.components['checks_keys']['hor_datum'][1].configure(anchor='w')
-
-        def build_ver_datum_key():
-            # ver_datum
-            self.components['checks_keys']['ver_datum'][0] = tk.StringVar()
-            self.components['checks_keys']['ver_datum'][0].set(
-                self.configuration['checks_keys']['ver_datum'])
-            self.components['checks_keys']['ver_datum'][1] = tk.OptionMenu(
-                checks_frame, 
-                self.components['checks_keys']['ver_datum'][0], 
-                *self.get_ver_datums())
-            self.components['checks_keys']['ver_datum'][1].configure(anchor='w')
-
-        def build_point_source_ids_key():
-            # point_source_ids
-            self.components['checks_keys']['point_source_ids'][0] = tk.StringVar()
-            self.components['checks_keys']['point_source_ids'][0].set(
-                self.configuration['checks_keys']['point_source_ids'])
-            self.components['checks_keys']['point_source_ids'][1] = tk.Entry(
-                checks_frame, 
-                state='disabled', 
-                textvariable=self.components['checks_keys']['point_source_ids'][0], width=30)
-
-        def build_expected_classes_key():
-            # unexpected_classes
-            self.components['checks_keys']['expected_classes'][0] = tk.StringVar()
-            self.components['checks_keys']['expected_classes'][0].set(
-                self.configuration['checks_keys']['expected_classes'])
-            self.components['checks_keys']['expected_classes'][1] = tk.Button(
-                checks_frame,
-                textvariable=self.components['checks_keys']['expected_classes'][0],
-                command=self.pick_classes,
-                justify=tk.LEFT, anchor=tk.W)
-        
-        build_naming_convention_key()
-        build_version_key()
-        build_pdrf_key()
-        build_gps_time_type_key()
-        build_hor_datum_key()
-        build_ver_datum_key()
-        build_point_source_ids_key()
-        build_expected_classes_key()
-
-        for i, c in enumerate(self.components['checks_to_do'], 1):
-            self.components['checks_to_do'][c][1] = tk.BooleanVar()
-            is_checked = self.configuration['checks_to_do'][c]
-            self.components['checks_to_do'][c][1].set(is_checked)
+        for i, c in enumerate(self.gui['checks_to_do'], 1):
+            self.gui['checks_to_do'][c][1] = tk.BooleanVar()
+            is_checked = self.config['checks_to_do'][c]
+            self.gui['checks_to_do'][c][1].set(is_checked)
             chk = tk.Checkbutton(
                 checks_frame, 
-                text=self.components['checks_to_do'][c][0],
-                var=self.components['checks_to_do'][c][1], 
+                text=self.gui['checks_to_do'][c][0],
+                var=self.gui['checks_to_do'][c][1], 
                 anchor=tk.W, justify=tk.LEFT)
             chk.grid(column=0, row=i, sticky=tk.W)
-            self.components['checks_keys'][c][1].grid(column=1, row=i, sticky=tk.EW)
+            self.gui['checks_keys'][c][1].grid(column=1, row=i, sticky=tk.EW)
 
 
-    def build_surfaces(self):
+    def add_surfaces(self):
         
+        def bind_dirs_command(s):
+            def func():
+                dir_str = tkFileDialog.askdirectory()
+                display_str = self.build_display_str(dir_str)
+                self.gui['surfaces_to_make'][s][2].configure(text=display_str)
+                self.gui['surfaces_to_make'][s][3] = dir_str 
+            func.__name__ = s
+            return func
+
+        def bind_file_command(s):
+            def func():
+                file_str = tkFileDialog.askopenfilename()
+                display_str = self.build_display_str(file_str)
+                self.gui['mosaics_to_make'][s][2].configure(text=display_str)
+                self.gui['mosaics_to_make'][s][3] = file_str 
+            func.__name__ = s
+            return func
+
+        def add_tile_surface():
+            # checkbox
+            self.gui['surfaces_to_make'][s][1] = tk.BooleanVar()
+            is_checked = self.config['surfaces_to_make'][s][0]
+            self.gui['surfaces_to_make'][s][1].set(is_checked)
+            chk = tk.Checkbutton(
+                subframe, 
+                text=self.gui['surfaces_to_make'][s][0], 
+                var=self.gui['surfaces_to_make'][s][1], 
+                anchor=tk.W, justify=tk.LEFT, width=13)
+            chk.grid(column=0, row=0, sticky=tk.EW)
+
+            # Directory
+            surface_label = tk.Label(subframe, text='Diretory'.format(s))
+            surface_label.grid(column=1, row=0, sticky=tk.EW, padx=(20, 0))
+
+            btn = tk.Button(subframe, text="...", command=bind_dirs_command(s))
+            btn.grid(column=2, row=0, sticky=tk.EW)
+
+            display_str = self.build_display_str(self.config['surfaces_to_make'][s][1])
+            self.gui['surfaces_to_make'][s][2] = tk.Label(
+                subframe, text=display_str, width=22, justify=tk.LEFT, anchor=tk.W)
+            self.gui['surfaces_to_make'][s][2].grid(column=3, row=0, sticky=tk.EW)
+
+        def add_mosaic_surface():
+            # checkbox
+            self.gui['mosaics_to_make'][s][1] = tk.BooleanVar()
+            is_checked = self.config['mosaics_to_make'][s][0]
+            self.gui['mosaics_to_make'][s][1].set(is_checked)
+            chk = tk.Checkbutton(
+                subframe, 
+                text=self.gui['mosaics_to_make'][s][0], 
+                var=self.gui['mosaics_to_make'][s][1], 
+                anchor=tk.W, justify=tk.LEFT, width=13)
+            chk.grid(column=0, row=1, sticky=tk.EW)
+
+            # Path
+            surface_label = tk.Label(subframe, text='Path'.format(s))
+            surface_label.grid(column=1, row=1, sticky=tk.EW, padx=(20, 0))
+
+            btn = tk.Button(subframe, text="...", command=bind_file_command(s))
+            btn.grid(column=2, row=1, sticky=tk.EW)
+
+            display_str = self.build_display_str(self.config['mosaics_to_make'][s][1])
+            self.gui['mosaics_to_make'][s][2] = tk.Label(
+                subframe, text=display_str, width=22, justify=tk.LEFT, anchor=tk.W)
+            self.gui['mosaics_to_make'][s][2].grid(column=3, row=1, sticky=tk.EW)
+
         '''Surfaces'''
         surf_frame = ttk.Frame(self)
         surf_frame.grid(row=self.section_rows['surfaces'], sticky=tk.NSEW)
@@ -526,81 +640,17 @@ class MainGuiPage(ttk.Frame):
         label = tk.Label(surf_frame, text='Surfaces', font=LARGE_FONT_BOLD)
         label.grid(row=0, columnspan=3, pady=(10, 0), sticky=tk.W)
 
-        for i, s in enumerate(self.components['surfaces_to_make'], 1):
-
-            # --------------------------------------------------------------------------
-            # Tiles
+        for i, s in enumerate(self.gui['surfaces_to_make'], 1):
             subframe = ttk.Frame(surf_frame)
             subframe.grid(row=i, column=0, sticky=tk.EW)
 
-            self.components['surfaces_to_make'][s][1] = tk.BooleanVar()
-            is_checked = self.configuration['surfaces_to_make'][s][0]
-            self.components['surfaces_to_make'][s][1].set(is_checked)
-            chk = tk.Checkbutton(
-                subframe, 
-                text=self.components['surfaces_to_make'][s][0], 
-                var=self.components['surfaces_to_make'][s][1], 
-                anchor=tk.W, justify=tk.LEFT, width=13)
-            chk.grid(column=0, row=0, sticky=tk.EW)
-
-            # --------------------------------------------------------------------------
-            def bind_dirs_command(s):
-                def func():
-                    dir_str = tkFileDialog.askdirectory()
-                    display_str = self.build_display_str(dir_str)
-                    self.components['surfaces_to_make'][s][2].configure(text=display_str)
-                    self.components['surfaces_to_make'][s][3] = dir_str 
-                func.__name__ = s
-                return func
-
-            surface_label = tk.Label(subframe, text='Diretory'.format(s))
-            surface_label.grid(column=1, row=0, sticky=tk.EW, padx=(20, 0))
-
-            display_str = self.build_display_str(self.configuration['surfaces_to_make'][s][1])
-            self.components['surfaces_to_make'][s][2] = tk.Label(
-                subframe, text=display_str, width=22, justify=tk.LEFT, anchor=tk.W)
-            self.components['surfaces_to_make'][s][2].grid(column=3, row=0, sticky=tk.EW)
-
-            btn = tk.Button(subframe, text="...", command=bind_dirs_command(s))
-            btn.grid(column=2, row=0, sticky=tk.EW)
-
-            # --------------------------------------------------------------------------
-            # Mosaics
-            self.components['mosaics_to_make'][s][1] = tk.BooleanVar()
-            is_checked = self.configuration['mosaics_to_make'][s][0]
-            self.components['mosaics_to_make'][s][1].set(is_checked)
-            chk = tk.Checkbutton(
-                subframe, 
-                text=self.components['mosaics_to_make'][s][0], 
-                var=self.components['mosaics_to_make'][s][1], 
-                anchor=tk.W, justify=tk.LEFT, width=13)
-            chk.grid(column=0, row=1, sticky=tk.EW)
-
-            # --------------------------------------------------------------------------
-            def bind_file_command(s):
-                def func():
-                    file_str = tkFileDialog.askopenfilename()
-                    display_str = self.build_display_str(file_str)
-                    self.components['mosaics_to_make'][s][2].configure(text=display_str)
-                    self.components['mosaics_to_make'][s][3] = file_str 
-                func.__name__ = s
-                return func
-
-            surface_label = tk.Label(subframe, text='Path'.format(s))
-            surface_label.grid(column=1, row=1, sticky=tk.EW, padx=(20, 0))
-
-            display_str = self.build_display_str(self.configuration['mosaics_to_make'][s][1])
-            self.components['mosaics_to_make'][s][2] = tk.Label(
-                subframe, text=display_str, width=22, justify=tk.LEFT, anchor=tk.W)
-            self.components['mosaics_to_make'][s][2].grid(column=3, row=1, sticky=tk.EW)
-
-            btn = tk.Button(subframe, text="...", command=bind_file_command(s))
-            btn.grid(column=2, row=1, sticky=tk.EW)
+            add_tile_surface()
+            add_mosaic_surface()
             
             sep = ttk.Separator(subframe, orient=tk.HORIZONTAL)
             sep.grid(row=2, columnspan=4, padx=(10, 0), pady=(5, 5), sticky=tk.EW)
             
-    def build_run_button(self):
+    def add_run_button(self):
         run_frame = ttk.Frame(self)
         run_frame.grid(row=self.section_rows['run_button'], sticky=tk.NSEW, pady=(10, 0))
 

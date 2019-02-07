@@ -22,14 +22,14 @@ config_data = {
         'expected_classes': True,
     },
     'checks_keys': {
-        'expected_classes': '2,26',
+        'expected_classes': '02,40',
         'pdrf': '6',
         'naming_convention': 'yyyy_[easting]e_[northing]n_las',
         'hor_datum': 'NAD_1983_2011_UTM_Zone_4N',
         'gps_time_type': 'Satellite GPS Time',
         'version': '1.4',
-        'point_source_ids': '?',
-        'ver_datum': 'MHW',
+        'point_source_ids': 'Verify Unique Flight Line IDs',
+        'ver_datum': 'GRS80',
     },
     'surfaces_to_make': {
         'Hillshade': [False, 'C:/QAQC_contract/nantucket/hillshade'],
@@ -39,6 +39,7 @@ config_data = {
         'Hillshade': [False, 'C:/QAQC_contract/nantucket/qaqc_nantucket.gdb/FL1608_TB_N_DogIsland_p_hillshade_mosaic'],
         'Dz': [True, 'C:/QAQC_contract/nantucket/qaqc_nantucket.gdb/FL1608_TB_N_DogIsland_p_dz_mosaic'],
     },
+    'supp_las_domain': 'Topo-Bathy Lidar Domain Profile',
 }
 
 with open('Z:\qaqc\qaqc_config.json', 'w') as f:

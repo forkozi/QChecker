@@ -257,8 +257,11 @@ class Mosaic:
         df = arcpy.mapping.ListDataFrames(mxd)[0]
         arcpy.MakeRasterLayer_management(self.mosaic_raster_path, self.mosaic_raster_basename)
         dz_lyr = arcpy.mapping.Layer(self.mosaic_raster_basename)
-        arcpy.mapping.AddLayer(df, dz_lyr, 'AUTO_ARRANGE')
-        mxd.save()
+        try:
+            arcpy.mapping.AddLayer(df, dz_lyr, 'AUTO_ARRANGE')
+            mxd.save()
+        except Exception as e:
+            print(e)
 
     def update_raster_symbology(self):
         mxd = arcpy.mapping.MapDocument(dz_mxd)
@@ -266,7 +269,10 @@ class Mosaic:
         raster_to_update = arcpy.mapping.ListLayers(mxd, self.mosaic_raster_basename, df)[0]
         dz_classes_lyr = arcpy.mapping.Layer(dz_classes_template)
         arcpy.mapping.UpdateLayer(df, raster_to_update, dz_classes_lyr, True)
-        mxd.save()
+        try:
+            mxd.save()
+        except Exception as e:
+            print(e)
 
 
 class Surface:
@@ -572,14 +578,25 @@ class QaqcTileCollection:
 
     def gen_qaqc_shp_NAD83_UTM(self, output):
         gdf = self.gen_qaqc_results_gdf_NAD83_UTM_POLYGONS()
+        gdf = gdf.drop(columns=['ExtentXMax','ExtentXMin', 'ExtentYMax', 
+                                'ExtentYMin', 'centroid_x', 'centroid_y', 
+                                'created_day', 'created_year', 'tile_polygon', 
+                                'x_max', 'x_min', 'y_max', 'y_min'])
+        print(gdf)
         gdf.to_file(output, driver='ESRI Shapefile')
         sr = arcpy.SpatialReference('NAD 1983 UTM Zone 19N')  # 2011?
-        arcpy.DefineProjection_management(output, sr)
+        try:
+            arcpy.DefineProjection_management(output, sr)
+        except Exception as e:
+            print(e)
         mxd = arcpy.mapping.MapDocument(dz_mxd)
         df = arcpy.mapping.ListDataFrames(mxd)[0]
         qaqc_lyr = arcpy.mapping.Layer(output)
-        arcpy.mapping.AddLayer(df, qaqc_lyr, 'TOP')  # add qaqc tile shp
-        mxd.save()
+        try:
+            arcpy.mapping.AddLayer(df, qaqc_lyr, 'TOP')  # add qaqc tile shp
+            mxd.save()
+        except Exception as e:
+            print(e)
 
     def gen_mosaic(self, mtype):
         mosaic = Mosaic(mtype)
@@ -627,8 +644,11 @@ def add_layer_to_mxd(layer):
     mxd = arcpy.mapping.MapDocument(dz_mxd)
     df = arcpy.mapping.ListDataFrames(mxd)[0]
     lyr = arcpy.mapping.Layer(layer)
-    arcpy.mapping.AddLayer(df, lyr, 'TOP')
-    mxd.save()
+    try:
+        arcpy.mapping.AddLayer(df, lyr, 'TOP')
+        mxd.save()
+    except Exception as e:
+        print(e)
 
 
 def run_console_cmd(cmd):
@@ -645,11 +665,12 @@ def run_qaqc():
     add_layer_to_mxd(contractor_centroids_shp_NAD83_UTM)
 
     nantucket = LasTileCollection(las_tile_dir)
-    qaqc = QaqcTileCollection(nantucket.get_las_tile_paths()[0:15], expected_classes_key)
+    qaqc = QaqcTileCollection(nantucket.get_las_tile_paths()[0:10], expected_classes_key)
     
     qaqc.run_qaqc_tile_collection_checks(multiprocess=False)
     qaqc.gen_qaqc_shp_NAD83_UTM(qaqc_shp_NAD83_UTM_POLYGONS)
     
+    # build the mosaics the user checked
     for m in [k for k, v in mosaics_to_make.iteritems() if v[0]]:
         qaqc.gen_mosaic(k)
 
