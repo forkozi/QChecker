@@ -30,7 +30,8 @@ class QaqcApp(tk.Tk):
         self.withdraw()
         splash = Splash(self)
 
-        tk.Tk.wm_title(self, 'QAQC Checker')
+        version = 'v1.0.0 alpha'
+        tk.Tk.wm_title(self, 'QAQC Checker {}'.format(version))
         tk.Tk.iconbitmap(self, 'qaqc.ico')
 
         container = tk.Frame(self)
@@ -96,14 +97,14 @@ class QaqcApp(tk.Tk):
             }})
 
         self.components.update({'checks_to_do': {
-            'naming_convention': ['Naming Convention', None],
+            'naming': ['Naming Convention', None],
             'version': ['Version', None],
             'pdrf': ['Point Data Record Format', None],
-            'gps_time_type': ['GPS Time Type', None],
-            'hor_datum': ['Horizontal Datum', None],
-            'ver_datum': ['Vertical Datum', None],
-            'point_source_ids': ['Point Source IDs', None],
-            'expected_classes': ['Expected Classes', None],
+            'gps_time': ['GPS Time Type', None],
+            'hdatum': ['Horizontal Datum', None],
+            'vdatum': ['Vertical Datum', None],
+            'pt_src_ids': ['Point Source IDs', None],
+            'exp_cls': ['Expected Classes', None],
             }})
 
         self.components.update({'surfaces_to_make': {
@@ -116,15 +117,15 @@ class QaqcApp(tk.Tk):
             'Hillshade': ['Hillshade Mosaic', None, None, self.configuration['mosaics_to_make']['Hillshade'][1]],
             }})
 
-        self.components.update({'checks_keys': {
-            'naming_convention': [None, None],
+        self.components.update({'check_keys': {
+            'naming': [None, None],
             'version': [None, None],
             'pdrf': [None, None],
-            'gps_time_type': [None, None],
-            'hor_datum': [None, None],
-            'ver_datum': [None, None],
-            'point_source_ids': [None, None],
-            'expected_classes': [None, None],        
+            'gps_time': [None, None],
+            'hdatum': [None, None],
+            'vdatum': [None, None],
+            'pt_src_ids': [None, None],
+            'exp_cls': [None, None],        
             }})
 
         self.components.update({'supp_las_domain': None})
@@ -154,9 +155,9 @@ class QaqcApp(tk.Tk):
         for k, v in self.components['checks_to_do'].iteritems():
             self.configuration['checks_to_do'][k] = v[1].get()
 
-        # checks_keys
-        for k, v in self.components['checks_keys'].iteritems():
-            self.configuration['checks_keys'][k] = v[0].get()
+        # check_keys
+        for k, v in self.components['check_keys'].iteritems():
+            self.configuration['check_keys'][k] = v[0].get()
 
         # surfaces_to_make
         for k, v in self.components['surfaces_to_make'].iteritems():
@@ -248,62 +249,82 @@ class MainGuiPage(ttk.Frame):
             if v.get():
                 checked_classes.append(k)
         print checked_classes
-        self.gui['checks_keys']['expected_classes'][0].set(','.join(checked_classes))
+        self.gui['check_keys']['exp_cls'][0].set(','.join(checked_classes))
         popup.destroy()
 
     def get_class_status(self, c):
-        if c in self.gui['checks_keys']['expected_classes'][0].get().split(','):
+        if c in self.gui['check_keys']['exp_cls'][0].get().split(','):
             return True
         else:
             return False
 
     def pick_classes(self):
+        def get_domains():
+            domains = las_classes[las_version]['supplemental'].keys()
+            return tuple(domains)
+
+        def add_core_classes():
+            label = tk.Label(core_classes_frame, 
+                             text='LAS {} Classes'.format(las_version), 
+                             font=NORM_FONT_BOLD)
+            label.grid(row=0, sticky=tk.EW)
+            core_classes = las_classes[las_version]['classes']
+            for i, (k, v) in enumerate(sorted(core_classes.iteritems()), 1):
+                vars.update({k: tk.BooleanVar()})
+                vars[k].set(self.get_class_status(k))
+                class_check = tk.Checkbutton(core_classes_frame, text='{}: {}'.format(k, v), 
+                                             var=vars[k], anchor=tk.W, 
+                                             justify=tk.LEFT, width=40)
+                class_check.grid(row=i, sticky=tk.EW)
+
+        def add_domain_profile_selector():
+            label = tk.Label(supp_classes_frame, 
+                             text='Supplemental {} Classes'.format(las_version), 
+                             font=NORM_FONT_BOLD)
+            label.grid(row=0, sticky=tk.EW)
+            supp_classes_domain = tk.OptionMenu(supp_classes_frame, 
+                                                self.gui['supp_las_domain'], 
+                                                *get_domains(),
+                                                command=lambda x: add_supp_classes())
+            supp_classes_domain.grid(row=1, sticky=tk.EW)
+
+        def add_supp_classes():
+            avail_domains = las_classes[las_version]['supplemental']
+            curr_domain_classes = avail_domains[self.gui['supp_las_domain'].get()]['classes']
+            for i, (k, v) in enumerate(sorted(curr_domain_classes.iteritems()), 2):
+                vars.update({k: tk.BooleanVar()})
+                vars[k].set(self.get_class_status(k))
+                class_check = tk.Checkbutton(supp_classes_frame, 
+                                             text='{}: {}'.format(k, v), 
+                                             var=vars[k], anchor=tk.W, 
+                                             justify=tk.LEFT, width=40)
+                class_check.grid(row=i, sticky=tk.EW)
 
         with open(self.las_classes_file) as cf:
             las_classes = json.load(cf)
 
-        las_version = self.gui['checks_keys']['version'][0].get()
-
-        def get_domains():
-            domains = las_classes[las_version]['supplemental'].keys()
-            return tuple(domains)
+        las_version = self.gui['check_keys']['version'][0].get()
 
         popup = tk.Toplevel()
         popup.wm_title('Pick Expected Classes')
         vars = {}
 
-        label = tk.Label(popup, text='LAS {} Classes'.format(las_version), font=NORM_FONT_BOLD)
-        label.pack(side='top', fill='x', pady=(0, 0))
-        
-        # core Las spec classes
-        for k, v in sorted(las_classes[las_version]['classes'].iteritems()):
-            vars.update({k: tk.BooleanVar()})
-            vars[k].set(self.get_class_status(k))
-            class_check = tk.Checkbutton(popup, text='{}: {}'.format(k, v), 
-                                         var=vars[k], anchor=tk.W, 
-                                         justify=tk.LEFT, width=40)
-            class_check.pack(side='top', fill='x', pady=(0, 0))
+        core_classes_frame = ttk.Frame(popup)
+        core_classes_frame.grid(row=0, sticky=tk.EW)
+        supp_classes_frame = ttk.Frame(popup)
+        supp_classes_frame.grid(row=1, sticky=tk.EW)
 
-
-        # supplemental Las classes
-        label = tk.Label(popup, text='Supplemental {} Classes'.format(las_version), font=NORM_FONT_BOLD)
-        label.pack(side='top', fill='x', pady=(0, 0))
-
-        supp_classes_domain = tk.OptionMenu(popup, self.gui['supp_las_domain'], *get_domains())
-        supp_classes_domain.pack(side='top', fill='x', pady=(0, 0))
-
-        for k, v in sorted(las_classes[las_version]['supplemental'][self.gui['supp_las_domain'].get()]['classes'].iteritems()):
-            vars.update({k: tk.BooleanVar()})
-            vars[k].set(self.get_class_status(k))
-            class_check = tk.Checkbutton(popup, text='{}: {}'.format(k, v), 
-                                         var=vars[k], anchor=tk.W, 
-                                         justify=tk.LEFT, width=40)
-            class_check.pack(side='top', fill='x', pady=(0, 0))
-
+        add_core_classes()
+        add_domain_profile_selector()
+        add_supp_classes()
 
         b1 = tk.Button(popup, text='Ok', command=lambda: self.get_checked_classes(popup, vars))
-        b1.pack(side='top', fill='x', pady=(0, 0))
-        popup.mainloop()
+        b1.grid(row=2, sticky=tk.EW)
+        
+        # prevent user form opening multiple class-picker windows
+        popup.transient(self)
+        popup.grab_set()
+        self.wait_window(popup)
 
     def build_gui(self):
         self.build_metadata()
@@ -414,7 +435,7 @@ class MainGuiPage(ttk.Frame):
         return tuple(wkt_ids)
 
     @staticmethod
-    def get_gps_time_types():
+    def get_gps_times():
         return ('Satellite GPS Time', 'GPS Week Seconds')  # TODO: verify names
 
     @staticmethod
@@ -422,11 +443,11 @@ class MainGuiPage(ttk.Frame):
         return ('1.2', '1.4')
 
     @staticmethod
-    def get_ver_datums():
+    def get_vdatums():
         return ('MHW', 'MLLW', 'GRS80', 'WGS84')
 
     def update_version_affected_info(self):
-        version = self.gui['checks_keys']['version'][0].get()
+        version = self.gui['check_keys']['version'][0].get()
         if version == '1.2':
             pdrf = '3'
             exp_classes = '02,26'
@@ -438,96 +459,89 @@ class MainGuiPage(ttk.Frame):
         else:
             pdrf = None
                     
-        self.gui['checks_keys']['pdrf'][0].set(pdrf)
-        self.gui['checks_keys']['expected_classes'][0].set(exp_classes)
+        self.gui['check_keys']['pdrf'][0].set(pdrf)
+        self.gui['check_keys']['exp_cls'][0].set(exp_classes)
         self.gui['supp_las_domain'].set(supp_las_domain)
 
     def add_checks(self):
 
-        def add_naming_convention_key():
-            # naming_convention
-            self.gui['checks_keys']['naming_convention'][0] = tk.StringVar()
-            self.gui['checks_keys']['naming_convention'][0].set(
-                self.config['checks_keys']['naming_convention'])
-            self.gui['checks_keys']['naming_convention'][1] = tk.Entry(
+        def add_naming_key():
+            self.gui['check_keys']['naming'][0] = tk.StringVar()
+            self.gui['check_keys']['naming'][0].set(
+                self.config['check_keys']['naming'])
+            self.gui['check_keys']['naming'][1] = tk.Entry(
                 checks_frame, 
                 state='disabled', 
-                textvariable=self.gui['checks_keys']['naming_convention'][0], width=30)
+                textvariable=self.gui['check_keys']['naming'][0], width=30)
 
         def add_version_key():
-            self.gui['checks_keys']['version'][0] = tk.StringVar()
-            self.gui['checks_keys']['version'][0].set(
-                self.config['checks_keys']['version'])
-            self.gui['checks_keys']['version'][1] = tk.OptionMenu(
+            self.gui['check_keys']['version'][0] = tk.StringVar()
+            self.gui['check_keys']['version'][0].set(
+                self.config['check_keys']['version'])
+            self.gui['check_keys']['version'][1] = tk.OptionMenu(
                 checks_frame, 
-                self.gui['checks_keys']['version'][0], 
+                self.gui['check_keys']['version'][0], 
                 *self.get_versions(), 
                 command=lambda x: self.update_version_affected_info())
-            self.gui['checks_keys']['version'][1].configure(anchor='w')
+            self.gui['check_keys']['version'][1].configure(anchor='w')
 
         def add_pdrf_key():
-            # pdrf
-            self.gui['checks_keys']['pdrf'][0] = tk.StringVar()
-            self.gui['checks_keys']['pdrf'][0].set(
-                self.config['checks_keys']['pdrf'])
-            self.gui['checks_keys']['pdrf'][1] = tk.Entry(
+            self.gui['check_keys']['pdrf'][0] = tk.StringVar()
+            self.gui['check_keys']['pdrf'][0].set(
+                self.config['check_keys']['pdrf'])
+            self.gui['check_keys']['pdrf'][1] = tk.Entry(
                 checks_frame, 
                 state='disabled', 
-                textvariable=self.gui['checks_keys']['pdrf'][0], width=30)
+                textvariable=self.gui['check_keys']['pdrf'][0], width=30)
 
-        def add_gps_time_type_key():
-            # gps_time_type
-            self.gui['checks_keys']['gps_time_type'][0] = tk.StringVar()
-            self.gui['checks_keys']['gps_time_type'][0].set(
-                self.config['checks_keys']['gps_time_type'])
-            self.gui['checks_keys']['gps_time_type'][1] = tk.OptionMenu(
+        def add_gps_time_key():
+            self.gui['check_keys']['gps_time'][0] = tk.StringVar()
+            self.gui['check_keys']['gps_time'][0].set(
+                self.config['check_keys']['gps_time'])
+            self.gui['check_keys']['gps_time'][1] = tk.OptionMenu(
                 checks_frame,
-                self.gui['checks_keys']['gps_time_type'][0], 
-                *self.get_gps_time_types())
-            self.gui['checks_keys']['gps_time_type'][1].config(state='disabled')
-            self.gui['checks_keys']['gps_time_type'][1].configure(anchor='w')
+                self.gui['check_keys']['gps_time'][0], 
+                *self.get_gps_times())
+            self.gui['check_keys']['gps_time'][1].config(state='disabled')
+            self.gui['check_keys']['gps_time'][1].configure(anchor='w')
 
-        def add_hor_datum_key():
-            # hor_datum
-            self.gui['checks_keys']['hor_datum'][0] = tk.StringVar()
-            self.gui['checks_keys']['hor_datum'][0].set(
-                self.config['checks_keys']['hor_datum'])
-            self.gui['checks_keys']['hor_datum'][1] = tk.OptionMenu(
+        def add_hdatum_key():
+            self.gui['check_keys']['hdatum'][0] = tk.StringVar()
+            self.gui['check_keys']['hdatum'][0].set(
+                self.config['check_keys']['hdatum'])
+            self.gui['check_keys']['hdatum'][1] = tk.OptionMenu(
                 checks_frame, 
-                self.gui['checks_keys']['hor_datum'][0], 
+                self.gui['check_keys']['hdatum'][0], 
                 *self.get_wkt_ids())
-            self.gui['checks_keys']['hor_datum'][1].configure(anchor='w')
+            self.gui['check_keys']['hdatum'][1].configure(anchor='w')
 
-        def add_ver_datum_key():
-            # ver_datum
-            self.gui['checks_keys']['ver_datum'][0] = tk.StringVar()
-            self.gui['checks_keys']['ver_datum'][0].set(
-                self.config['checks_keys']['ver_datum'])
-            self.gui['checks_keys']['ver_datum'][1] = tk.OptionMenu(
+        def add_vdatum_key():
+            self.gui['check_keys']['vdatum'][0] = tk.StringVar()
+            self.gui['check_keys']['vdatum'][0].set(
+                self.config['check_keys']['vdatum'])
+            self.gui['check_keys']['vdatum'][1] = tk.OptionMenu(
                 checks_frame, 
-                self.gui['checks_keys']['ver_datum'][0], 
-                *self.get_ver_datums())
-            self.gui['checks_keys']['ver_datum'][1].configure(anchor='w')
-            self.gui['checks_keys']['ver_datum'][1].config(state='disabled')
+                self.gui['check_keys']['vdatum'][0], 
+                *self.get_vdatums())
+            self.gui['check_keys']['vdatum'][1].configure(anchor='w')
+            self.gui['check_keys']['vdatum'][1].config(state='disabled')
 
-        def add_point_source_ids_key():
-            # point_source_ids
-            self.gui['checks_keys']['point_source_ids'][0] = tk.StringVar()
-            self.gui['checks_keys']['point_source_ids'][0].set(
-                self.config['checks_keys']['point_source_ids'])
-            self.gui['checks_keys']['point_source_ids'][1] = tk.Entry(
+        def add_pt_src_ids_key():
+            self.gui['check_keys']['pt_src_ids'][0] = tk.StringVar()
+            self.gui['check_keys']['pt_src_ids'][0].set(
+                self.config['check_keys']['pt_src_ids'])
+            self.gui['check_keys']['pt_src_ids'][1] = tk.Entry(
                 checks_frame, 
                 state='disabled', 
-                textvariable=self.gui['checks_keys']['point_source_ids'][0], width=30)
+                textvariable=self.gui['check_keys']['pt_src_ids'][0], width=30)
 
-        def add_expected_classes_key():
-            # unexpected_classes
-            self.gui['checks_keys']['expected_classes'][0] = tk.StringVar()
-            self.gui['checks_keys']['expected_classes'][0].set(
-                self.config['checks_keys']['expected_classes'])
-            self.gui['checks_keys']['expected_classes'][1] = tk.Button(
+        def add_exp_cls_key():
+            self.gui['check_keys']['exp_cls'][0] = tk.StringVar()
+            self.gui['check_keys']['exp_cls'][0].set(
+                self.config['check_keys']['exp_cls'])
+            self.gui['check_keys']['exp_cls'][1] = tk.Button(
                 checks_frame,
-                textvariable=self.gui['checks_keys']['expected_classes'][0],
+                textvariable=self.gui['check_keys']['exp_cls'][0],
                 command=self.pick_classes,
                 justify=tk.LEFT, anchor=tk.W)
 
@@ -542,14 +556,14 @@ class MainGuiPage(ttk.Frame):
         label = tk.Label(checks_frame, text='Checks', font=LARGE_FONT_BOLD)
         label.grid(row=0, columnspan=3, pady=(10, 0), sticky=tk.W)
 
-        add_naming_convention_key()
+        add_naming_key()
         add_version_key()
         add_pdrf_key()
-        add_gps_time_type_key()
-        add_hor_datum_key()
-        add_ver_datum_key()
-        add_point_source_ids_key()
-        add_expected_classes_key()
+        add_gps_time_key()
+        add_hdatum_key()
+        add_vdatum_key()
+        add_pt_src_ids_key()
+        add_exp_cls_key()
         add_supp_las_domain()
 
         for i, c in enumerate(self.gui['checks_to_do'], 1):
@@ -562,7 +576,7 @@ class MainGuiPage(ttk.Frame):
                 var=self.gui['checks_to_do'][c][1], 
                 anchor=tk.W, justify=tk.LEFT)
             chk.grid(column=0, row=i, sticky=tk.W)
-            self.gui['checks_keys'][c][1].grid(column=1, row=i, sticky=tk.EW)
+            self.gui['check_keys'][c][1].grid(column=1, row=i, sticky=tk.EW)
 
 
     def add_surfaces(self):

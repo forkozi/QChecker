@@ -28,13 +28,13 @@ qaqc_gdb = raster_dir = data['qaqc_gdb']
 tile_size = float(data['tile_size'])
 
 # checks "answer key"
-hor_datum_key = data['checks_keys']['hor_datum']
-ver_datum_key = data['checks_keys']['ver_datum']
-expected_classes_key = [int(n) for n in data['checks_keys']['expected_classes'].split(',')]
-pdrf_key = data['checks_keys']['pdrf']
-gps_time_type_key = data['checks_keys']['gps_time_type']
-version_key = data['checks_keys']['version']
-point_source_ids_key = data['checks_keys']['point_source_ids']
+hdatum_key = data['check_keys']['hdatum']
+vdatum_key = data['check_keys']['vdatum']
+exp_cls_key = [int(n) for n in data['check_keys']['exp_cls'].split(',')]
+pdrf_key = data['check_keys']['pdrf']
+gps_time_key = data['check_keys']['gps_time']
+version_key = data['check_keys']['version']
+pt_src_ids_key = data['check_keys']['pt_src_ids']
 
 dz_mxd  = data['dz_mxd']
 dz_export_settings = data['dz_export_settings']
@@ -145,14 +145,14 @@ class LasTile:
         self.has_ground = True if 'class2' in self.class_counts.keys() else False
 
         self.checks_result = {
-            'naming_convention': None,
+            'naming': None,
             'version': None,
             'pdrf': None,
             'gps_time': None,
-            'hor_datum': None,
-            'ver_datum': None,
-            'point_src_ids': None,
-            'unexpected_classes': None,
+            'hdatum': None,
+            'vdatum': None,
+            'pnt_src_ids': None,
+            'exp_cls': None,
         }
 
         if to_pyramid:
@@ -193,9 +193,9 @@ class LasTile:
         print(classes_present)
         return classes_present, class_counts
 
-    def get_gps_time_type(self):
-        gps_time_types = {0: 'GPS Week Time', 1: 'Satellite GPS Time'}
-        return gps_time_types[self.header['global_encoding']]
+    def get_gps_time(self):
+        gps_times = {0: 'GPS Week Time', 1: 'Satellite GPS Time'}
+        return gps_times[self.header['global_encoding']]
 
     def get_las_version(self):
         return '{}.{}'.format(self.header['version_major'], self.header['version_minor'])
@@ -203,7 +203,7 @@ class LasTile:
     def get_las_pdrf(self):
         return self.header['data_format_id']
 
-    def get_hor_datum(self):
+    def get_hdatum(self):
         return self.header['VLRs']['coord_sys']
 
     def create_las_pyramids(self):
@@ -331,17 +331,17 @@ class QaqcTile:
     passed_text = 'PASSED'
     failed_text = 'FAILED'
 
-    def __init__(self, expected_classes):
-        self.expected_classes = expected_classes
+    def __init__(self, exp_cls):
+        self.exp_cls = exp_cls
         self.checks = {
             'naming_convention': self.check_las_naming_convention,
             'version': self.check_las_version,
             'pdrf': self.check_las_pdrf,
-            'gps_time_type': self.check_las_gps_time,
-            'hor_datum': self.check_hor_datum,
-            'ver_datum': self.check_ver_datum,
-            'point_source_ids': self.check_point_source_ids,
-            'expected_classes': self.check_unexpected_classes,
+            'gps_time': self.check_las_gps_time,
+            'hdatum': self.check_hdatum,
+            'vdatum': self.check_vdatum,
+            'pt_src_ids': self.check_pt_src_ids,
+            'exp_cls': self.check_unexp_cls,
             }
 
         self.surfaces = {
@@ -376,8 +376,8 @@ class QaqcTile:
                 passed = self.failed_text
         else:
             passed = self.failed_text
-        tile.checks_result['naming_convention'] = tile.name
-        tile.checks_result['naming_convention_passed'] = passed
+        tile.checks_result['naming'] = tile.name
+        tile.checks_result['naming_passed'] = passed
         return passed
 
     def check_las_version(self, tile):
@@ -402,39 +402,39 @@ class QaqcTile:
         return passed
 
     def check_las_gps_time(self, tile):
-        gps_time_type = tile.get_gps_time_type()
-        if gps_time_type == gps_time_type_key:
+        gps_time = tile.get_gps_time()
+        if gps_time == gps_time_key:
             passed = self.passed_text
         else:
             passed = self.failed_text
-        tile.checks_result['gps_time'] = gps_time_type
+        tile.checks_result['gps_time'] = gps_time
         tile.checks_result['gps_time_passed'] = passed
         return passed
 
-    def check_hor_datum(self, tile):  # TODO
-        hor_datum = tile.get_hor_datum()
-        if hor_datum == hor_datum_key:
+    def check_hdatum(self, tile):  # TODO
+        hdatum = tile.get_hdatum()
+        if hdatum == hdatum_key:
             passed = self.passed_text
         else:
             passed = self.failed_text
-        tile.checks_result['hor_datum'] = hor_datum
-        tile.checks_result['hor_datum_passed'] = passed
+        tile.checks_result['hdatum'] = hdatum
+        tile.checks_result['hdatum_passed'] = passed
         return passed
 
-    def check_unexpected_classes(self, tile):
-        unexpected_classes = list(set(tile.classes_present).difference(self.expected_classes))
-        if not unexpected_classes:
+    def check_unexp_cls(self, tile):
+        unexp_cls = list(set(tile.classes_present).difference(self.exp_cls))
+        if not unexp_cls:
             passed = self.passed_text
         else:
             passed = self.failed_text
-        tile.checks_result['unexpected_classes'] = str(unexpected_classes)
-        tile.checks_result['unexpected_classes_passed'] = passed
+        tile.checks_result['exp_clas'] = str(unexp_cls)
+        tile.checks_result['exp_clas_passed'] = passed
         return passed
 
-    def check_ver_datum(self):
+    def check_vdatum(self):
         pass
 
-    def check_point_source_ids(self):
+    def check_pt_src_ids(self):
         pass
 
     def calc_pt_cloud_stats(self):
@@ -499,12 +499,12 @@ class QaqcTile:
 
 class QaqcTileCollection:
 
-    def __init__(self, las_paths, expected_classes):
+    def __init__(self, las_paths, exp_cls):
         self.las_paths = las_paths
-        self.expected_classes = expected_classes
+        self.exp_cls = exp_cls
 
     def run_qaqc_tile_collection_checks(self, multiprocess):
-        tiles_qaqc = QaqcTile(self.expected_classes)
+        tiles_qaqc = QaqcTile(self.exp_cls)
         tiles_qaqc.run_qaqc(self.las_paths, multiprocess)
 
     def gen_qaqc_results_dict(self):
@@ -516,6 +516,7 @@ class QaqcTileCollection:
                         yield d
                 else:
                     yield k, v
+
         flattened_dicts = []
         for las_json in os.listdir(json_dir):
             try:
@@ -665,7 +666,7 @@ def run_qaqc():
     add_layer_to_mxd(contractor_centroids_shp_NAD83_UTM)
 
     nantucket = LasTileCollection(las_tile_dir)
-    qaqc = QaqcTileCollection(nantucket.get_las_tile_paths()[0:10], expected_classes_key)
+    qaqc = QaqcTileCollection(nantucket.get_las_tile_paths()[0:10], exp_cls_key)
     
     qaqc.run_qaqc_tile_collection_checks(multiprocess=False)
     qaqc.gen_qaqc_shp_NAD83_UTM(qaqc_shp_NAD83_UTM_POLYGONS)
