@@ -14,6 +14,12 @@ import pathos.pools as pp
 import re
 from geodaisy import GeoObject
 
+import Tkinter as tk
+import ttk
+import time
+import threading
+
+num_las = 3700
 
 # open qaqc.config file
 qaqc_config = r'Z:\qaqc\qaqc_config.json'
@@ -331,10 +337,12 @@ class QaqcTile:
     passed_text = 'PASSED'
     failed_text = 'FAILED'
 
-    def __init__(self, exp_cls):
+    def __init__(self, exp_cls, progress_bar, progress_label):
         self.exp_cls = exp_cls
+        self.progress_bar = progress_bar
+        self.progress_label = progress_label
         self.checks = {
-            'naming_convention': self.check_las_naming_convention,
+            'naming': self.check_las_naming,
             'version': self.check_las_version,
             'pdrf': self.check_las_pdrf,
             'gps_time': self.check_las_gps_time,
@@ -351,7 +359,7 @@ class QaqcTile:
             'Hillshade_mosaic': None,
             }
 
-    def check_las_naming_convention(self, tile):
+    def check_las_naming(self, tile):
         # for now, the checks assume Northern Hemisphere
         # https://www.e-education.psu.edu/natureofgeoinfo/c2_p23.html
         min_easting = 167000
@@ -471,8 +479,8 @@ class QaqcTile:
             logging.info(result)
         tile.output_las_qaqc_to_json()
 
-    def run_qaqc_checks(self, las_paths):
-        for las_path in las_paths:
+    def run_qaqc_checks(self, las_paths):       
+        for i, las_path in enumerate(las_paths):
             tile = LasTile(las_path, to_pyramid=True)
             for c in [k for k, v in checks_to_do.iteritems() if v]:
                 logging.info('running {}...'.format(c))
@@ -485,6 +493,26 @@ class QaqcTile:
                 logging.info(result)
 
             tile.output_las_qaqc_to_json()
+
+            self.progress_bar.step(1)
+            self.progress_label['text'] = '{} of {}'.format(i+1, num_las)
+            self.progress_bar.update()
+            self.progress_label.update()
+
+    #def run_qaqc_checks(self, las_paths):
+    #    for las_path in las_paths:
+    #        tile = LasTile(las_path, to_pyramid=True)
+    #        for c in [k for k, v in checks_to_do.iteritems() if v]:
+    #            logging.info('running {}...'.format(c))
+    #            result = self.checks[c](tile)
+    #            logging.info(result)
+
+    #        for c in [k for k, v in surfaces_to_make.iteritems() if v[0]]:
+    #            logging.info('running {}...'.format(c))
+    #            result = self.surfaces[c](tile)
+    #            logging.info(result)
+
+    #        tile.output_las_qaqc_to_json()
 
     def run_qaqc(self, las_paths, multiprocess):
         if multiprocess:
@@ -499,12 +527,14 @@ class QaqcTile:
 
 class QaqcTileCollection:
 
-    def __init__(self, las_paths, exp_cls):
+    def __init__(self, las_paths, exp_cls, progress_bar, progress_label):
         self.las_paths = las_paths
         self.exp_cls = exp_cls
+        self.progress_bar = progress_bar
+        self.progress_label = progress_label
 
     def run_qaqc_tile_collection_checks(self, multiprocess):
-        tiles_qaqc = QaqcTile(self.exp_cls)
+        tiles_qaqc = QaqcTile(self.exp_cls, self.progress_bar, self.progress_label)
         tiles_qaqc.run_qaqc(self.las_paths, multiprocess)
 
     def gen_qaqc_results_dict(self):
@@ -632,14 +662,12 @@ def gen_tile_centroids_csv(shp, out_csv):
     gdf['centroid_lat'] = map(get_y, gdf['geometry'])
     gdf.to_csv(out_csv)
 
-
 def gen_tile_centroids_shp_NAD83_UTM():
     gdf = gpd.read_file(contractor_shp)
     gdf['geometry'] = gdf['geometry'].centroid
     gdf.to_file(contractor_centroids_shp_NAD83_UTM, driver='ESRI Shapefile')
     #sr = arcpy.SpatialReference('NAD 1983 UTM Zone 19N')  # 2011?
     #arcpy.DefineProjection_management(output, sr)
-
 
 def add_layer_to_mxd(layer):
     mxd = arcpy.mapping.MapDocument(dz_mxd)
@@ -658,15 +686,14 @@ def run_console_cmd(cmd):
     returncode = process.poll()
     return returncode, output
 
-
-def run_qaqc():
+def run_qaqc(progress_bar, progress_label):
     logging.basicConfig(format='%(asctime)s:%(message)s', level=logging.INFO)
 
     gen_tile_centroids_shp_NAD83_UTM()
     add_layer_to_mxd(contractor_centroids_shp_NAD83_UTM)
 
     nantucket = LasTileCollection(las_tile_dir)
-    qaqc = QaqcTileCollection(nantucket.get_las_tile_paths()[0:10], exp_cls_key)
+    qaqc = QaqcTileCollection(nantucket.get_las_tile_paths()[0:10], exp_cls_key, progress_bar, progress_label)
     
     qaqc.run_qaqc_tile_collection_checks(multiprocess=False)
     qaqc.gen_qaqc_shp_NAD83_UTM(qaqc_shp_NAD83_UTM_POLYGONS)
@@ -678,4 +705,5 @@ def run_qaqc():
 
 if __name__ == '__main__':
     arcpy.env.overwriteOutput = True
-    run_qaqc()
+
+    run_qaqc(progress_bar, progress_label)

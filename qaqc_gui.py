@@ -1,6 +1,6 @@
 from qaqc import run_qaqc
 import Tkinter as tk
-import Tkconstants, tkFileDialog
+import tkFileDialog
 import ttk
 import os
 import time
@@ -325,6 +325,22 @@ class MainGuiPage(ttk.Frame):
         popup.transient(self)
         popup.grab_set()
         self.wait_window(popup)
+
+    def add_progress_bar(self):
+        popup = tk.Toplevel()
+        popup.wm_title('QAQC Progress')
+
+        progress_frame = ttk.Frame(popup)
+        progress_frame.grid(row=0, sticky=tk.EW)
+        
+        progress_bar = ttk.Progressbar(progress_frame, orient=tk.HORIZONTAL, maximum=300, length=500)  # mode='indeterminate'
+        progress_bar.grid(column=0, row=0)
+
+        progress_label = tk.Label(progress_frame)
+        progress_label.grid(column=1, row=0)
+
+        popup.update()
+        return progress_bar, progress_label
 
     def build_gui(self):
         self.build_metadata()
@@ -677,7 +693,8 @@ class MainGuiPage(ttk.Frame):
 
     def run_qaqc_process(self):
         #verify_input()
-        run_qaqc() #  from qaqc.py
+        progress_bar, progress_label = self.add_progress_bar()
+        run_qaqc(progress_bar, progress_label) #  from qaqc.py
     
 
 if __name__ == "__main__":

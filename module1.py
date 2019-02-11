@@ -1,31 +1,41 @@
-from Tkinter import Button, Tk, HORIZONTAL
-
-from ttk import Progressbar
+import Tkinter as tk
+import ttk
 import time
 import threading
 
+num_las = 3700
 
-class MonApp(Tk):
+
+class MonApp(tk.Tk):
     def __init__(self):
-        Tk.__init__(self)
+        tk.Tk.__init__(self)
 
+        self.progress_window = tk.Toplevel()
 
-        self.btn = Button(self, text='Start Progress', command=self.start_progress)
-        self.btn.grid(row=0,column=0)
-        self.progress = Progressbar(self, orient=HORIZONTAL, maximum=3700, length=500)  # mode='indeterminate'
+        self.progress_frame = ttk.Frame(self.progress_window)
+        self.progress_frame.grid()
 
-    def start_progress(self):
-        def real_traitement():
-            self.progress.grid(row=1,column=0)
-            self.progress.step(1)
-            #time.sleep(10)
-            #self.progress.stop()
-            #self.progress.grid_forget()
+        self.progress = ttk.Progressbar(self.progress_frame, orient=tk.HORIZONTAL, maximum=num_las, length=500)  # mode='indeterminate'
+        self.progress.grid(column=0, row=0)
 
-            self.btn['state']='normal'
+        self.progress_label = tk.Label(self.progress_frame)
+        self.progress_label.grid(column=1, row=0)
 
-        self.btn['state']='disabled'
-        threading.Thread(target=real_traitement).start()
+        self.run_qaqc()
+
+    def run_qaqc(self):
+        def thread_progress():
+            
+            for i, l in enumerate(range(1, num_las)):
+                self.progress.step(1)
+                self.progress_label['text'] = '{} of {}'.format(i+1, num_las)
+                #time.sleep(0.0001)
+            
+            self.progress_label['text'] = r'Done'
+
+            self.progress.grid_forget()
+
+        threading.Thread(target=thread_progress).start()
 
 if __name__ == '__main__':
     app = MonApp()
