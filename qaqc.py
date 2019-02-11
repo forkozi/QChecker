@@ -19,47 +19,52 @@ import ttk
 import time
 import threading
 
-num_las = 3700
 
-# open qaqc.config file
-qaqc_config = r'Z:\qaqc\qaqc_config.json'
-with open(qaqc_config) as f:
-    data = json.load(f)
-print(data)
+class Configuration:
+    def __init__(self, qaqc_config):
 
-project_name = arcpy.ValidateTableName(data['project_name'])
-las_tile_dir = data['las_tile_dir']
-qaqc_dir = data['qaqc_dir']
-qaqc_gdb = raster_dir = data['qaqc_gdb']
-tile_size = float(data['tile_size'])
+        data = None
+        with open(qaqc_config) as f:
+            data = json.load(f)
 
-# checks "answer key"
-hdatum_key = data['check_keys']['hdatum']
-vdatum_key = data['check_keys']['vdatum']
-exp_cls_key = [int(n) for n in data['check_keys']['exp_cls'].split(',')]
-pdrf_key = data['check_keys']['pdrf']
-gps_time_key = data['check_keys']['gps_time']
-version_key = data['check_keys']['version']
-pt_src_ids_key = data['check_keys']['pt_src_ids']
+        self.data = data
 
-dz_mxd  = data['dz_mxd']
-dz_export_settings = data['dz_export_settings']
-dz_classes_template = data['dz_classes_template']
+        self.project_name = arcpy.ValidateTableName(data['project_name'])
+        self.las_tile_dir = data['las_tile_dir']
+        self.qaqc_dir = data['qaqc_dir']
+        self.qaqc_gdb = raster_dir = data['qaqc_gdb']
+        self.tile_size = float(data['tile_size'])
 
-contractor_shp = data['contractor_shp']
-checks_to_do = data['checks_to_do']
-surfaces_to_make = data['surfaces_to_make']
-mosaics_to_make = data['mosaics_to_make']
+        # checks "answer key"
+        self.hdatum_key = data['check_keys']['hdatum']
+        self.vdatum_key = data['check_keys']['vdatum']
+        self.exp_cls_key = [int(n) for n in data['check_keys']['exp_cls'].split(',')]
+        self.pdrf_key = data['check_keys']['pdrf']
+        self.gps_time_key = data['check_keys']['gps_time']
+        self.version_key = data['check_keys']['version']
+        self.pt_src_ids_key = data['check_keys']['pt_src_ids']
 
-qaqc_csv = r'{}\qaqc.csv'.format(qaqc_dir)
-qaqc_geojson_NAD83_UTM_CENTROIDS = r'{}\qaqc_NAD83_UTM_CENTROIDS.json'.format(qaqc_dir)
-qaqc_geojson_NAD83_UTM_POLYGONS = r'{}\qaqc_NAD83_UTM_POLYGONS.json'.format(qaqc_dir)
-qaqc_shp_NAD83_UTM_POLYGONS = r'{}\qaqc_NAD83_UTM.shp'.format(qaqc_dir)
-json_dir = r'{}\qaqc_check_results'.format(qaqc_dir)
+        self.dz_mxd  = data['dz_mxd']
+        self.dz_export_settings = data['dz_export_settings']
+        self.dz_classes_template = data['dz_classes_template']
 
-contractor_geojson_WGS84 = os.path.join(qaqc_dir, 'tiles_WGS84.json')
-contractor_centroids_shp_NAD83_UTM = os.path.join(qaqc_dir, 'tiles_centroids_NAD83_UTM.shp')
-contractor_csv = os.path.join(qaqc_dir, 'tiles.csv')
+        self.contractor_shp = data['contractor_shp']
+        self.checks_to_do = data['checks_to_do']
+        self.surfaces_to_make = data['surfaces_to_make']
+        self.mosaics_to_make = data['mosaics_to_make']
+
+        self.qaqc_csv = r'{}\qaqc.csv'.format(self.qaqc_dir)
+        self.qaqc_geojson_NAD83_UTM_CENTROIDS = r'{}\qaqc_NAD83_UTM_CENTROIDS.json'.format(self.qaqc_dir)
+        self.qaqc_geojson_NAD83_UTM_POLYGONS = r'{}\qaqc_NAD83_UTM_POLYGONS.json'.format(self.qaqc_dir)
+        self.qaqc_shp_NAD83_UTM_POLYGONS = r'{}\qaqc_NAD83_UTM.shp'.format(self.qaqc_dir)
+        self.json_dir = r'{}\qaqc_check_results'.format(self.qaqc_dir)
+
+        self.contractor_geojson_WGS84 = os.path.join(self.qaqc_dir, 'tiles_WGS84.json')
+        self.contractor_centroids_shp_NAD83_UTM = os.path.join(self.qaqc_dir, 'tiles_centroids_NAD83_UTM.shp')
+        self.contractor_csv = os.path.join(self.qaqc_dir, 'tiles.csv')
+
+    def __str__(self):
+        return json.dumps(self.data, indent=4, sort_keys=True)
 
 
 class LasTileCollection():
@@ -92,10 +97,13 @@ class LasTileCollection():
 
 class LasTile:
 
-    def __init__(self, las_path, to_pyramid):
+    def __init__(self, las_path, qaqc_config):
         self.path = las_path
         self.name = os.path.splitext(las_path.split(os.sep)[-1])[0]
         self.inFile = File(self.path, mode="r")
+        self.to_pyramid = True
+        self.is_pyramided = os.path.isfile(self.path.replace('.las', '.qvr'))
+        self.qaqc_config = qaqc_config
 
         def get_useful_las_header_info():
             info_to_get = 'global_encoding,version_major,version_minor,' \
@@ -122,19 +130,19 @@ class LasTile:
         def calc_las_centroid():
             data_nw_x = self.las_extents['ExtentXMin']
             data_nw_y = self.las_extents['ExtentYMax']
-            las_nw_x = data_nw_x - (data_nw_x % tile_size)
-            las_nw_y = data_nw_y + tile_size - (data_nw_y % tile_size)
-            las_centroid_x = las_nw_x + tile_size / 2
-            las_centroid_y = las_nw_y - tile_size / 2
+            las_nw_x = data_nw_x - (data_nw_x % self.qaqc_config.tile_size)
+            las_nw_y = data_nw_y + self.qaqc_config.tile_size - (data_nw_y % self.qaqc_config.tile_size)
+            las_centroid_x = las_nw_x + self.qaqc_config.tile_size / 2
+            las_centroid_y = las_nw_y - self.qaqc_config.tile_size / 2
             return (las_centroid_x, las_centroid_y)
 
         self.centroid_x, self.centroid_y = calc_las_centroid()
 
         self.tile_extents = {
-            'tile_top': self.centroid_y + tile_size / 2,
-            'tile_bottom': self.centroid_y - tile_size / 2,
-            'tile_left': self.centroid_x - tile_size / 2,
-            'tile_right': self.centroid_x + tile_size / 2,
+            'tile_top': self.centroid_y + self.qaqc_config.tile_size / 2,
+            'tile_bottom': self.centroid_y - self.qaqc_config.tile_size / 2,
+            'tile_left': self.centroid_x - self.qaqc_config.tile_size / 2,
+            'tile_right': self.centroid_x + self.qaqc_config.tile_size / 2,
             }
 
         self.tile_poly_wkt = GeoObject(Polygon([
@@ -161,7 +169,7 @@ class LasTile:
             'exp_cls': None,
         }
 
-        if to_pyramid:
+        if self.to_pyramid and not self.is_pyramided:
             self.create_las_pyramids()
 
     def __str__(self):
@@ -186,7 +194,7 @@ class LasTile:
         return json.dumps(info_to_output, indent=2)
 
     def output_las_qaqc_to_json(self):
-        json_file_name = r'{}\{}.json'.format(json_dir, self.name)
+        json_file_name = r'{}\{}.json'.format(self.qaqc_config.json_dir, self.name)
         with open(json_file_name, 'w') as json_file:
             json_file.write(str(self))
 
@@ -226,25 +234,25 @@ class LasTile:
 
 class Mosaic:
 
-    def __init__(self, mtype):
+    def __init__(self, mtype, qaqc_config):
         self.mtype = mtype
-        self.raster_catalog_base_name = r'{}_{}_raster_catalog'.format(project_name, self.mtype)
-        self.raster_catalog_path = r'{}\{}'.format(qaqc_gdb, self.raster_catalog_base_name)
-        self.mosaic_raster_basename = '{}_{}_mosaic'.format(project_name, self.mtype)
-        self.mosaic_raster_path = '{}\{}'.format(qaqc_gdb, self.mosaic_raster_basename)
+        self.raster_catalog_base_name = r'{}_{}_raster_catalog'.format(qaqc_config.project_name, self.mtype)
+        self.raster_catalog_path = r'{}\{}'.format(qaqc_config.qaqc_gdb, self.raster_catalog_base_name)
+        self.mosaic_raster_basename = '{}_{}_mosaic'.format(qaqc_config.project_name, self.mtype)
+        self.mosaic_raster_path = '{}\{}'.format(qaqc_config.qaqc_gdb, self.mosaic_raster_basename)
 
     def create_raster_catalog(self):
         logging.info('creating raster catalog {}'.format(self.raster_catalog_base_name))
         try:
             arcpy.CreateRasterCatalog_management(
-                qaqc_gdb, self.raster_catalog_base_name,
+                qaqc_config.qaqc_gdb, self.raster_catalog_base_name,
                 raster_management_type='UNMANAGED')
         except Exception as e:
             print(e)
 
     def add_dir_to_raster_catalog(self):
         logging.info('adding {}_rasters to {}...'.format(self.mtype, self.raster_catalog_path))
-        arcpy.WorkspaceToRasterCatalog_management(qaqc_gdb, self.raster_catalog_path)
+        arcpy.WorkspaceToRasterCatalog_management(qaqc_config.qaqc_gdb, self.raster_catalog_path)
 
     def mosaic_raster_catalog(self):
         logging.info('mosaicing {} rasters in {}...'.format(self.mtype, self.raster_catalog_path))
@@ -259,7 +267,7 @@ class Mosaic:
             print(e)
 
     def add_mosaic_to_mxd(self):
-        mxd = arcpy.mapping.MapDocument(dz_mxd)
+        mxd = arcpy.mapping.MapDocument(qaqc_config.dz_mxd)
         df = arcpy.mapping.ListDataFrames(mxd)[0]
         arcpy.MakeRasterLayer_management(self.mosaic_raster_path, self.mosaic_raster_basename)
         dz_lyr = arcpy.mapping.Layer(self.mosaic_raster_basename)
@@ -270,10 +278,10 @@ class Mosaic:
             print(e)
 
     def update_raster_symbology(self):
-        mxd = arcpy.mapping.MapDocument(dz_mxd)
+        mxd = arcpy.mapping.MapDocument(qaqc_config.dz_mxd)
         df = arcpy.mapping.ListDataFrames(mxd)[0]
         raster_to_update = arcpy.mapping.ListLayers(mxd, self.mosaic_raster_basename, df)[0]
-        dz_classes_lyr = arcpy.mapping.Layer(dz_classes_template)
+        dz_classes_lyr = arcpy.mapping.Layer(qaqc_config.dz_classes_template)
         arcpy.mapping.UpdateLayer(df, raster_to_update, dz_classes_lyr, True)
         try:
             mxd.save()
@@ -281,18 +289,20 @@ class Mosaic:
             print(e)
 
 
-class Surface:
+class Surface(Configuration):
 
     def __init__(self, las_path, las_name, las_extents, stype):
+        Configuration.__init(self)
+
         self.stype = stype
         self.las_path = las_path
         self.las_name = las_name
         self.las_extents = las_extents
 
-        self.binary_path = {'Dz': r'{}\{}_dz_dzValue.flt'.format(surfaces_to_make[self.stype][1], self.las_name),
+        self.binary_path = {'Dz': r'{}\{}_dz_dzValue.flt'.format(qaqc_config.surfaces_to_make[self.stype][1], self.las_name),
                             'Hillshade': ''}
 
-        self.raster_path = {'Dz': r'{}\dz_{}'.format(raster_dir, self.las_name),
+        self.raster_path = {'Dz': r'{}\dz_{}'.format(self.raster_dir, self.las_name),
                             'Hillshade': ''}
 
     def __str__(self):
@@ -307,20 +317,20 @@ class Surface:
 
     def update_dz_export_settings_extents(self):
         logging.info('updating dz export settings xml with las extents...')
-        tree = ET.parse(dz_export_settings)
+        tree = ET.parse(qaqc_config.dz_export_settings)
         root = tree.getroot()
         for extent, val in self.las_extents.iteritems():
             for e in root.findall(extent):
                 e.text = str(val)
         new_dz_settings = ET.tostring(root)
-        myfile = open(dz_export_settings, "w")
+        myfile = open(qaqc_config.dz_export_settings, "w")
         myfile.write(new_dz_settings)
 
     def gen_dz_surface(self):
         exe = r'C:\Program Files\Common Files\LP360\LDExport.exe'
         las = self.las_path.replace('CLASSIFIED_LAS\\', 'CLASSIFIED_LAS\\\\')
         dz = r'C:\QAQC_contract\nantucket\dz\{}'.format(self.las_name)
-        cmd_str = '{} -s {} -f {} -o {}'.format(exe, dz_export_settings, las, dz)
+        cmd_str = '{} -s {} -f {} -o {}'.format(exe, qaqc_config.dz_export_settings, las, dz)
         print('generating dz ortho for {}...'.format(las))
         print(cmd_str)
         try:
@@ -337,10 +347,9 @@ class QaqcTile:
     passed_text = 'PASSED'
     failed_text = 'FAILED'
 
-    def __init__(self, exp_cls, progress_bar, progress_label):
-        self.exp_cls = exp_cls
-        self.progress_bar = progress_bar
-        self.progress_label = progress_label
+    def __init__(self, qaqc_config, progress):
+        self.qaqc_config = qaqc_config
+        self.progress = progress
         self.checks = {
             'naming': self.check_las_naming,
             'version': self.check_las_version,
@@ -390,7 +399,7 @@ class QaqcTile:
 
     def check_las_version(self, tile):
         version = tile.get_las_version()
-        if version == version_key:
+        if version == self.qaqc_config.version_key:
             passed = self.passed_text
         else:
             passed = self.failed_text
@@ -401,7 +410,7 @@ class QaqcTile:
     def check_las_pdrf(self, tile):
         pdrf = tile.get_las_pdrf()
         las_version = tile.get_las_version()
-        if pdrf == pdrf_key:
+        if pdrf == self.qaqc_config.pdrf_key:
             passed = self.passed_text
         else:
             passed = self.failed_text
@@ -411,7 +420,7 @@ class QaqcTile:
 
     def check_las_gps_time(self, tile):
         gps_time = tile.get_gps_time()
-        if gps_time == gps_time_key:
+        if gps_time == self.qaqc_config.gps_time_key:
             passed = self.passed_text
         else:
             passed = self.failed_text
@@ -421,7 +430,7 @@ class QaqcTile:
 
     def check_hdatum(self, tile):  # TODO
         hdatum = tile.get_hdatum()
-        if hdatum == hdatum_key:
+        if hdatum == self.qaqc_config.hdatum_key:
             passed = self.passed_text
         else:
             passed = self.failed_text
@@ -430,7 +439,7 @@ class QaqcTile:
         return passed
 
     def check_unexp_cls(self, tile):
-        unexp_cls = list(set(tile.classes_present).difference(self.exp_cls))
+        unexp_cls = list(set(tile.classes_present).difference(self.qaqc_config.exp_cls_key))
         if not unexp_cls:
             passed = self.passed_text
         else:
@@ -472,47 +481,49 @@ class QaqcTile:
         import logging
         import xml.etree.ElementTree as ET
         logging.basicConfig(format='%(asctime)s:%(message)s', level=logging.INFO)
-        tile = LasTile(las_path, to_pyramid=False)
-        for c in [k for k, v in checks_to_do.iteritems() if v]:
+        tile = LasTile(las_path, self.qaqc_config)
+        for c in [k for k, v in self.qaqc_config.checks_to_do.iteritems() if v]:
             logging.info('running {}...'.format(c))
             result = self.checks[c](tile)
             logging.info(result)
         tile.output_las_qaqc_to_json()
 
     def run_qaqc_checks(self, las_paths):       
+        num_las = len(las_paths)
+        las_with_bathy = 0
+        self.progress[0]['maximum'] = num_las
+        tic = time.time()
         for i, las_path in enumerate(las_paths):
-            tile = LasTile(las_path, to_pyramid=True)
-            for c in [k for k, v in checks_to_do.iteritems() if v]:
+
+            tile = LasTile(las_path, self.qaqc_config)
+            if tile.has_bathy:
+                las_with_bathy += 1
+
+            for c in [k for k, v in self.qaqc_config.checks_to_do.iteritems() if v]:
                 logging.info('running {}...'.format(c))
                 result = self.checks[c](tile)
                 logging.info(result)
 
-            for c in [k for k, v in surfaces_to_make.iteritems() if v[0]]:
+
+            print ([(k, v) for (k,v) in self.qaqc_config.surfaces_to_make.iteritems()])
+            for c in [k for k, v in self.qaqc_config.surfaces_to_make.iteritems() if v[0]]:
                 logging.info('running {}...'.format(c))
                 result = self.surfaces[c](tile)
                 logging.info(result)
 
             tile.output_las_qaqc_to_json()
 
-            self.progress_bar.step(1)
-            self.progress_label['text'] = '{} of {}'.format(i+1, num_las)
-            self.progress_bar.update()
-            self.progress_label.update()
+            time_elapsed = time.time() - tic
+            num_las_remaining = num_las - (i + 1)
+            mean_delta_time = time_elapsed / (i + 1)
+            time_remaining_est = (mean_delta_time * num_las_remaining) / 60.0
 
-    #def run_qaqc_checks(self, las_paths):
-    #    for las_path in las_paths:
-    #        tile = LasTile(las_path, to_pyramid=True)
-    #        for c in [k for k, v in checks_to_do.iteritems() if v]:
-    #            logging.info('running {}...'.format(c))
-    #            result = self.checks[c](tile)
-    #            logging.info(result)
-
-    #        for c in [k for k, v in surfaces_to_make.iteritems() if v[0]]:
-    #            logging.info('running {}...'.format(c))
-    #            result = self.surfaces[c](tile)
-    #            logging.info(result)
-
-    #        tile.output_las_qaqc_to_json()
+            # update progress bar and label that was passed form qaqc_gui.py
+            self.progress[0].step(1)
+            self.progress[1]['text'] = '{} of {} tiles\n~{:.1f} mins remaining\n{} tiles have bathy so far'.format(
+                i+1, num_las, time_remaining_est, las_with_bathy)
+            self.progress[0].update()
+            self.progress[1].update()
 
     def run_qaqc(self, las_paths, multiprocess):
         if multiprocess:
@@ -525,16 +536,15 @@ class QaqcTile:
             self.run_qaqc_checks(las_paths)
 
 
-class QaqcTileCollection:
+class QaqcTileCollection(Configuration):
 
-    def __init__(self, las_paths, exp_cls, progress_bar, progress_label):
+    def __init__(self, las_paths, qaqc_config, progress):
         self.las_paths = las_paths
-        self.exp_cls = exp_cls
-        self.progress_bar = progress_bar
-        self.progress_label = progress_label
+        self.progress = progress
+        self.qaqc_config = qaqc_config
 
     def run_qaqc_tile_collection_checks(self, multiprocess):
-        tiles_qaqc = QaqcTile(self.exp_cls, self.progress_bar, self.progress_label)
+        tiles_qaqc = QaqcTile(self.qaqc_config, self.progress)
         tiles_qaqc.run_qaqc(self.las_paths, multiprocess)
 
     def gen_qaqc_results_dict(self):
@@ -548,9 +558,9 @@ class QaqcTileCollection:
                     yield k, v
 
         flattened_dicts = []
-        for las_json in os.listdir(json_dir):
+        for las_json in os.listdir(self.qaqc_config.json_dir):
             try:
-                las_json = os.path.join(json_dir, las_json)
+                las_json = os.path.join(self.qaqc_config.json_dir, las_json)
                 with open(las_json, 'r') as json_file:
                     json_data = json.load(json_file)
                     flattened_json_data = {k:v for k,v in flatten_dict(json_data)}
@@ -620,7 +630,7 @@ class QaqcTileCollection:
             arcpy.DefineProjection_management(output, sr)
         except Exception as e:
             print(e)
-        mxd = arcpy.mapping.MapDocument(dz_mxd)
+        mxd = arcpy.mapping.MapDocument(self.qaqc_config.dz_mxd)
         df = arcpy.mapping.ListDataFrames(mxd)[0]
         qaqc_lyr = arcpy.mapping.Layer(output)
         try:
@@ -638,72 +648,79 @@ class QaqcTileCollection:
         mosaic.update_raster_symbology()
 
 
-def gen_tile_geojson_WGS84(shp, geojson):
-    wgs84 = {'init': 'epsg:4326'}
-    gdf = gpd.read_file(shp).to_crs(wgs84)
-    try:
-        os.remove(geojson)
-    except Exception as e:
-        print(e)
-    gdf.to_file(geojson, driver="GeoJSON")
+    def gen_tile_geojson_WGS84(shp, geojson):
+        wgs84 = {'init': 'epsg:4326'}
+        gdf = gpd.read_file(shp).to_crs(wgs84)
+        try:
+            os.remove(geojson)
+        except Exception as e:
+            print(e)
+        gdf.to_file(geojson, driver="GeoJSON")
 
 
-def gen_tile_centroids_csv(shp, out_csv):
-    gdf = gpd.read_file(shp)
-    gdf['geometry'] = gdf['geometry'].centroid
-    def get_x(pt): return (pt.x)
-    def get_y(pt): return (pt.y)
-    gdf['centroid_x'] = map(get_x, gdf['geometry'])
-    gdf['centroid_y'] = map(get_y, gdf['geometry'])
-    wgs84 = {'init': 'epsg:4326'}
-    gdf = gdf.to_crs(wgs84)
-    gdf['geometry'] = gdf['geometry'].centroid
-    gdf['centroid_lon'] = map(get_x, gdf['geometry'])
-    gdf['centroid_lat'] = map(get_y, gdf['geometry'])
-    gdf.to_csv(out_csv)
+    @staticmethod
+    def gen_tile_centroids_csv(shp, out_csv):
+        gdf = gpd.read_file(shp)
+        gdf['geometry'] = gdf['geometry'].centroid
+        def get_x(pt): return (pt.x)
+        def get_y(pt): return (pt.y)
+        gdf['centroid_x'] = map(get_x, gdf['geometry'])
+        gdf['centroid_y'] = map(get_y, gdf['geometry'])
+        wgs84 = {'init': 'epsg:4326'}
+        gdf = gdf.to_crs(wgs84)
+        gdf['geometry'] = gdf['geometry'].centroid
+        gdf['centroid_lon'] = map(get_x, gdf['geometry'])
+        gdf['centroid_lat'] = map(get_y, gdf['geometry'])
+        gdf.to_csv(out_csv)
 
-def gen_tile_centroids_shp_NAD83_UTM():
-    gdf = gpd.read_file(contractor_shp)
-    gdf['geometry'] = gdf['geometry'].centroid
-    gdf.to_file(contractor_centroids_shp_NAD83_UTM, driver='ESRI Shapefile')
-    #sr = arcpy.SpatialReference('NAD 1983 UTM Zone 19N')  # 2011?
-    #arcpy.DefineProjection_management(output, sr)
+    def gen_tile_centroids_shp_NAD83_UTM(self):
+        logging.info('generating shapefile containing centroids of contractor-provided las tile polygons...')
+        gdf = gpd.read_file(self.qaqc_config.contractor_shp)
+        gdf['geometry'] = gdf['geometry'].centroid
+        gdf.to_file(self.qaqc_config.contractor_centroids_shp_NAD83_UTM, driver='ESRI Shapefile')
+        return self.qaqc_config.contractor_centroids_shp_NAD83_UTM
+        #sr = arcpy.SpatialReference('NAD 1983 UTM Zone 19N')  # 2011?
+        #arcpy.DefineProjection_management(output, sr)
 
-def add_layer_to_mxd(layer):
-    mxd = arcpy.mapping.MapDocument(dz_mxd)
-    df = arcpy.mapping.ListDataFrames(mxd)[0]
-    lyr = arcpy.mapping.Layer(layer)
-    try:
-        arcpy.mapping.AddLayer(df, lyr, 'TOP')
-        mxd.save()
-    except Exception as e:
-        print(e)
+    def add_layer_to_mxd(self, layer):
+        mxd = arcpy.mapping.MapDocument(self.qaqc_config.dz_mxd)
+        df = arcpy.mapping.ListDataFrames(mxd)[0]
+        lyr = arcpy.mapping.Layer(layer)
+        try:
+            arcpy.mapping.AddLayer(df, lyr, 'TOP')
+            mxd.save()
+        except Exception as e:
+            print(e)
 
 
-def run_console_cmd(cmd):
-    process = subprocess.Popen(cmd.split(' '))
-    output, error = process.communicate()
-    returncode = process.poll()
-    return returncode, output
+    def run_console_cmd(cmd):
+        process = subprocess.Popen(cmd.split(' '))
+        output, error = process.communicate()
+        returncode = process.poll()
+        return returncode, output
 
-def run_qaqc(progress_bar, progress_label):
+
+def run_qaqc(progress, qaqc_config_json):
     logging.basicConfig(format='%(asctime)s:%(message)s', level=logging.INFO)
+    
+    qaqc_config = Configuration(qaqc_config_json)
+    print(qaqc_config)
 
-    gen_tile_centroids_shp_NAD83_UTM()
-    add_layer_to_mxd(contractor_centroids_shp_NAD83_UTM)
-
-    nantucket = LasTileCollection(las_tile_dir)
-    qaqc = QaqcTileCollection(nantucket.get_las_tile_paths()[0:10], exp_cls_key, progress_bar, progress_label)
+    nantucket = LasTileCollection(qaqc_config.las_tile_dir)
+    qaqc = QaqcTileCollection(nantucket.get_las_tile_paths(), qaqc_config, progress)
+    
+    tile_centroids = qaqc.gen_tile_centroids_shp_NAD83_UTM()
+    qaqc.add_layer_to_mxd(tile_centroids)
     
     qaqc.run_qaqc_tile_collection_checks(multiprocess=False)
-    qaqc.gen_qaqc_shp_NAD83_UTM(qaqc_shp_NAD83_UTM_POLYGONS)
+    qaqc.gen_qaqc_shp_NAD83_UTM(qaqc_config.qaqc_shp_NAD83_UTM_POLYGONS)
     
     # build the mosaics the user checked
-    for m in [k for k, v in mosaics_to_make.iteritems() if v[0]]:
+    for m in [k for k, v in qaqc_config.mosaics_to_make.iteritems() if v[0]]:
         qaqc.gen_mosaic(k)
 
 
 if __name__ == '__main__':
     arcpy.env.overwriteOutput = True
-
-    run_qaqc(progress_bar, progress_label)
+    
+    run_qaqc(progress, qaqc_config)

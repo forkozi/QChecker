@@ -172,10 +172,11 @@ class QaqcApp(tk.Tk):
         # supp_las_domain
         self.configuration['supp_las_domain'] = self.components['supp_las_domain'].get()
 
-        config = 'Z:\qaqc\qaqc_config.json'
-        print('saving {}...\n{}'.format(config, self.configuration))
-        with open(config, 'w') as f:
+        print('saving {}...'.format(self.config_file))
+        with open(self.config_file, 'w') as f:
             json.dump(self.configuration, f)
+
+        print(json.dumps(self.configuration, indent=4, sort_keys=True))
 
     @staticmethod
     def show_about():
@@ -219,6 +220,7 @@ class MainGuiPage(ttk.Frame):
         ttk.Frame.__init__(self, parent)
 
         self.parent = parent  # container made in QaqcApp
+        self.controller = controller
         self.config = controller.configuration  # from QaqcApp
         self.gui = controller.components  # from QaqcApp
         self.las_classes_file = 'Z:\qaqc\las_classes.json'
@@ -333,14 +335,14 @@ class MainGuiPage(ttk.Frame):
         progress_frame = ttk.Frame(popup)
         progress_frame.grid(row=0, sticky=tk.EW)
         
-        progress_bar = ttk.Progressbar(progress_frame, orient=tk.HORIZONTAL, maximum=300, length=500)  # mode='indeterminate'
+        progress_bar = ttk.Progressbar(progress_frame, orient=tk.HORIZONTAL, length=500)  # mode='indeterminate'
         progress_bar.grid(column=0, row=0)
 
-        progress_label = tk.Label(progress_frame)
+        progress_label = tk.Label(progress_frame, justify=tk.LEFT, anchor=tk.W)
         progress_label.grid(column=1, row=0)
 
         popup.update()
-        return progress_bar, progress_label
+        return (progress_bar, progress_label)
 
     def build_gui(self):
         self.build_metadata()
@@ -693,8 +695,9 @@ class MainGuiPage(ttk.Frame):
 
     def run_qaqc_process(self):
         #verify_input()
-        progress_bar, progress_label = self.add_progress_bar()
-        run_qaqc(progress_bar, progress_label) #  from qaqc.py
+        self.controller.save_config()
+        progress = self.add_progress_bar()
+        run_qaqc(progress, self.controller.config_file) #  from qaqc.py
     
 
 if __name__ == "__main__":
