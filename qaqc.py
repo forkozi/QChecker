@@ -67,6 +67,12 @@ class Configuration:
     def __str__(self):
         return json.dumps(self.data, indent=4, sort_keys=True)
 
+    @staticmethod
+    def run_console_cmd(cmd):
+        process = subprocess.Popen(cmd.split(' '))
+        output, error = process.communicate()
+        returncode = process.poll()
+        return returncode, output
 
 class LasTileCollection():
 
@@ -228,7 +234,7 @@ class LasTile:
         print('generating pyramids for {}...'.format(self.path))
         print(cmd_str)
         try:
-            returncode, output = run_console_cmd(cmd_str)
+            returncode, output = self.config.run_console_cmd(cmd_str)
         except Exception as e:
             print(e)
 
@@ -338,7 +344,7 @@ class Surface:
         print('generating dz ortho for {}...'.format(las))
         print(cmd_str)
         try:
-            returncode, output = run_console_cmd(cmd_str)
+            returncode, output = self.config.run_console_cmd(cmd_str)
         except Exception as e:
             print(e)
 
@@ -494,14 +500,16 @@ class QaqcTile:
 
     def run_qaqc_checks(self, las_paths):       
         num_las = len(las_paths)
-        las_with_bathy = 0
-        self.progress[0]['maximum'] = num_las
+        #self.progress[1]['maximum'] = num_las
         tic = time.time()
         for i, las_path in enumerate(las_paths):
 
+            #if i == 0:
+            #    self.progress[2]['text'] = '{} of {} tiles\n~{} mins remaining'.format(
+            #        i+1, num_las, '?')
+            #    self.progress[2].update()
+
             tile = LasTile(las_path, self.config)
-            if tile.has_bathy:
-                las_with_bathy += 1
 
             for c in [k for k, v in self.config.checks_to_do.iteritems() if v]:
                 logging.info('running {}...'.format(c))
@@ -515,17 +523,21 @@ class QaqcTile:
 
             tile.output_las_qaqc_to_json()
 
-            time_elapsed = time.time() - tic
-            num_las_remaining = num_las - (i + 1)
-            mean_delta_time = time_elapsed / (i + 1)
-            time_remaining_est = (mean_delta_time * num_las_remaining) / 60.0
+            #time_elapsed = time.time() - tic
+            #num_las_remaining = num_las - (i + 1)
+            #mean_delta_time = time_elapsed / (i + 1)
+            #time_remaining_est = (mean_delta_time * num_las_remaining) / 60.0
 
-            # update progress bar and label that was passed form qaqc_gui.py
-            self.progress[0].step(1)
-            self.progress[1]['text'] = '{} of {} tiles\n~{:.1f} mins remaining\n{} tiles have bathy so far'.format(
-                i+1, num_las, time_remaining_est, las_with_bathy)
-            self.progress[0].update()
-            self.progress[1].update()
+            ## update progress bar and label that was passed form qaqc_gui.py
+            #self.progress[1]['value'] = i + 1
+            #if i + 1 == num_las:
+            #    self.progress[2]['text'] = '{} of {} tiles DONE'.format(i+1, num_las)
+            #else:
+            #    self.progress[2]['text'] = '{} of {} tiles\n~{:.1f} mins remaining'.format(
+            #        i+1, num_las, time_remaining_est)
+
+            #self.progress[1].update()
+            #self.progress[2].update()
 
     def run_qaqc(self, las_paths, multiprocess):
         if multiprocess:
@@ -674,7 +686,7 @@ class QaqcTileCollection:
         gdf.to_csv(out_csv)
 
     def gen_tile_centroids_shp_NAD83_UTM(self):
-        logging.info('generating shapefile containing centroids of contractor-provided las tile polygons...')
+        logging.info('generating shapefile containing centroids of contractor tile polygons...')
         gdf = gpd.read_file(self.config.contractor_shp)
         gdf['geometry'] = gdf['geometry'].centroid
         gdf.to_file(self.config.contractor_centroids_shp_NAD83_UTM, driver='ESRI Shapefile')
@@ -692,12 +704,6 @@ class QaqcTileCollection:
         except Exception as e:
             print(e)
 
-    def run_console_cmd(cmd):
-        process = subprocess.Popen(cmd.split(' '))
-        output, error = process.communicate()
-        returncode = process.poll()
-        return returncode, output
-
 
 def run_qaqc(progress, config_json):
     logging.basicConfig(format='%(asctime)s:%(message)s', level=logging.INFO)
@@ -708,16 +714,32 @@ def run_qaqc(progress, config_json):
     nantucket = LasTileCollection(config.las_tile_dir)
     qaqc = QaqcTileCollection(nantucket.get_las_tile_paths()[0:10], config, progress)
     
-    tile_centroids = qaqc.gen_tile_centroids_shp_NAD83_UTM()
-    qaqc.add_layer_to_mxd(tile_centroids)
+    if not os.path.isfile(config.contractor_centroids_shp_NAD83_UTM):
+        tile_centroids = qaqc.gen_tile_centroids_shp_NAD83_UTM()
+        qaqc.add_layer_to_mxd(tile_centroids)
+    else:
+        logging.info('{} alread exists'.format(config.contractor_centroids_shp_NAD83_UTM))
     
     qaqc.run_qaqc_tile_collection_checks(multiprocess=False)
     qaqc.gen_qaqc_shp_NAD83_UTM(config.qaqc_shp_NAD83_UTM_POLYGONS)
     
     # build the mosaics the user checked
     for m in [k for k, v in config.mosaics_to_make.iteritems() if v[0]]:
+
+        ## update progress bar and label that was passed form qaqc_gui.py
+        #self.progress[0].step(1)
+        #self.progress[1]['text'] = '{} of {} tiles\n~{:.1f} mins remaining\n{} tiles have bathy so far'.format(
+        #    i+1, num_las, time_remaining_est, las_with_bathy)
+        #self.progress[0].update()
+        #self.progress[1].update()
+
         qaqc.gen_mosaic(k)
 
+    logging.info('\n\nYAY, you just QAQC\'d project {}!!!\n\n'.format(config.project_name))
+
+    with open('finish_message.txt', 'r') as f:
+        message = f.readlines()
+    print(''.join(message))
 
 if __name__ == '__main__':
     arcpy.env.overwriteOutput = True

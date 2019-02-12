@@ -7,6 +7,7 @@ import time
 import json
 import pandas as pd
 import matplotlib
+import threading
 
 matplotlib.use('Agg')
 
@@ -335,14 +336,26 @@ class MainGuiPage(ttk.Frame):
         progress_frame = ttk.Frame(popup)
         progress_frame.grid(row=0, sticky=tk.EW)
         
-        progress_bar = ttk.Progressbar(progress_frame, orient=tk.HORIZONTAL, length=500)  # mode='indeterminate'
-        progress_bar.grid(column=0, row=0)
+        # checks progress
+        progress_label1a = tk.Label(progress_frame, text='Checks', justify=tk.LEFT, anchor=tk.W)
+        progress_label1a.grid(column=0, row=0, sticky=tk.EW)
+        progress_bar1 = ttk.Progressbar(progress_frame, orient=tk.HORIZONTAL, length=500, value=1)
+        progress_bar1.grid(column=1, row=0, sticky=tk.EW)
+        progress_label1b = tk.Label(progress_frame, justify=tk.LEFT, anchor=tk.W)
+        progress_label1b.grid(column=2, row=0, sticky=tk.EW)
 
-        progress_label = tk.Label(progress_frame, justify=tk.LEFT, anchor=tk.W)
-        progress_label.grid(column=1, row=0)
+        # surfaces progress
+        progress_label2a = tk.Label(progress_frame, text='Surfaces', justify=tk.LEFT, anchor=tk.W)
+        progress_label2a.grid(column=0, row=1, sticky=tk.EW)
+        progress_bar2 = ttk.Progressbar(progress_frame, orient=tk.HORIZONTAL, length=500, 
+                                        value=0, maximum=0, mode='indeterminate') 
+        progress_bar2.grid(column=1, row=1, sticky=tk.EW)
+        progress_label2b = tk.Label(progress_frame, justify=tk.LEFT, anchor=tk.W)
+        progress_label2b.grid(column=2, row=1, sticky=tk.EW)
 
         popup.update()
-        return (progress_bar, progress_label)
+        return (progress_label1a, progress_bar1, progress_label1b, 
+                progress_label2a, progress_bar2, progress_label2b)
 
     def build_gui(self):
         self.build_metadata()
@@ -350,7 +363,7 @@ class MainGuiPage(ttk.Frame):
         self.build_dirs()
         self.add_checks()
         self.add_surfaces()
-        self.add_run_button()                 
+        self.add_run_button()   
 
     def build_metadata(self):
         '''Metadata'''
@@ -681,23 +694,34 @@ class MainGuiPage(ttk.Frame):
             
             sep = ttk.Separator(subframe, orient=tk.HORIZONTAL)
             sep.grid(row=2, columnspan=4, padx=(10, 0), pady=(5, 5), sticky=tk.EW)
-            
+
     def add_run_button(self):
         run_frame = ttk.Frame(self)
         run_frame.grid(row=self.section_rows['run_button'], sticky=tk.NSEW, pady=(10, 0))
 
+        self.add_progress_bar()
+
         btn = tk.Button(run_frame, text="Run QAQC Processes", 
-             command=self.run_qaqc_process, height=2)
+             command=lambda: self.bar_init(), height=2)
         btn.grid(column=0, row=0, sticky=tk.EW, padx=(120, 0))
 
-    def verify_input():
-        pass
+    def bar_init(self):
+        self.start_bar_thread = threading.Thread(target=self.start_bar, args=())
+        self.start_bar_thread.start()
+
+    def start_bar(self):
+        #self.load_bar.config(mode='indeterminate', maximum=100, value=0)
+        progress[4].start(1)
+        self.run_qaqc_process = threading.Thread(target=self.run_qaqc_process, args=())
+        self.run_qaqc_process.start()
+        self.run_qaqc_process.join()
+        progress[4].stop()
+        progress[4].config(value=0, maximum=0)
 
     def run_qaqc_process(self):
-        #verify_input()
         self.controller.save_config()
-        progress = self.add_progress_bar()
-        run_qaqc(progress, self.controller.config_file) #  from qaqc.py
+        #progress = self.add_progress_bar()
+        run_qaqc(self.controller.config_file) #  from qaqc.py
     
 
 if __name__ == "__main__":

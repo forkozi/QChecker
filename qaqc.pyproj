@@ -32,6 +32,9 @@
     <Compile Include="config_las_json.py">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="module2.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="qaqc_gui.py">
       <SubType>Code</SubType>
     </Compile>
