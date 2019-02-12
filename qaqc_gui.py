@@ -281,7 +281,7 @@ class MainGuiPage(ttk.Frame):
 
         def add_domain_profile_selector():
             label = tk.Label(supp_classes_frame, 
-                             text='Supplemental {} Classes'.format(las_version), 
+                             text='Supplemental LAS {} Classes'.format(las_version), 
                              font=NORM_FONT_BOLD)
             label.grid(row=0, sticky=tk.EW)
             supp_classes_domain = tk.OptionMenu(supp_classes_frame, 
