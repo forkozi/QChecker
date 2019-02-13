@@ -17,7 +17,8 @@ from geodaisy import GeoObject
 import Tkinter as tk
 import ttk
 import time
-import threading
+import datetime
+import progressbar
 
 
 class Configuration:
@@ -99,7 +100,7 @@ class LasTileCollection():
             value = c.find('Values')[0].text
             classes[label] = value
         classes_json_str = json.dumps(classes, indent=2)
-        print(classes_json_str)
+        logging.info(classes_json_str)
 
 
 class LasTile:
@@ -211,7 +212,7 @@ class LasTile:
         classes_present = [c for c in class_counts[0]]
         class_counts = dict(zip(['class{}'.format(str(c)) for c in class_counts[0]],
                                 [int(c) for c in class_counts[1]]))
-        print(class_counts)
+        logging.info(class_counts)
         return classes_present, class_counts
 
     def get_gps_time(self):
@@ -224,6 +225,9 @@ class LasTile:
     def get_las_pdrf(self):
         return self.header['data_format_id']
 
+    def get_pt_src_ids(self):
+        return np.unique(self.inFile.pt_src_id)
+
     def get_hdatum(self):
         return self.header['VLRs']['coord_sys']
 
@@ -231,12 +235,12 @@ class LasTile:
         exe = r'C:\Program Files\Common Files\LP360\LDPyramid.exe'
         thin_factor = 12
         cmd_str = '{} -f {} {}'.format(exe, thin_factor, self.path)
-        print('generating pyramids for {}...'.format(self.path))
-        print(cmd_str)
+        logging.info('generating pyramids for {}...'.format(self.path))
+        logging.info(cmd_str)
         try:
             returncode, output = self.config.run_console_cmd(cmd_str)
         except Exception as e:
-            print(e)
+            logging.info(e)
 
 
 class Mosaic:
@@ -256,7 +260,7 @@ class Mosaic:
                 self.config.qaqc_gdb, self.raster_catalog_base_name,
                 raster_management_type='UNMANAGED')
         except Exception as e:
-            print(e)
+            logging.info(e)
 
     def add_dir_to_raster_catalog(self):
         logging.info('adding {}_rasters to {}...'.format(self.mtype, self.raster_catalog_path))
@@ -272,7 +276,7 @@ class Mosaic:
             arcpy.RasterCatalogToRasterDataset_management(self.raster_catalog_path, 
                                                           self.mosaic_raster_path)
         except Exception as e:            
-            print(e)
+            logging.info(e)
 
     def add_mosaic_to_mxd(self):
         mxd = arcpy.mapping.MapDocument(self.config.dz_mxd)
@@ -283,7 +287,7 @@ class Mosaic:
             arcpy.mapping.AddLayer(df, dz_lyr, 'AUTO_ARRANGE')
             mxd.save()
         except Exception as e:
-            print(e)
+            logging.info(e)
 
     def update_raster_symbology(self):
         mxd = arcpy.mapping.MapDocument(self.config.dz_mxd)
@@ -294,7 +298,7 @@ class Mosaic:
         try:
             mxd.save()
         except Exception as e:
-            print(e)
+            logging.info(e)
 
 
 class Surface:
@@ -323,7 +327,7 @@ class Surface:
             arcpy.FloatToRaster_conversion(self.binary_path[self.stype], 
                                            self.raster_path[self.stype])
         except Exception as e:
-            print(e)
+            logging.info(e)
 
     def update_dz_export_settings_extents(self):
         logging.info('updating dz export settings xml with las extents...')
@@ -341,12 +345,12 @@ class Surface:
         las = self.las_path.replace('CLASSIFIED_LAS\\', 'CLASSIFIED_LAS\\\\')
         dz = r'C:\QAQC_contract\nantucket\dz\{}'.format(self.las_name)
         cmd_str = '{} -s {} -f {} -o {}'.format(exe, self.config.dz_export_settings, las, dz)
-        print('generating dz ortho for {}...'.format(las))
-        print(cmd_str)
+        logging.info('generating dz ortho for {}...'.format(las))
+        logging.info(cmd_str)
         try:
             returncode, output = self.config.run_console_cmd(cmd_str)
         except Exception as e:
-            print(e)
+            logging.info(e)
 
     def gen_hillshade_surface():
         pass
@@ -357,9 +361,8 @@ class QaqcTile:
     passed_text = 'PASSED'
     failed_text = 'FAILED'
 
-    def __init__(self, config, progress):
+    def __init__(self, config):
         self.config = config
-        self.progress = progress
         self.checks = {
             'naming': self.check_las_naming,
             'version': self.check_las_version,
@@ -405,6 +408,7 @@ class QaqcTile:
             passed = self.failed_text
         tile.checks_result['naming'] = tile.name
         tile.checks_result['naming_passed'] = passed
+        logging.info(tile.checks_result['naming'])
         return passed
 
     def check_las_version(self, tile):
@@ -415,6 +419,7 @@ class QaqcTile:
             passed = self.failed_text
         tile.checks_result['version'] = version
         tile.checks_result['version_passed'] = passed
+        logging.info(tile.checks_result['version'])
         return passed
 
     def check_las_pdrf(self, tile):
@@ -426,6 +431,7 @@ class QaqcTile:
             passed = self.failed_text
         tile.checks_result['pdrf'] = pdrf
         tile.checks_result['pdrf_passed'] = passed
+        logging.info(tile.checks_result['pdrf'])
         return passed
 
     def check_las_gps_time(self, tile):
@@ -436,6 +442,7 @@ class QaqcTile:
             passed = self.failed_text
         tile.checks_result['gps_time'] = gps_time
         tile.checks_result['gps_time_passed'] = passed
+        logging.info(tile.checks_result['gps_time'])
         return passed
 
     def check_hdatum(self, tile):  # TODO
@@ -446,6 +453,7 @@ class QaqcTile:
             passed = self.failed_text
         tile.checks_result['hdatum'] = hdatum
         tile.checks_result['hdatum_passed'] = passed
+        logging.info(tile.checks_result['hdatum'])
         return passed
 
     def check_unexp_cls(self, tile):
@@ -456,13 +464,22 @@ class QaqcTile:
             passed = self.failed_text
         tile.checks_result['exp_clas'] = str(unexp_cls)
         tile.checks_result['exp_clas_passed'] = passed
+        logging.info(tile.checks_result['exp_clas'])
         return passed
 
     def check_vdatum(self):
         pass
 
-    def check_pt_src_ids(self):
-        pass
+    def check_pt_src_ids(self, tile):
+        unq_pt_src_ids = tile.get_pt_src_ids()
+        if len(unq_pt_src_ids) > 1:
+            passed = self.passed_text
+        else:
+            passed = self.failed_text
+        tile.checks_result['pnt_src_ids'] = str(unq_pt_src_ids)
+        tile.checks_result['pnt_src_ids_passed'] = passed
+        logging.info(tile.checks_result['pnt_src_ids'])
+        return passed
 
     def calc_pt_cloud_stats(self):
         pass
@@ -481,7 +498,7 @@ class QaqcTile:
         pass
 
     def add_tile_check_results(self, tile_check_results):
-        print(tile_check_results)
+        logging.info(tile_check_results)
 
     def update_qaqc_results_table(self):
         pass
@@ -490,7 +507,7 @@ class QaqcTile:
         from qaqc import LasTile, LasTileCollection
         import logging
         import xml.etree.ElementTree as ET
-        logging.basicConfig(format='%(asctime)s:%(message)s', level=logging.INFO)
+        #logging.basicConfig(format='%(asctime)s:%(message)s', level=logging.INFO)
         tile = LasTile(las_path, self.config)
         for c in [k for k, v in self.config.checks_to_do.iteritems() if v]:
             logging.info('running {}...'.format(c))
@@ -502,12 +519,9 @@ class QaqcTile:
         num_las = len(las_paths)
         #self.progress[1]['maximum'] = num_las
         tic = time.time()
-        for i, las_path in enumerate(las_paths):
 
-            #if i == 0:
-            #    self.progress[2]['text'] = '{} of {} tiles\n~{} mins remaining'.format(
-            #        i+1, num_las, '?')
-            #    self.progress[2].update()
+        for las_path in progressbar.progressbar(las_paths, redirect_stdout=True):
+        #for i, las_path in enumerate(las_paths):
 
             tile = LasTile(las_path, self.config)
 
@@ -523,26 +537,10 @@ class QaqcTile:
 
             tile.output_las_qaqc_to_json()
 
-            #time_elapsed = time.time() - tic
-            #num_las_remaining = num_las - (i + 1)
-            #mean_delta_time = time_elapsed / (i + 1)
-            #time_remaining_est = (mean_delta_time * num_las_remaining) / 60.0
-
-            ## update progress bar and label that was passed form qaqc_gui.py
-            #self.progress[1]['value'] = i + 1
-            #if i + 1 == num_las:
-            #    self.progress[2]['text'] = '{} of {} tiles DONE'.format(i+1, num_las)
-            #else:
-            #    self.progress[2]['text'] = '{} of {} tiles\n~{:.1f} mins remaining'.format(
-            #        i+1, num_las, time_remaining_est)
-
-            #self.progress[1].update()
-            #self.progress[2].update()
-
     def run_qaqc(self, las_paths, multiprocess):
         if multiprocess:
             p = pp.ProcessPool(4)
-            print(p)
+            logging.info(p)
             p.imap(self.run_qaqc_checks_multiprocess, las_paths)
             p.close()
             p.join()
@@ -552,13 +550,12 @@ class QaqcTile:
 
 class QaqcTileCollection:
 
-    def __init__(self, las_paths, config, progress):
+    def __init__(self, las_paths, config,):
         self.las_paths = las_paths
-        self.progress = progress
         self.config = config
 
     def run_qaqc_tile_collection_checks(self, multiprocess):
-        tiles_qaqc = QaqcTile(self.config, self.progress)
+        tiles_qaqc = QaqcTile(self.config)
         tiles_qaqc.run_qaqc(self.las_paths, multiprocess)
 
     def gen_qaqc_results_dict(self):
@@ -580,7 +577,7 @@ class QaqcTileCollection:
                     flattened_json_data = {k:v for k,v in flatten_dict(json_data)}
                     flattened_dicts.append(flattened_json_data)
             except Exception as e:
-                print(e)
+                logging.info(e)
         return flattened_dicts
 
     def get_qaqc_results_df(self):
@@ -600,7 +597,7 @@ class QaqcTileCollection:
         try:
             os.remove(output)
         except Exception as e:
-            print(e)
+            logging.info(e)
         gdf.to_file(output, driver="GeoJSON")
 
     def gen_qaqc_results_gdf_NAD83_UTM_POLYGONS(self):
@@ -616,7 +613,7 @@ class QaqcTileCollection:
         try:
             os.remove(output)
         except Exception as e:
-            print(e)
+            logging.info(e)
         gdf.to_file(output, driver="GeoJSON")
 
     def gen_qaqc_csv(self, output):
@@ -637,13 +634,14 @@ class QaqcTileCollection:
                                 'ExtentYMin', 'centroid_x', 'centroid_y', 
                                 'created_day', 'created_year', 'tile_polygon', 
                                 'x_max', 'x_min', 'y_max', 'y_min'])
-        print(gdf)
+        logging.info(gdf)
         gdf.to_file(output, driver='ESRI Shapefile')
         sr = arcpy.SpatialReference('NAD 1983 UTM Zone 19N')  # 2011?
         try:
             arcpy.DefineProjection_management(output, sr)
         except Exception as e:
-            print(e)
+            logging.info(e)
+        logging.info(self.config.dz_mxd)
         mxd = arcpy.mapping.MapDocument(self.config.dz_mxd)
         df = arcpy.mapping.ListDataFrames(mxd)[0]
         qaqc_lyr = arcpy.mapping.Layer(output)
@@ -651,7 +649,7 @@ class QaqcTileCollection:
             arcpy.mapping.AddLayer(df, qaqc_lyr, 'TOP')  # add qaqc tile shp
             mxd.save()
         except Exception as e:
-            print(e)
+            logging.info(e)
 
     def gen_mosaic(self, mtype):
         mosaic = Mosaic(mtype, self.config)
@@ -667,7 +665,7 @@ class QaqcTileCollection:
         try:
             os.remove(geojson)
         except Exception as e:
-            print(e)
+            logging.info(e)
         gdf.to_file(geojson, driver="GeoJSON")
 
     @staticmethod
@@ -702,17 +700,22 @@ class QaqcTileCollection:
             arcpy.mapping.AddLayer(df, lyr, 'TOP')
             mxd.save()
         except Exception as e:
-            print(e)
+            logging.info(e)
 
 
-def run_qaqc(progress, config_json):
-    logging.basicConfig(format='%(asctime)s:%(message)s', level=logging.INFO)
+def run_qaqc(config_json):
+    now = datetime.datetime.now()
+    date_time_now_str = '{}{}{}_{}{}{}'.format(now.year, now.month, now.day,
+                                               now.hour, now.minute, now.second)
+    logging.basicConfig(filename='cBLUE_{}.log'.format(date_time_now_str), 
+                        format='%(asctime)s:%(message)s', 
+                        level=logging.INFO)
     
     config = Configuration(config_json)
-    print(config)
+    logging.info(config)
 
     nantucket = LasTileCollection(config.las_tile_dir)
-    qaqc = QaqcTileCollection(nantucket.get_las_tile_paths()[0:10], config, progress)
+    qaqc = QaqcTileCollection(nantucket.get_las_tile_paths()[0:100], config)
     
     if not os.path.isfile(config.contractor_centroids_shp_NAD83_UTM):
         tile_centroids = qaqc.gen_tile_centroids_shp_NAD83_UTM()
@@ -725,23 +728,15 @@ def run_qaqc(progress, config_json):
     
     # build the mosaics the user checked
     for m in [k for k, v in config.mosaics_to_make.iteritems() if v[0]]:
-
-        ## update progress bar and label that was passed form qaqc_gui.py
-        #self.progress[0].step(1)
-        #self.progress[1]['text'] = '{} of {} tiles\n~{:.1f} mins remaining\n{} tiles have bathy so far'.format(
-        #    i+1, num_las, time_remaining_est, las_with_bathy)
-        #self.progress[0].update()
-        #self.progress[1].update()
-
         qaqc.gen_mosaic(k)
 
     logging.info('\n\nYAY, you just QAQC\'d project {}!!!\n\n'.format(config.project_name))
 
     with open('finish_message.txt', 'r') as f:
         message = f.readlines()
-    print(''.join(message))
+    logging.info(''.join(message))
 
 if __name__ == '__main__':
     arcpy.env.overwriteOutput = True
     
-    run_qaqc(progress, config)
+    run_qaqc(config)

@@ -72,9 +72,10 @@ class QaqcApp(tk.Tk):
         self.components = {}
         
 
-        self.components.update({'metadata': {
+        self.components.update({'options': {
             'project_name': ['Project Name', None],
             'tile_size': ['Tile Size (m)', None],
+            'to_pyramid': ['Build LAS Pyramids', None],
             }})
 
         self.components.update({'files_to_set': {
@@ -140,8 +141,8 @@ class QaqcApp(tk.Tk):
 
     def save_config(self):
 
-        # metadata
-        for k, v in self.components['metadata'].iteritems():
+        # options
+        for k, v in self.components['options'].iteritems():
             self.configuration[k] = v[1].get()
             
         # files_to_set
@@ -228,7 +229,7 @@ class MainGuiPage(ttk.Frame):
 
        
         self.section_rows = {
-            'metadata': 0,
+            'options': 0,
             'files': 1,
             'dirs': 2,
             'checks': 3,
@@ -237,8 +238,14 @@ class MainGuiPage(ttk.Frame):
             }
 
         #  Build the GUI
-        self.control_panel_width = 30
-        self.build_gui()
+        self.control_panel_width = 50
+
+        self.build_options()
+        self.build_files()
+        self.build_dirs()
+        self.add_checks()
+        self.add_surfaces()
+        self.add_run_panel()  
 
     @staticmethod
     def build_display_str(str):
@@ -337,41 +344,37 @@ class MainGuiPage(ttk.Frame):
         progress_frame.grid(row=0, sticky=tk.EW)
         
         # checks progress
-        progress_label1a = tk.Label(progress_frame, text='Checks', justify=tk.LEFT, anchor=tk.W)
+        progress_label1a = tk.Label(progress_frame, text='Tiles', justify=tk.LEFT, anchor=tk.W)
         progress_label1a.grid(column=0, row=0, sticky=tk.EW)
-        progress_bar1 = ttk.Progressbar(progress_frame, orient=tk.HORIZONTAL, length=500, value=1)
+        progress_bar1 = ttk.Progressbar(progress_frame, orient=tk.HORIZONTAL, length=500, 
+                                        value=0, maximum=100, mode='indeterminate') 
         progress_bar1.grid(column=1, row=0, sticky=tk.EW)
         progress_label1b = tk.Label(progress_frame, justify=tk.LEFT, anchor=tk.W)
         progress_label1b.grid(column=2, row=0, sticky=tk.EW)
 
         # surfaces progress
-        progress_label2a = tk.Label(progress_frame, text='Surfaces', justify=tk.LEFT, anchor=tk.W)
+        progress_label2a = tk.Label(progress_frame, text='Mosaics', justify=tk.LEFT, anchor=tk.W)
         progress_label2a.grid(column=0, row=1, sticky=tk.EW)
         progress_bar2 = ttk.Progressbar(progress_frame, orient=tk.HORIZONTAL, length=500, 
-                                        value=0, maximum=0, mode='indeterminate') 
+                                        value=0, maximum=100, mode='indeterminate') 
         progress_bar2.grid(column=1, row=1, sticky=tk.EW)
         progress_label2b = tk.Label(progress_frame, justify=tk.LEFT, anchor=tk.W)
         progress_label2b.grid(column=2, row=1, sticky=tk.EW)
 
         popup.update()
-        return (progress_label1a, progress_bar1, progress_label1b, 
-                progress_label2a, progress_bar2, progress_label2b)
 
-    def build_gui(self):
-        self.build_metadata()
-        self.build_files()
-        self.build_dirs()
-        self.add_checks()
-        self.add_surfaces()
-        self.add_run_button()   
+        progress = (progress_label1a, progress_bar1, progress_label1b, 
+                    progress_label2a, progress_bar2, progress_label2b)
 
-    def build_metadata(self):
-        '''Metadata'''
+        return progress 
 
-        meta_frame = ttk.Frame(self)
-        meta_frame.grid(row=self.section_rows['metadata'], sticky=tk.NSEW)
+    def build_options(self):
+        '''options'''
 
-        label = tk.Label(meta_frame, text='Metadata', font=LARGE_FONT_BOLD)
+        options_frame = ttk.Frame(self)
+        options_frame.grid(row=self.section_rows['options'], sticky=tk.NSEW)
+
+        label = tk.Label(options_frame, text='Settings', font=LARGE_FONT_BOLD)
         label.grid(row=0, columnspan=3, pady=(10, 0), sticky=tk.W)
 
         def get_proj_names():
@@ -381,24 +384,42 @@ class MainGuiPage(ttk.Frame):
 
         item = 'project_name'
         row = 1
-        meta_label = tk.Label(meta_frame, text=self.gui['metadata'][item][0])
-        meta_label.grid(column=0, row=row, sticky=tk.W)
-        self.gui['metadata'][item][1] = tk.StringVar()
-        self.gui['metadata'][item][1].set(self.config[item])
-        proj_down_down = tk.OptionMenu(meta_frame, self.gui['metadata'][item][1], *get_proj_names())
+        option_label = tk.Label(options_frame, text=self.gui['options'][item][0], width=20, anchor=tk.W, justify=tk.LEFT)
+        option_label.grid(column=0, row=row, sticky=tk.W)
+        self.gui['options'][item][1] = tk.StringVar()
+        self.gui['options'][item][1].set(self.config[item])
+        proj_down_down = tk.OptionMenu(options_frame, self.gui['options'][item][1], *get_proj_names())
         proj_down_down.grid(column=1, row=row, sticky=tk.EW)
 
         item = 'tile_size'
         row = 2
-        meta_label = tk.Label(meta_frame, text=self.gui['metadata'][item][0])
-        meta_label.grid(column=0, row=row, sticky=tk.W)
-        self.gui['metadata'][item][1] = tk.StringVar(meta_frame, value=self.config[item])
-        self.gui['metadata'][item][1] = tk.Entry(
-            meta_frame, 
-            textvariable=self.gui['metadata'][item][1], 
-             state='disabled', 
+        option_label = tk.Label(options_frame, text=self.gui['options'][item][0], width=20, anchor=tk.W, justify=tk.LEFT)
+        option_label.grid(column=0, row=row, sticky=tk.W)
+        self.gui['options'][item][1] = tk.StringVar(options_frame, value=self.config[item])
+        self.gui['options'][item][1] = tk.Entry(
+            options_frame, 
+            textvariable=self.gui['options'][item][1], 
+            state='disabled', 
             width=5)
-        self.gui['metadata'][item][1].grid(column=1, row=row, sticky=tk.EW)
+        self.gui['options'][item][1].grid(column=1, row=row, sticky=tk.EW)
+
+        item = 'to_pyramid'
+        row = 3
+        option_label = tk.Label(options_frame, text='Build LAS Pyramids', width=20, anchor=tk.W, justify=tk.LEFT)
+        option_label.grid(column=0, row=row, sticky=tk.W)
+        self.gui['options'][item][1] = tk.BooleanVar()
+        is_checked = self.config[item]
+        self.gui['options'][item][1].set(is_checked)
+        chk = tk.Checkbutton(
+            options_frame, 
+            text='',
+            var=self.gui['options'][item][1], 
+            anchor=tk.W, justify=tk.LEFT)
+        chk.grid(column=1, row=row, sticky=tk.W)
+
+        #sep = ttk.Separator(options_frame, orient=tk.HORIZONTAL)
+        #sep.grid(row=row + 1, columnspan=4, padx=(10, 0), pady=(5, 5), sticky=tk.EW)
+
 
     def build_files(self):
         '''Files'''
@@ -406,8 +427,8 @@ class MainGuiPage(ttk.Frame):
         files_frame = ttk.Frame(self)
         files_frame.grid(row=self.section_rows['files'], sticky=tk.NSEW)
 
-        label = tk.Label(files_frame, text='Files', font=LARGE_FONT_BOLD)
-        label.grid(row=0, columnspan=3, pady=(10, 0), sticky=tk.W)
+        #label = tk.Label(files_frame, text='Files', font=LARGE_FONT_BOLD)
+        #label.grid(row=0, columnspan=3, pady=(10, 0), sticky=tk.W)
 
         def bind_files_command(f):
             def func():
@@ -419,7 +440,7 @@ class MainGuiPage(ttk.Frame):
             return func
 
         for i, f in enumerate(self.gui['files_to_set'], 1):
-            check_label = tk.Label(files_frame, text=self.gui['files_to_set'][f][0])
+            check_label = tk.Label(files_frame, text=self.gui['files_to_set'][f][0], width=20, anchor=tk.W, justify=tk.LEFT)
             check_label.grid(column=0, row=i, sticky=tk.W)
 
             display_str = self.build_display_str(self.config[f])
@@ -435,8 +456,8 @@ class MainGuiPage(ttk.Frame):
         dirs_frame = ttk.Frame(self)
         dirs_frame.grid(row=self.section_rows['dirs'], sticky=tk.NSEW)
 
-        label = tk.Label(dirs_frame, text='Directories', font=LARGE_FONT_BOLD)
-        label.grid(row=0, columnspan=3, pady=(10, 0), sticky=tk.W)
+        #label = tk.Label(dirs_frame, text='Directories', font=LARGE_FONT_BOLD)
+        #label.grid(row=0, columnspan=3, pady=(10, 0), sticky=tk.W)
 
         def bind_dirs_command(d):
             def func():
@@ -448,7 +469,7 @@ class MainGuiPage(ttk.Frame):
             return func
 
         for i, d in enumerate(self.gui['dirs_to_set'], 1):
-            dir_label = tk.Label(dirs_frame, text=self.gui['dirs_to_set'][d][0])
+            dir_label = tk.Label(dirs_frame, text=self.gui['dirs_to_set'][d][0], width=20, anchor=tk.W, justify=tk.LEFT)
             dir_label.grid(column=0, row=i, sticky=tk.W)
             
             display_str = self.build_display_str(self.config[d])
@@ -609,7 +630,6 @@ class MainGuiPage(ttk.Frame):
             chk.grid(column=0, row=i, sticky=tk.W)
             self.gui['check_keys'][c][1].grid(column=1, row=i, sticky=tk.EW)
 
-
     def add_surfaces(self):
         
         def bind_dirs_command(s):
@@ -691,32 +711,16 @@ class MainGuiPage(ttk.Frame):
 
             add_tile_surface()
             add_mosaic_surface()
-            
-            sep = ttk.Separator(subframe, orient=tk.HORIZONTAL)
-            sep.grid(row=2, columnspan=4, padx=(10, 0), pady=(5, 5), sticky=tk.EW)
 
-    def add_run_button(self):
+    def add_run_panel(self):
         run_frame = ttk.Frame(self)
-        run_frame.grid(row=self.section_rows['run_button'], sticky=tk.NSEW, pady=(10, 0))
-
-        self.add_progress_bar()
+        run_frame.grid(row=self.section_rows['run_button'], 
+                       sticky=tk.NSEW, pady=(10, 0))
 
         btn = tk.Button(run_frame, text="Run QAQC Processes", 
-             command=lambda: self.bar_init(), height=2)
-        btn.grid(column=0, row=0, sticky=tk.EW, padx=(120, 0))
-
-    def bar_init(self):
-        self.start_bar_thread = threading.Thread(target=self.start_bar, args=())
-        self.start_bar_thread.start()
-
-    def start_bar(self):
-        #self.load_bar.config(mode='indeterminate', maximum=100, value=0)
-        progress[4].start(1)
-        self.run_qaqc_process = threading.Thread(target=self.run_qaqc_process, args=())
-        self.run_qaqc_process.start()
-        self.run_qaqc_process.join()
-        progress[4].stop()
-        progress[4].config(value=0, maximum=0)
+                        command=self.run_qaqc_process, 
+                        width=25, height=3)
+        btn.grid(columnspan=4, row=0, sticky=tk.EW, padx=(100, 0))
 
     def run_qaqc_process(self):
         self.controller.save_config()
@@ -724,7 +728,7 @@ class MainGuiPage(ttk.Frame):
         run_qaqc(self.controller.config_file) #  from qaqc.py
     
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     app = QaqcApp()
-    app.geometry('400x850')
+    app.geometry('400x775')
     app.mainloop()  # tk functionality

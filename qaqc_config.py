@@ -4,6 +4,7 @@ import json
 config_data = {
     'project_name': 'FL1608-TB-N_DogIsland_p',
     'tile_size': 500,
+    'to_pyramid': True,
     'contractor_shp': r'C:\QAQC_contract\nantucket\EXTENTS\final\Nantucket_TileGrid.shp',
     'dz_classes_template': r'C:\QAQC_contract\dz_classes.lyr',
     'dz_export_settings': r'C:\QAQC_contract\dz_export_settings.xml',

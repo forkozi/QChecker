@@ -26,6 +26,7 @@
     <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="extra_bytes_play.py" />
     <Compile Include="module1.py">
       <SubType>Code</SubType>
     </Compile>
@@ -33,6 +34,9 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="module2.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="module3.py">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="qaqc_gui.py">
