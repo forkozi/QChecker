@@ -19,6 +19,7 @@ import ttk
 import time
 import datetime
 import progressbar
+import matplotlib.pyplot as plt
 
 
 class Configuration:
@@ -650,6 +651,74 @@ class QaqcTileCollection:
         except Exception as e:
             logging.info(e)
 
+    def gen_summary_graphic(self):
+
+        def get_classes_present(fields):
+            present_classes = []
+            for f in fields:
+                if 'class' in f:
+                    present_classes.append(f)
+            return present_classes
+
+        df = self.get_qaqc_results_df()
+        print()
+        print(df.columns)
+        test_result_cols = [
+            'exp_clas_passed',
+            'gps_time_passed',
+            'hdatum_passed',
+            'naming_passed',
+            'pdrf_passed',
+            'pnt_src_ids_passed',
+            'version_passed']
+        
+        result_counts = df[test_result_cols].apply(pd.Series.value_counts).fillna(0).transpose().astype(np.int)
+        passed = result_counts['PASSED']
+        failed = result_counts['FAILED']
+
+        present_classes = get_classes_present(df.columns)
+        print present_classes
+        class_counts = df[present_classes].sum().astype(np.int)
+      
+        print(result_counts)
+        print(class_counts)
+
+        import matplotlib.gridspec as gridspec
+        gs = gridspec.GridSpec(2, 2)
+
+        fig = plt.figure(figsize=(5, 6), dpi=100)
+        fig.suptitle('{} QAQC Results'.format(self.config.project_name))
+
+        # check results
+        y_vals = range(len(test_result_cols))
+        ax1 = plt.subplot(gs[0, 0])
+        ax1.barh(y_vals, passed, color='green')
+        ax1.barh(y_vals, failed, left=passed, color='firebrick')
+        ax1.set_yticks(y_vals)
+        ax1.set_yticklabels(test_result_cols)
+        ax1.set_xlabel('Number of LAS Tiles')
+        ax1.set_title('Check Results')
+
+        # class counts
+        y_vals = range(len(present_classes))
+        ax2 = plt.subplot(gs[1, 0])
+        ax2.barh(y_vals, class_counts, color='gray')
+        ax2.set_yticks(y_vals)
+        ax2.set_yticklabels(present_classes)
+        ax2.invert_yaxis()  # labels read top-to-bottom
+        ax2.set_xlabel('Number of Data Points')
+        ax2.set_title('Points per Class')
+
+        # map of _____
+        ax3 = plt.subplot(gs[0:1, 1])
+        gdf = self.gen_qaqc_results_gdf_NAD83_UTM_POLYGONS()
+        gdf.plot(column='class26', cmap='Blues', linewidth=0.8, ax=ax3, edgecolor='0.8')
+
+        plt.tight_layout(rect=[0, 0.03, 1, 0.95])
+        plt.show()
+
+
+
     def gen_mosaic(self, mtype):
         mosaic = Mosaic(mtype, self.config)
         mosaic.create_raster_catalog()
@@ -714,11 +783,12 @@ def run_qaqc(config_json):
     logging.info(config)
 
     nantucket = LasTileCollection(config.las_tile_dir)
-    qaqc = QaqcTileCollection(nantucket.get_las_tile_paths()[0:10], config)
+    qaqc = QaqcTileCollection(nantucket.get_las_tile_paths()[0:100], config)
     
     qaqc.run_qaqc_tile_collection_checks(multiprocess=False)
     print('outputing tile qaqc results to {}...'.format(config.qaqc_shp_NAD83_UTM_POLYGONS))
-    qaqc.gen_qaqc_shp_NAD83_UTM(config.qaqc_shp_NAD83_UTM_POLYGONS)
+    #qaqc.gen_qaqc_shp_NAD83_UTM(config.qaqc_shp_NAD83_UTM_POLYGONS)
+    qaqc.gen_summary_graphic()
     
     if not os.path.isfile(config.contractor_centroids_shp_NAD83_UTM):
         print('creating shapefile containing centroids of contractor tile polygons...')
@@ -734,7 +804,7 @@ def run_qaqc(config_json):
         for m in progressbar.progressbar(mosaic_types, redirect_stdout=True):
             qaqc.gen_mosaic(m)
     else:
-        print('no mosaics to build...')
+        print('\nno mosaics to build...')
 
     print('\nYAY, you just QAQC\'d project {}!!!\n'.format(config.project_name))
 
