@@ -27,22 +27,10 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="extra_bytes_play.py" />
-    <Compile Include="module1.py">
-      <SubType>Code</SubType>
-    </Compile>
     <Compile Include="config_las_json.py">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="module2.py">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="module3.py">
-      <SubType>Code</SubType>
-    </Compile>
     <Compile Include="qaqc_gui.py">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="parse_wkt.py">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="qaqc_config.py">

@@ -2,45 +2,46 @@ import json
 
 
 config_data = {
-    'project_name': 'FL1608-TB-N_DogIsland_p',
-    'tile_size': 500,
-    'to_pyramid': True,
-    'contractor_shp': r'C:\QAQC_contract\nantucket\EXTENTS\final\Nantucket_TileGrid.shp',
-    'dz_classes_template': r'C:\QAQC_contract\dz_classes.lyr',
-    'dz_export_settings': r'C:\QAQC_contract\dz_export_settings.xml',
-    'dz_mxd': r'C:\QAQC_contract\nantucket\QAQC_nantucket.mxd',
-    'qaqc_gdb': r'C:\QAQC_contract\nantucket\qaqc_nantucket.gdb',
-    'qaqc_dir': r'C:\QAQC_contract\nantucket',
-    'las_tile_dir': r'C:\QAQC_contract\nantucket\CLASSIFIED_LAS',
-    'checks_to_do': {
-        'naming': True,
-        'version': True,
-        'pdrf': True,
-        'gps_time': True,
-        'hdatum': True,
-        'vdatum': False,
-        'pt_src_ids': False,
-        'exp_cls': True,
-    },
-    'check_keys': {
-        'exp_cls': '02,40',
-        'pdrf': '6',
-        'naming': 'yyyy_[easting]e_[northing]n_las',
-        'hdatum': 'NAD_1983_2011_UTM_Zone_4N',
-        'gps_time': 'Satellite GPS Time',
-        'version': '1.4',
-        'pt_src_ids': 'Verify Unique Flight Line IDs',
-        'vdatum': 'GRS80',
-    },
-    'surfaces_to_make': {
-        'Hillshade': [False, 'C:/QAQC_contract/nantucket/hillshade'],
-        'Dz': [True, 'C:/QAQC_contract/nantucket/dz'],
-    },  
-    'mosaics_to_make': {
-        'Hillshade': [False, 'C:/QAQC_contract/nantucket/qaqc_nantucket.gdb/FL1608_TB_N_DogIsland_p_hillshade_mosaic'],
-        'Dz': [True, 'C:/QAQC_contract/nantucket/qaqc_nantucket.gdb/FL1608_TB_N_DogIsland_p_dz_mosaic'],
-    },
-    'supp_las_domain': 'Topo-Bathy Lidar Domain Profile',
+  'dz_mxd': 'C:\\QAQC_contract\\nantucket\\QAQC_nantucket.mxd',
+  'mosaics_to_make': {
+    'Hillshade': [ False, 'C:/QAQC_contract/nantucket/qaqc_nantucket.gdb/FL1608_TB_N_DogIsland_p_hillshade_mosaic' ],
+    'Dz': [ False, 'C:/QAQC_contract/nantucket/qaqc_nantucket.gdb/FL1608_TB_N_DogIsland_p_dz_mosaic' ]
+  },
+  'project_name': 'FL1608-TB-N_DogIsland_p',
+  'check_keys': {
+    'gps_time': 'Satellite GPS Time',
+    'pdrf': '6',
+    'version': '1.4',
+    'hdatum': 'NAD_1983_2011_UTM_Zone_4N',
+    'naming': 'yyyy_[easting]e_[northing]n_las',
+    'exp_cls': '02,40',
+    'vdatum': 'GRS80',
+    'pt_src_ids': 'Verify Unique Flight Line IDs'
+  },
+  'surfaces_to_make': {
+    'Hillshade': [ False, 'C:/QAQC_contract/nantucket/hillshade' ],
+    'Dz': [ False, 'C:/QAQC_contract/nantucket/dz' ]
+  },
+  'qaqc_dir': 'C:\\QAQC_contract\\nantucket',
+  'dz_export_settings': 'C:\\QAQC_contract\\dz_export_settings.xml',
+  'make_contact_centroids': False,
+  'checks_to_do': {
+    'gps_time': True,
+    'pdrf': True,
+    'version': True,
+    'hdatum': True,
+    'naming': True,
+    'exp_cls': True,
+    'vdatum': False,
+    'pt_src_ids': True
+  },
+  'las_tile_dir': 'C:\\QAQC_contract\\nantucket\\CLASSIFIED_LAS',
+  'qaqc_gdb': 'C:\\QAQC_contract\\nantucket\\qaqc_nantucket.gdb',
+  'dz_classes_template': 'C:\\QAQC_contract\\dz_classes.lyr',
+  'to_pyramid': True,
+  'tile_size': '500',
+  'contractor_shp': 'C:\\QAQC_contract\\nantucket\\EXTENTS\\final\\Nantucket_TileGrid.shp',
+  'supp_las_domain': 'Topo-Bathy Lidar Domain Profile'
 }
 
 with open('Z:\qaqc\qaqc_config.json', 'w') as f:

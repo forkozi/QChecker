@@ -144,7 +144,6 @@ class LasTile:
             'ExtentYMax': self.header['y_max'],
             }
 
-
         self.centroid_x, self.centroid_y = calc_las_centroid()
 
         self.tile_extents = {
@@ -520,9 +519,9 @@ class QaqcTile:
         #self.progress[1]['maximum'] = num_las
         tic = time.time()
 
+        print('performing tile qaqc processes...')
         for las_path in progressbar.progressbar(las_paths, redirect_stdout=True):
-        #for i, las_path in enumerate(las_paths):
-
+            logging.info('starting {}...'.format(las_path))
             tile = LasTile(las_path, self.config)
 
             for c in [k for k, v in self.config.checks_to_do.iteritems() if v]:
@@ -715,26 +714,33 @@ def run_qaqc(config_json):
     logging.info(config)
 
     nantucket = LasTileCollection(config.las_tile_dir)
-    qaqc = QaqcTileCollection(nantucket.get_las_tile_paths()[0:100], config)
+    qaqc = QaqcTileCollection(nantucket.get_las_tile_paths()[0:10], config)
+    
+    qaqc.run_qaqc_tile_collection_checks(multiprocess=False)
+    print('outputing tile qaqc results to {}...'.format(config.qaqc_shp_NAD83_UTM_POLYGONS))
+    qaqc.gen_qaqc_shp_NAD83_UTM(config.qaqc_shp_NAD83_UTM_POLYGONS)
     
     if not os.path.isfile(config.contractor_centroids_shp_NAD83_UTM):
+        print('creating shapefile containing centroids of contractor tile polygons...')
         tile_centroids = qaqc.gen_tile_centroids_shp_NAD83_UTM()
         qaqc.add_layer_to_mxd(tile_centroids)
     else:
         logging.info('{} alread exists'.format(config.contractor_centroids_shp_NAD83_UTM))
     
-    qaqc.run_qaqc_tile_collection_checks(multiprocess=False)
-    qaqc.gen_qaqc_shp_NAD83_UTM(config.qaqc_shp_NAD83_UTM_POLYGONS)
-    
     # build the mosaics the user checked
-    for m in [k for k, v in config.mosaics_to_make.iteritems() if v[0]]:
-        qaqc.gen_mosaic(k)
+    mosaic_types = [k for k, v in config.mosaics_to_make.iteritems() if v[0]]
+    if mosaic_types:
+        print('building mosaics {}...'.format(tuple([m.encode("utf-8") for m in mosaic_types])))
+        for m in progressbar.progressbar(mosaic_types, redirect_stdout=True):
+            qaqc.gen_mosaic(m)
+    else:
+        print('no mosaics to build...')
 
-    logging.info('\n\nYAY, you just QAQC\'d project {}!!!\n\n'.format(config.project_name))
+    print('\nYAY, you just QAQC\'d project {}!!!\n'.format(config.project_name))
 
-    with open('finish_message.txt', 'r') as f:
-        message = f.readlines()
-    logging.info(''.join(message))
+    #with open('finish_message.txt', 'r') as f:
+    #    message = f.readlines()
+    #print(''.join(message))
 
 if __name__ == '__main__':
     arcpy.env.overwriteOutput = True

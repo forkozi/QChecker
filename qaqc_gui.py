@@ -76,6 +76,7 @@ class QaqcApp(tk.Tk):
             'project_name': ['Project Name', None],
             'tile_size': ['Tile Size (m)', None],
             'to_pyramid': ['Build LAS Pyramids', None],
+            'make_contact_centroids': ['Make Contr. Tile Centroid shp', None],
             }})
 
         self.components.update({'files_to_set': {
@@ -137,7 +138,7 @@ class QaqcApp(tk.Tk):
             with open(self.config_file) as cf:
                 self.configuration = json.load(cf)
         else:
-           print("configuration file doesn't exist")
+           print('configuration file doesn\'t exist')
 
     def save_config(self):
 
@@ -239,6 +240,7 @@ class MainGuiPage(ttk.Frame):
 
         #  Build the GUI
         self.control_panel_width = 50
+        self.label_width = 23
 
         self.build_options()
         self.build_files()
@@ -313,6 +315,8 @@ class MainGuiPage(ttk.Frame):
         with open(self.las_classes_file) as cf:
             las_classes = json.load(cf)
 
+        self.gui['check_keys']['exp_cls'][0].set('picking classes...')
+
         las_version = self.gui['check_keys']['version'][0].get()
 
         popup = tk.Toplevel()
@@ -374,7 +378,7 @@ class MainGuiPage(ttk.Frame):
         options_frame = ttk.Frame(self)
         options_frame.grid(row=self.section_rows['options'], sticky=tk.NSEW)
 
-        label = tk.Label(options_frame, text='Settings', font=LARGE_FONT_BOLD)
+        label = tk.Label(options_frame, text='SETTINGS', font=LARGE_FONT_BOLD)
         label.grid(row=0, columnspan=3, pady=(10, 0), sticky=tk.W)
 
         def get_proj_names():
@@ -384,7 +388,7 @@ class MainGuiPage(ttk.Frame):
 
         item = 'project_name'
         row = 1
-        option_label = tk.Label(options_frame, text=self.gui['options'][item][0], width=20, anchor=tk.W, justify=tk.LEFT)
+        option_label = tk.Label(options_frame, text=self.gui['options'][item][0], width=self.label_width, anchor=tk.W, justify=tk.LEFT)
         option_label.grid(column=0, row=row, sticky=tk.W)
         self.gui['options'][item][1] = tk.StringVar()
         self.gui['options'][item][1].set(self.config[item])
@@ -393,7 +397,7 @@ class MainGuiPage(ttk.Frame):
 
         item = 'tile_size'
         row = 2
-        option_label = tk.Label(options_frame, text=self.gui['options'][item][0], width=20, anchor=tk.W, justify=tk.LEFT)
+        option_label = tk.Label(options_frame, text=self.gui['options'][item][0], width=self.label_width, anchor=tk.W, justify=tk.LEFT)
         option_label.grid(column=0, row=row, sticky=tk.W)
         self.gui['options'][item][1] = tk.StringVar(options_frame, value=self.config[item])
         self.gui['options'][item][1] = tk.Entry(
@@ -405,7 +409,21 @@ class MainGuiPage(ttk.Frame):
 
         item = 'to_pyramid'
         row = 3
-        option_label = tk.Label(options_frame, text='Build LAS Pyramids', width=20, anchor=tk.W, justify=tk.LEFT)
+        option_label = tk.Label(options_frame, text=self.gui['options'][item][0], width=self.label_width, anchor=tk.W, justify=tk.LEFT)
+        option_label.grid(column=0, row=row, sticky=tk.W)
+        self.gui['options'][item][1] = tk.BooleanVar()
+        is_checked = self.config[item]
+        self.gui['options'][item][1].set(is_checked)
+        chk = tk.Checkbutton(
+            options_frame, 
+            text='',
+            var=self.gui['options'][item][1], 
+            anchor=tk.W, justify=tk.LEFT)
+        chk.grid(column=1, row=row, sticky=tk.W)
+
+        item = 'make_contact_centroids'
+        row = 4
+        option_label = tk.Label(options_frame, text=self.gui['options'][item][0], width=self.label_width, anchor=tk.W, justify=tk.LEFT)
         option_label.grid(column=0, row=row, sticky=tk.W)
         self.gui['options'][item][1] = tk.BooleanVar()
         is_checked = self.config[item]
@@ -440,14 +458,14 @@ class MainGuiPage(ttk.Frame):
             return func
 
         for i, f in enumerate(self.gui['files_to_set'], 1):
-            check_label = tk.Label(files_frame, text=self.gui['files_to_set'][f][0], width=20, anchor=tk.W, justify=tk.LEFT)
+            check_label = tk.Label(files_frame, text=self.gui['files_to_set'][f][0], width=self.label_width, anchor=tk.W, justify=tk.LEFT)
             check_label.grid(column=0, row=i, sticky=tk.W)
 
             display_str = self.build_display_str(self.config[f])
             self.gui['files_to_set'][f][1] = tk.Label(files_frame, text=display_str)
             self.gui['files_to_set'][f][1].grid(column=2, row=i, sticky=tk.W)
 
-            btn = tk.Button(files_frame, text="...", command=bind_files_command(f))
+            btn = tk.Button(files_frame, text='...', command=bind_files_command(f))
             btn.grid(column=1, row=i, sticky=tk.W)
 
     def build_dirs(self):
@@ -469,14 +487,14 @@ class MainGuiPage(ttk.Frame):
             return func
 
         for i, d in enumerate(self.gui['dirs_to_set'], 1):
-            dir_label = tk.Label(dirs_frame, text=self.gui['dirs_to_set'][d][0], width=20, anchor=tk.W, justify=tk.LEFT)
+            dir_label = tk.Label(dirs_frame, text=self.gui['dirs_to_set'][d][0], width=self.label_width, anchor=tk.W, justify=tk.LEFT)
             dir_label.grid(column=0, row=i, sticky=tk.W)
             
             display_str = self.build_display_str(self.config[d])
             self.gui['dirs_to_set'][d][1] = tk.Label(dirs_frame, text=display_str)
             self.gui['dirs_to_set'][d][1].grid(column=2, row=i, sticky=tk.W)
 
-            btn = tk.Button(dirs_frame, text="...", command=bind_dirs_command(d))
+            btn = tk.Button(dirs_frame, text='...', command=bind_dirs_command(d))
             btn.grid(column=1, row=i, sticky=tk.W)
 
     @staticmethod
@@ -491,12 +509,30 @@ class MainGuiPage(ttk.Frame):
         return ('Satellite GPS Time', 'GPS Week Seconds')  # TODO: verify names
 
     @staticmethod
+    def get_naming_types():
+        naming_types = ('yyyy_[easting]e_[northing]n_las')
+        return naming_types
+
+    @staticmethod
     def get_versions():
         return ('1.2', '1.4')
 
     @staticmethod
     def get_vdatums():
         return ('MHW', 'MLLW', 'GRS80', 'WGS84')
+
+    @staticmethod
+    def get_pdrfs():
+        return tuple(range(11))
+
+    @staticmethod
+    def get_class_picker_msg():
+        return ('open class picker...',)
+
+    @staticmethod
+    def get_pt_src_id_logic():
+        pt_src_id_logic = ('Verify Unique Flight Line IDs')
+        return pt_src_id_logic
 
     def update_version_affected_info(self):
         version = self.gui['check_keys']['version'][0].get()
@@ -521,10 +557,12 @@ class MainGuiPage(ttk.Frame):
             self.gui['check_keys']['naming'][0] = tk.StringVar()
             self.gui['check_keys']['naming'][0].set(
                 self.config['check_keys']['naming'])
-            self.gui['check_keys']['naming'][1] = tk.Entry(
-                checks_frame, 
-                state='disabled', 
-                textvariable=self.gui['check_keys']['naming'][0], width=30)
+            self.gui['check_keys']['naming'][1] = tk.OptionMenu(
+                checks_frame,
+                self.gui['check_keys']['naming'][0], 
+                *self.get_naming_types())
+            self.gui['check_keys']['naming'][1].config(state='disabled')
+            self.gui['check_keys']['naming'][1].configure(anchor='w')
 
         def add_version_key():
             self.gui['check_keys']['version'][0] = tk.StringVar()
@@ -541,10 +579,13 @@ class MainGuiPage(ttk.Frame):
             self.gui['check_keys']['pdrf'][0] = tk.StringVar()
             self.gui['check_keys']['pdrf'][0].set(
                 self.config['check_keys']['pdrf'])
-            self.gui['check_keys']['pdrf'][1] = tk.Entry(
+            self.gui['check_keys']['pdrf'][1] = tk.OptionMenu(
                 checks_frame, 
-                state='disabled', 
-                textvariable=self.gui['check_keys']['pdrf'][0], width=30)
+                self.gui['check_keys']['pdrf'][0], 
+                *self.get_pdrfs(), 
+                command=lambda x: self.update_version_affected_info())
+            self.gui['check_keys']['pdrf'][1].config(state='disabled')
+            self.gui['check_keys']['pdrf'][1].configure(anchor='w')
 
         def add_gps_time_key():
             self.gui['check_keys']['gps_time'][0] = tk.StringVar()
@@ -582,20 +623,24 @@ class MainGuiPage(ttk.Frame):
             self.gui['check_keys']['pt_src_ids'][0] = tk.StringVar()
             self.gui['check_keys']['pt_src_ids'][0].set(
                 self.config['check_keys']['pt_src_ids'])
-            self.gui['check_keys']['pt_src_ids'][1] = tk.Entry(
-                checks_frame, 
-                state='disabled', 
-                textvariable=self.gui['check_keys']['pt_src_ids'][0], width=30)
+            self.gui['check_keys']['pt_src_ids'][1] = tk.OptionMenu(
+                checks_frame,
+                self.gui['check_keys']['pt_src_ids'][0], 
+                *self.get_pt_src_id_logic())
+            self.gui['check_keys']['pt_src_ids'][1].config(state='disabled')
+            self.gui['check_keys']['pt_src_ids'][1].configure(anchor='w')
 
         def add_exp_cls_key():
             self.gui['check_keys']['exp_cls'][0] = tk.StringVar()
             self.gui['check_keys']['exp_cls'][0].set(
                 self.config['check_keys']['exp_cls'])
-            self.gui['check_keys']['exp_cls'][1] = tk.Button(
+            self.gui['check_keys']['exp_cls'][1] = tk.OptionMenu(
                 checks_frame,
-                textvariable=self.gui['check_keys']['exp_cls'][0],
-                command=self.pick_classes,
-                justify=tk.LEFT, anchor=tk.W)
+                self.gui['check_keys']['exp_cls'][0], 
+                *self.get_class_picker_msg(),
+                command=lambda x: self.pick_classes())
+            #self.gui['check_keys']['exp_cls'][1].config(state='disabled')
+            self.gui['check_keys']['exp_cls'][1].configure(anchor='w')
 
         def add_supp_las_domain():
             self.gui['supp_las_domain'] = tk.StringVar()
@@ -605,7 +650,7 @@ class MainGuiPage(ttk.Frame):
         checks_frame = ttk.Frame(self)
         checks_frame.grid(row=self.section_rows['checks'], sticky=tk.NSEW)
 
-        label = tk.Label(checks_frame, text='Checks', font=LARGE_FONT_BOLD)
+        label = tk.Label(checks_frame, text='CHECKS', font=LARGE_FONT_BOLD)
         label.grid(row=0, columnspan=3, pady=(10, 0), sticky=tk.W)
 
         add_naming_key()
@@ -666,7 +711,7 @@ class MainGuiPage(ttk.Frame):
             surface_label = tk.Label(subframe, text='Diretory'.format(s))
             surface_label.grid(column=1, row=0, sticky=tk.EW, padx=(20, 0))
 
-            btn = tk.Button(subframe, text="...", command=bind_dirs_command(s))
+            btn = tk.Button(subframe, text='...', command=bind_dirs_command(s))
             btn.grid(column=2, row=0, sticky=tk.EW)
 
             display_str = self.build_display_str(self.config['surfaces_to_make'][s][1])
@@ -690,7 +735,7 @@ class MainGuiPage(ttk.Frame):
             surface_label = tk.Label(subframe, text='Path'.format(s))
             surface_label.grid(column=1, row=1, sticky=tk.EW, padx=(20, 0))
 
-            btn = tk.Button(subframe, text="...", command=bind_file_command(s))
+            btn = tk.Button(subframe, text='...', command=bind_file_command(s))
             btn.grid(column=2, row=1, sticky=tk.EW)
 
             display_str = self.build_display_str(self.config['mosaics_to_make'][s][1])
@@ -702,7 +747,7 @@ class MainGuiPage(ttk.Frame):
         surf_frame = ttk.Frame(self)
         surf_frame.grid(row=self.section_rows['surfaces'], sticky=tk.NSEW)
 
-        label = tk.Label(surf_frame, text='Surfaces', font=LARGE_FONT_BOLD)
+        label = tk.Label(surf_frame, text='SURFACES', font=LARGE_FONT_BOLD)
         label.grid(row=0, columnspan=3, pady=(10, 0), sticky=tk.W)
 
         for i, s in enumerate(self.gui['surfaces_to_make'], 1):
@@ -717,7 +762,7 @@ class MainGuiPage(ttk.Frame):
         run_frame.grid(row=self.section_rows['run_button'], 
                        sticky=tk.NSEW, pady=(10, 0))
 
-        btn = tk.Button(run_frame, text="Run QAQC Processes", 
+        btn = tk.Button(run_frame, text='Run QAQC Processes', 
                         command=self.run_qaqc_process, 
                         width=25, height=3)
         btn.grid(columnspan=4, row=0, sticky=tk.EW, padx=(100, 0))
@@ -725,10 +770,12 @@ class MainGuiPage(ttk.Frame):
     def run_qaqc_process(self):
         self.controller.save_config()
         #progress = self.add_progress_bar()
+        
         run_qaqc(self.controller.config_file) #  from qaqc.py
     
 
 if __name__ == '__main__':
     app = QaqcApp()
-    app.geometry('400x775')
+    app.resizable(0, 0)
+    app.geometry('400x815')
     app.mainloop()  # tk functionality
