@@ -9,7 +9,7 @@ import pandas as pd
 import matplotlib
 import threading
 
-matplotlib.use('Agg')
+#matplotlib.use('Agg')
 
 LARGE_FONT = ('Verdanna', 12)
 LARGE_FONT_BOLD = ('Verdanna', 12, 'bold')
@@ -179,8 +179,6 @@ class QaqcApp(tk.Tk):
         with open(self.config_file, 'w') as f:
             json.dump(self.configuration, f)
 
-        print(json.dumps(self.configuration, indent=4, sort_keys=True))
-
     @staticmethod
     def show_about():
         about = tk.Toplevel()
@@ -251,7 +249,6 @@ class MainGuiPage(ttk.Frame):
 
     @staticmethod
     def build_display_str(str):
-        print(str)
         str = str.replace('/', '\\')
         return r'...\{}'.format(os.path.join(*str.split('\\')[-1:]))
 
@@ -260,7 +257,6 @@ class MainGuiPage(ttk.Frame):
         for k, v in vars.iteritems():
             if v.get():
                 checked_classes.append(k)
-        print checked_classes
         self.gui['check_keys']['exp_cls'][0].set(','.join(checked_classes))
         popup.destroy()
 
@@ -388,18 +384,31 @@ class MainGuiPage(ttk.Frame):
 
         item = 'project_name'
         row = 1
-        option_label = tk.Label(options_frame, text=self.gui['options'][item][0], width=self.label_width, anchor=tk.W, justify=tk.LEFT)
+        option_label = tk.Label(options_frame, 
+                                text=self.gui['options'][item][0], 
+                                width=self.label_width, 
+                                anchor=tk.W, 
+                                justify=tk.LEFT)
+
         option_label.grid(column=0, row=row, sticky=tk.W)
         self.gui['options'][item][1] = tk.StringVar()
         self.gui['options'][item][1].set(self.config[item])
-        proj_down_down = tk.OptionMenu(options_frame, self.gui['options'][item][1], *get_proj_names())
+        proj_down_down = tk.OptionMenu(options_frame, 
+                                       self.gui['options'][item][1], 
+                                       *get_proj_names())
         proj_down_down.grid(column=1, row=row, sticky=tk.EW)
 
         item = 'tile_size'
         row = 2
-        option_label = tk.Label(options_frame, text=self.gui['options'][item][0], width=self.label_width, anchor=tk.W, justify=tk.LEFT)
+        option_label = tk.Label(options_frame, 
+                                text=self.gui['options'][item][0], 
+                                width=self.label_width, 
+                                anchor=tk.W, 
+                                justify=tk.LEFT)
+
         option_label.grid(column=0, row=row, sticky=tk.W)
-        self.gui['options'][item][1] = tk.StringVar(options_frame, value=self.config[item])
+        self.gui['options'][item][1] = tk.StringVar(options_frame, 
+                                                    value=self.config[item])
         self.gui['options'][item][1] = tk.Entry(
             options_frame, 
             textvariable=self.gui['options'][item][1], 
@@ -409,7 +418,12 @@ class MainGuiPage(ttk.Frame):
 
         item = 'to_pyramid'
         row = 3
-        option_label = tk.Label(options_frame, text=self.gui['options'][item][0], width=self.label_width, anchor=tk.W, justify=tk.LEFT)
+        option_label = tk.Label(options_frame, 
+                                text=self.gui['options'][item][0], 
+                                width=self.label_width, 
+                                anchor=tk.W, 
+                                justify=tk.LEFT)
+
         option_label.grid(column=0, row=row, sticky=tk.W)
         self.gui['options'][item][1] = tk.BooleanVar()
         is_checked = self.config[item]
@@ -423,7 +437,12 @@ class MainGuiPage(ttk.Frame):
 
         item = 'make_contact_centroids'
         row = 4
-        option_label = tk.Label(options_frame, text=self.gui['options'][item][0], width=self.label_width, anchor=tk.W, justify=tk.LEFT)
+        option_label = tk.Label(options_frame, 
+                                text=self.gui['options'][item][0], 
+                                width=self.label_width, 
+                                anchor=tk.W, 
+                                justify=tk.LEFT)
+
         option_label.grid(column=0, row=row, sticky=tk.W)
         self.gui['options'][item][1] = tk.BooleanVar()
         is_checked = self.config[item]
@@ -458,7 +477,12 @@ class MainGuiPage(ttk.Frame):
             return func
 
         for i, f in enumerate(self.gui['files_to_set'], 1):
-            check_label = tk.Label(files_frame, text=self.gui['files_to_set'][f][0], width=self.label_width, anchor=tk.W, justify=tk.LEFT)
+            check_label = tk.Label(files_frame, 
+                                   text=self.gui['files_to_set'][f][0], 
+                                   width=self.label_width, 
+                                   anchor=tk.W, 
+                                   justify=tk.LEFT)
+
             check_label.grid(column=0, row=i, sticky=tk.W)
 
             display_str = self.build_display_str(self.config[f])
@@ -487,7 +511,12 @@ class MainGuiPage(ttk.Frame):
             return func
 
         for i, d in enumerate(self.gui['dirs_to_set'], 1):
-            dir_label = tk.Label(dirs_frame, text=self.gui['dirs_to_set'][d][0], width=self.label_width, anchor=tk.W, justify=tk.LEFT)
+            dir_label = tk.Label(dirs_frame, 
+                                 text=self.gui['dirs_to_set'][d][0], 
+                                 width=self.label_width, 
+                                 anchor=tk.W, 
+                                 justify=tk.LEFT)
+
             dir_label.grid(column=0, row=i, sticky=tk.W)
             
             display_str = self.build_display_str(self.config[d])

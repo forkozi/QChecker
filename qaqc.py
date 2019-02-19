@@ -13,6 +13,7 @@ import arcpy
 import pathos.pools as pp
 import re
 from geodaisy import GeoObject
+import ast
 
 import Tkinter as tk
 import ttk
@@ -37,6 +38,7 @@ class Configuration:
         self.qaqc_gdb = data['qaqc_gdb']
         self.raster_dir = data['qaqc_gdb']
         self.tile_size = float(data['tile_size'])
+        self.to_pyramid = data['to_pyramid']
 
         # checks "answer key"
         self.hdatum_key = data['check_keys']['hdatum']
@@ -59,12 +61,14 @@ class Configuration:
         self.qaqc_csv = r'{}\qaqc.csv'.format(self.qaqc_dir)
         self.qaqc_geojson_NAD83_UTM_CENTROIDS = r'{}\qaqc_NAD83_UTM_CENTROIDS.json'.format(self.qaqc_dir)
         self.qaqc_geojson_NAD83_UTM_POLYGONS = r'{}\qaqc_NAD83_UTM_POLYGONS.json'.format(self.qaqc_dir)
+        self.qaqc_geojson_WebMercator_CENTROIDS = r'{}\qaqc_WebMercator_CENTROIDS.json'.format(self.qaqc_dir)
+        self.qaqc_geojson_WebMercator_POLYGONS = r'{}\qaqc_WebMercator_POLYGONS.json'.format(self.qaqc_dir)
         self.qaqc_shp_NAD83_UTM_POLYGONS = r'{}\qaqc_NAD83_UTM.shp'.format(self.qaqc_dir)
         self.json_dir = r'{}\qaqc_check_results'.format(self.qaqc_dir)
 
-        self.contractor_geojson_WGS84 = os.path.join(self.qaqc_dir, 'tiles_WGS84.json')
-        self.contractor_centroids_shp_NAD83_UTM = os.path.join(self.qaqc_dir, 'tiles_centroids_NAD83_UTM.shp')
-        self.contractor_csv = os.path.join(self.qaqc_dir, 'tiles.csv')
+        self.tile_geojson_WebMercator_POLYGONS = os.path.join(self.qaqc_dir, 'tiles_WebMercator_POLYGONS.json')
+        self.tile_shp_NAD83_UTM_CENTROIDS = os.path.join(self.qaqc_dir, 'tiles_centroids_NAD83_UTM.shp')
+        self.tile_csv = os.path.join(self.qaqc_dir, 'tiles.csv')
 
     def __str__(self):
         return json.dumps(self.data, indent=4, sort_keys=True)
@@ -110,9 +114,9 @@ class LasTile:
         self.path = las_path
         self.name = os.path.splitext(las_path.split(os.sep)[-1])[0]
         self.inFile = File(self.path, mode="r")
-        self.to_pyramid = True
-        self.is_pyramided = os.path.isfile(self.path.replace('.las', '.qvr'))
         self.config = config
+        self.is_pyramided = os.path.isfile(self.path.replace('.las', '.qvr'))
+        self.to_pyramid = self.config.to_pyramid
 
         def get_useful_las_header_info():
             info_to_get = 'global_encoding,version_major,version_minor,' \
@@ -462,7 +466,7 @@ class QaqcTile:
             passed = self.passed_text
         else:
             passed = self.failed_text
-        tile.checks_result['exp_clas'] = str(unexp_cls)
+        tile.checks_result['exp_clas'] = str(list(unexp_cls))
         tile.checks_result['exp_clas_passed'] = passed
         logging.info(tile.checks_result['exp_clas'])
         return passed
@@ -476,7 +480,7 @@ class QaqcTile:
             passed = self.passed_text
         else:
             passed = self.failed_text
-        tile.checks_result['pnt_src_ids'] = str(unq_pt_src_ids)
+        tile.checks_result['pnt_src_ids'] = str(list(unq_pt_src_ids))
         tile.checks_result['pnt_src_ids_passed'] = passed
         logging.info(tile.checks_result['pnt_src_ids'])
         return passed
@@ -510,9 +514,9 @@ class QaqcTile:
         #logging.basicConfig(format='%(asctime)s:%(message)s', level=logging.INFO)
         tile = LasTile(las_path, self.config)
         for c in [k for k, v in self.config.checks_to_do.iteritems() if v]:
-            logging.info('running {}...'.format(c))
+            logging.debug('running {}...'.format(c))
             result = self.checks[c](tile)
-            logging.info(result)
+            logging.debug(result)
         tile.output_las_qaqc_to_json()
 
     def run_qaqc_checks(self, las_paths):       
@@ -526,14 +530,14 @@ class QaqcTile:
             tile = LasTile(las_path, self.config)
 
             for c in [k for k, v in self.config.checks_to_do.iteritems() if v]:
-                logging.info('running {}...'.format(c))
+                logging.debug('running {}...'.format(c))
                 result = self.checks[c](tile)
-                logging.info(result)
+                logging.debug(result)
 
             for c in [k for k, v in self.config.surfaces_to_make.iteritems() if v[0]]:
-                logging.info('running {}...'.format(c))
+                logging.debug('running {}...'.format(c))
                 result = self.surfaces[c](tile)
-                logging.info(result)
+                logging.debug(result)
 
             tile.output_las_qaqc_to_json()
 
@@ -553,6 +557,7 @@ class QaqcTileCollection:
     def __init__(self, las_paths, config,):
         self.las_paths = las_paths
         self.config = config
+        self.qaqc_results_df = None
 
     def run_qaqc_tile_collection_checks(self, multiprocess):
         tiles_qaqc = QaqcTile(self.config)
@@ -580,16 +585,43 @@ class QaqcTileCollection:
                 logging.info(e)
         return flattened_dicts
 
-    def get_qaqc_results_df(self):
-        df = pd.DataFrame(self.gen_qaqc_results_dict())
-        return df
+    def get_unq_pt_src_ids(self):
+        unq_pt_src_ids = set([])
+        pnt_src_ids = self.qaqc_results_df['pnt_src_ids'].tolist()
+        for i, pnt_src_id_str in enumerate(pnt_src_ids):
+            pnt_src_ids_set = set(ast.literal_eval(pnt_src_id_str))
+            unq_pt_src_ids = unq_pt_src_ids.union(pnt_src_ids_set)
+        return unq_pt_src_ids
+
+    def set_qaqc_results_df(self):
+        self.qaqc_results_df = pd.DataFrame(self.gen_qaqc_results_dict())
 
     def gen_qaqc_results_gdf_NAD83_UTM_CENTROIDS(self):
-        df = self.get_qaqc_results_df()
+        df = self.qaqc_results_df
         df['Coordinates'] = df.tile_centroid
         df['Coordinates'] = df['Coordinates'].apply(wkt.loads)
         nad83_utm_z19 = {'init': 'epsg:26919'}
         gdf = gpd.GeoDataFrame(df, crs=nad83_utm_z19, geometry='Coordinates')
+        return gdf
+
+    def gen_qaqc_results_gdf_WebMercator_CENTROIDS(self):
+        df = self.qaqc_results_df
+        df['Coordinates'] = df.tile_centroid
+        df['Coordinates'] = df['Coordinates'].apply(wkt.loads)
+        nad83_utm_z19 = {'init': 'epsg:26919'}
+        gdf = gpd.GeoDataFrame(df, crs=nad83_utm_z19, geometry='Coordinates')
+        web_mercator = {'init': 'epsg:3857'}
+        gdf = gdf.to_crs(web_mercator)
+        return gdf
+
+    def gen_qaqc_results_gdf_WebMercator_POLYGONS(self):
+        df = self.qaqc_results_df
+        df['Coordinates'] = df.tile_polygon
+        df['Coordinates'] = df['Coordinates'].apply(wkt.loads)
+        nad83_utm_z19 = {'init': 'epsg:26919'}
+        gdf = gpd.GeoDataFrame(df, crs=nad83_utm_z19, geometry='Coordinates')
+        web_mercator = {'init': 'epsg:3857'}
+        gdf = gdf.to_crs(web_mercator)
         return gdf
 
     def gen_qaqc_json_NAD83_UTM_CENTROIDS(self, output):
@@ -600,8 +632,24 @@ class QaqcTileCollection:
             logging.info(e)
         gdf.to_file(output, driver="GeoJSON")
 
+    def gen_qaqc_json_WebMercator_CENTROIDS(self, output):
+        gdf = self.gen_qaqc_results_gdf_WebMercator_CENTROIDS()
+        try:
+            os.remove(output)
+        except Exception as e:
+            logging.info(e)
+        gdf.to_file(output, driver="GeoJSON")
+
+    def gen_qaqc_json_WebMercator_POLYGONS(self, output):
+        gdf = self.gen_qaqc_results_gdf_WebMercator_POLYGONS()
+        try:
+            os.remove(output)
+        except Exception as e:
+            logging.info(e)
+        gdf.to_file(output, driver="GeoJSON")
+
     def gen_qaqc_results_gdf_NAD83_UTM_POLYGONS(self):
-        df = self.get_qaqc_results_df()
+        df = self.qaqc_results_df
         df['Coordinates'] = df.tile_polygon
         df['Coordinates'] = df['Coordinates'].apply(wkt.loads)
         nad83_utm_z19 = {'init': 'epsg:26919'}
@@ -660,64 +708,243 @@ class QaqcTileCollection:
                     present_classes.append(f)
             return present_classes
 
-        df = self.get_qaqc_results_df()
-        print()
-        print(df.columns)
-        test_result_cols = [
-            'exp_clas_passed',
-            'gps_time_passed',
-            'hdatum_passed',
-            'naming_passed',
-            'pdrf_passed',
-            'pnt_src_ids_passed',
-            'version_passed']
-        
-        result_counts = df[test_result_cols].apply(pd.Series.value_counts).fillna(0).transpose().astype(np.int)
-        passed = result_counts['PASSED']
-        failed = result_counts['FAILED']
+        def get_test_results():
+            fields = df.columns
+            test_result_fields = []
+            for f in fields:
+                if '_passed' in f:
+                    test_result_fields.append(f)
+            return df[test_result_fields]
 
+        def get_las_classes():
+            las_classes_json = r'las_classes.json'
+            with open(las_classes_json) as lcf:
+                las_classes = json.load(lcf)
+            
+            def find(key, dictionary):
+                for k, v in dictionary.iteritems():
+                    if k == key:
+                        yield v
+                    elif isinstance(v, dict):
+                        for result in find(key, v):
+                            yield result
+                    elif isinstance(v, list):
+                        for d in v:
+                            if isinstance(d, dict):
+                                for result in find(key, d):
+                                    yield result
+
+            return find('classes', las_classes)
+
+        def add_empty_plots_to_reshape(plot_list):
+            len_check_pass_fail_plots = len(plot_list)
+            while len_check_pass_fail_plots % 3 != 0:
+                p = figure(plot_width=300, 
+                           plot_height=300,)
+                p.toolbar.logo = None
+                p.toolbar_location = None
+                p.xaxis.major_tick_line_color = None
+                p.xaxis.minor_tick_line_color = None
+                p.yaxis.major_tick_line_color = None
+                p.yaxis.minor_tick_line_color = None
+                p.xaxis.major_label_text_font_size = '0pt'
+                p.yaxis.major_label_text_font_size = '0pt'
+
+                p.circle(len_check_pass_fail_plots, 0)
+                plot_list.append(p)
+                len_check_pass_fail_plots += 1
+
+        las_classes = {}
+        for class_list in get_las_classes():
+            las_classes.update(class_list)
+
+        df = self.qaqc_results_df
+
+        
+        test_results = get_test_results()
+        test_result_fields = [r.encode('utf-8') for r in list(test_results.columns)]
+
+        result_counts = df[test_result_fields].apply(pd.Series.value_counts).fillna(0).transpose()#.astype(np.int64)
         present_classes = get_classes_present(df.columns)
-        print present_classes
-        class_counts = df[present_classes].sum().astype(np.int)
-      
+        class_counts = df[present_classes].sum().to_frame()#.astype(np.int64)
+        class_counts.columns = ['counts']
+
+        try:
+            passed = result_counts['PASSED']
+            failed = result_counts['FAILED']
+        except Exception as e:
+            passed = []
+            failed = []
+            print(e)
+
         print(result_counts)
         print(class_counts)
 
-        import matplotlib.gridspec as gridspec
-        gs = gridspec.GridSpec(2, 2)
+        from bokeh.io import output_file, show, export_png
+        from bokeh.models import ColumnDataSource, GeoJSONDataSource, ColorBar, HoverTool, LegendItem, Legend, Range1d
+        from bokeh.plotting import figure
+        from bokeh.tile_providers import CARTODBPOSITRON
+        from bokeh.palettes import Blues
+        from bokeh.transform import log_cmap, factor_cmap
+        from bokeh.layouts import layout
+        from bokeh.core.properties import value
 
-        fig = plt.figure(figsize=(5, 6), dpi=100)
-        fig.suptitle('{} QAQC Results'.format(self.config.project_name))
+        # qaqc CENTROIDS
+        self.gen_qaqc_json_WebMercator_CENTROIDS(self.config.qaqc_geojson_WebMercator_CENTROIDS)
+        with open(self.config.qaqc_geojson_WebMercator_CENTROIDS) as f:
+            geojson_qaqc_centroids = f.read()
+            geojson_dict_centroids = json.loads(geojson_qaqc_centroids)
 
-        # check results
-        y_vals = range(len(test_result_cols))
-        ax1 = plt.subplot(gs[0, 0])
-        ax1.barh(y_vals, passed, color='green')
-        ax1.barh(y_vals, failed, left=passed, color='firebrick')
-        ax1.set_yticks(y_vals)
-        ax1.set_yticklabels(test_result_cols)
-        ax1.set_xlabel('Number of LAS Tiles')
-        ax1.set_title('Check Results')
+        output_file('z:\qaqc\QAQC_Summary_{}.html'.format(self.config.project_name))
+        qaqc_centroids = GeoJSONDataSource(geojson=geojson_qaqc_centroids)
 
-        # class counts
-        y_vals = range(len(present_classes))
-        ax2 = plt.subplot(gs[1, 0])
-        ax2.barh(y_vals, class_counts, color='gray')
-        ax2.set_yticks(y_vals)
-        ax2.set_yticklabels(present_classes)
-        ax2.invert_yaxis()  # labels read top-to-bottom
-        ax2.set_xlabel('Number of Data Points')
-        ax2.set_title('Points per Class')
+        class_count_plots = []
+        for class_field in class_counts.index:
 
-        # map of _____
-        ax3 = plt.subplot(gs[0:1, 1])
-        gdf = self.gen_qaqc_results_gdf_NAD83_UTM_POLYGONS()
-        gdf.plot(column='class26', cmap='Blues', linewidth=0.8, ax=ax3, edgecolor='0.8')
+            #counts_centroids = []
+            #for f in geojson_dict_centroids['features']:
+            #    try:
+            #        counts_centroids.append(f['properties'][class_field])
+            #    except Exception as e:
+            #        print(e)
 
-        plt.tight_layout(rect=[0, 0.03, 1, 0.95])
-        plt.show()
+            palette = Blues[9]
+            palette.reverse()
+
+            TOOLS = 'box_zoom,box_select,crosshair,reset,wheel_zoom'
+
+            color_mapper = log_cmap(field_name=class_field, 
+                                    palette=palette, 
+                                    low=np.nanmin(df[class_field]), 
+                                    high=np.nanmax(df[class_field]), 
+                                    nan_color='white')
+
+            las_class = class_field.replace('class', '').zfill(2)
+            title = 'Class {} ({})'.format(las_class, las_classes[las_class])
+
+            p = figure(title=title,
+                       x_axis_type="mercator", 
+                       y_axis_type="mercator", 
+                       plot_width=300, 
+                       plot_height=300,
+                       match_aspect=True, 
+                       tools='box_zoom')
+
+            p.toolbar.logo = None
+            p.toolbar_location = None
+
+            p.circle(x='x', y='y', size=3, alpha=0.5, 
+                     source=qaqc_centroids, 
+                     color=color_mapper)
+
+            p.add_tile(CARTODBPOSITRON)
+            class_count_plots.append(p)
+
+        add_empty_plots_to_reshape(class_count_plots)
+
+        check_pass_fail_plots = []
+        for check_field in result_counts.index:
+            print(check_field)
+
+            title = check_field.replace('_passed', '').upper()
+
+            p = figure(title=title,
+                       x_axis_type="mercator", 
+                       y_axis_type="mercator", 
+                       plot_width=300, 
+                       plot_height=300,
+                       match_aspect=True, 
+                       tools='')
+
+            p.toolbar.logo = None
+            p.toolbar_location = None
+
+            cmap = {
+                'PASSED': '#599d7A',
+                'FAILED': '#d93b43',
+                }
+
+            color_mapper = factor_cmap(check_field, 
+                                       palette=list(cmap.values()), 
+                                       factors=list(cmap.keys()))
+
+            p.circle(x='x', y='y', size=3, alpha=0.5, 
+                     source=qaqc_centroids,
+                     color=color_mapper)
+
+            p.add_tile(CARTODBPOSITRON)
+            check_pass_fail_plots.append(p)
+
+        add_empty_plots_to_reshape(check_pass_fail_plots)
+
+        # TEST RESULTS PASS/FAIL
+        source = ColumnDataSource(result_counts)
+
+        cats = ['PASSED', 'FAILED']
+        colors = ['green', 'red']
+        p1 = figure(y_range=source.data['index'], 
+                    title="Check PASS/FAIL Results", 
+                    plot_width=400, 
+                    plot_height=300)
+
+        p1.toolbar.logo = None
+        p1.toolbar_location = None
+
+        p1.hbar_stack(cats, y='index', height=0.9, color=colors, 
+                      source=source, legend=[value(c) for c in cats])
+        p1.xgrid.grid_line_color = None
+        max_passed = max(source.data['PASSED'])
+        max_failed = max(source.data['FAILED'])
+        p1.x_range = Range1d(0, max(max_passed, max_failed) + 100)
+        p1.axis.minor_tick_line_color = None
+        p1.outline_line_color = None
+        legend = Legend(location=(0, -30), orientation='horizontal')
+        p1.add_layout(legend, 'above')
+        #p1.legend.orientation = "horizontal"
+        #p1.legend.location = "top_center"
+
+        # CLASS COUNTS
+        source = ColumnDataSource(class_counts)
+        p2 = figure(y_range=source.data['index'], 
+                    plot_width=400, 
+                    plot_height=300, 
+                    title="Class Counts", 
+                    tools="")
+
+        p2.toolbar.logo = None
+        p2.toolbar_location = None
+
+        p2.hbar(y='index', right='counts', height=0.9, color='gray', legend=None, source=source)
+        max_count = max(source.data['counts'])
+        p2.x_range = Range1d(0, max_count + 100)
+        p2.xgrid.grid_line_color = None
 
 
+        # save plots
+        img = os.path.join(self.config['qaqc_dir'], 'QAQC_Results_Dashboard_1.png'
+        print('saving {}...'.format())
+        l = layout([[[p1, p2]]], sizing_mode='fixed')
+        export_png(l, filename=img)
+
+        # save check result maps
+        img = os.path.join(self.config['qaqc_dir'], 'QAQC_Results_Dashboard_2.png'
+        print('saving {}...'.format())
+        l = layout([[np.reshape(check_pass_fail_plots, (-1, 3)).tolist()]], sizing_mode='fixed')
+        export_png(l, filename=img)
+
+        # save class count maps
+        img = os.path.join(self.config['qaqc_dir'], 'QAQC_Results_Dashboard_3.png'
+        print('saving {}...'.format())
+        l = layout([[np.reshape(class_count_plots, (-1, 3)).tolist()]], sizing_mode='fixed')
+        export_png(l, filename=img)
+
+        l = layout([
+            [[p1, p2], np.reshape(check_pass_fail_plots, (-1, 3)).tolist(), np.reshape(class_count_plots, (-1, 3)).tolist()],
+            ], sizing_mode='fixed')
+        show(l)
+
+        # Point Source IDs
+        # unq_pt_crc_ids = self.get_unq_pt_src_ids()
 
     def gen_mosaic(self, mtype):
         mosaic = Mosaic(mtype, self.config)
@@ -755,10 +982,20 @@ class QaqcTileCollection:
         logging.info('generating shapefile containing centroids of contractor tile polygons...')
         gdf = gpd.read_file(self.config.contractor_shp)
         gdf['geometry'] = gdf['geometry'].centroid
-        gdf.to_file(self.config.contractor_centroids_shp_NAD83_UTM, driver='ESRI Shapefile')
-        return self.config.contractor_centroids_shp_NAD83_UTM
+        gdf.to_file(self.config.tile_shp_NAD83_UTM_CENTROIDS, driver='ESRI Shapefile')
+        return self.config.tile_shp_NAD83_UTM_CENTROIDS
         #sr = arcpy.SpatialReference('NAD 1983 UTM Zone 19N')  # 2011?
         #arcpy.DefineProjection_management(output, sr)
+
+    def gen_tile_geojson_WebMercator_POLYGONS(self, geojson):
+        gdf = gpd.read_file(self.config.contractor_shp)
+        try:
+            os.remove(geojson)
+        except Exception as e:
+            logging.info(e)
+        WebMercator = {'init': 'epsg:3857'}
+        gdf = gdf.to_crs(WebMercator)
+        gdf.to_file(geojson, driver="GeoJSON")
 
     def add_layer_to_mxd(self, layer):
         mxd = arcpy.mapping.MapDocument(self.config.dz_mxd)
@@ -772,30 +1009,38 @@ class QaqcTileCollection:
 
 
 def run_qaqc(config_json):
-    now = datetime.datetime.now()
-    date_time_now_str = '{}{}{}_{}{}{}'.format(now.year, now.month, now.day,
-                                               now.hour, now.minute, now.second)
-    logging.basicConfig(filename='cBLUE_{}.log'.format(date_time_now_str), 
-                        format='%(asctime)s:%(message)s', 
-                        level=logging.INFO)
-    
     config = Configuration(config_json)
     logging.info(config)
 
+    now = datetime.datetime.now()
+    date_time_now_str = '{}{}{}_{}{}{}'.format(now.year, 
+                                               str(now.month).zfill(2), 
+                                               str(now.day).zfill(2),
+                                               str(now.hour).zfill(2),
+                                               str(now.minute).zfill(2),
+                                               str(now.second).zfill(2))
+
+    log_file = os.path.join(config.qaqc_dir, 'cBLUE_{}.log'.format(date_time_now_str))
+    logging.basicConfig(
+        filename=log_file, 
+        format='%(asctime)s:%(message)s', 
+        level=logging.INFO)
+    
     nantucket = LasTileCollection(config.las_tile_dir)
     qaqc = QaqcTileCollection(nantucket.get_las_tile_paths()[0:100], config)
     
     qaqc.run_qaqc_tile_collection_checks(multiprocess=False)
+    qaqc.set_qaqc_results_df()
     print('outputing tile qaqc results to {}...'.format(config.qaqc_shp_NAD83_UTM_POLYGONS))
     #qaqc.gen_qaqc_shp_NAD83_UTM(config.qaqc_shp_NAD83_UTM_POLYGONS)
     qaqc.gen_summary_graphic()
     
-    if not os.path.isfile(config.contractor_centroids_shp_NAD83_UTM):
+    if not os.path.isfile(config.tile_shp_NAD83_UTM_CENTROIDS):
         print('creating shapefile containing centroids of contractor tile polygons...')
         tile_centroids = qaqc.gen_tile_centroids_shp_NAD83_UTM()
         qaqc.add_layer_to_mxd(tile_centroids)
     else:
-        logging.info('{} alread exists'.format(config.contractor_centroids_shp_NAD83_UTM))
+        logging.info('{} alread exists'.format(config.tile_shp_NAD83_UTM_CENTROIDS))
     
     # build the mosaics the user checked
     mosaic_types = [k for k, v in config.mosaics_to_make.iteritems() if v[0]]
