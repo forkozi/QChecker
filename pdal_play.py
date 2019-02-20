@@ -8,22 +8,23 @@ for vdatum in vdatums:
     pdal_json = """{"pipeline": [ """ + '"{}"'.format(las_tile) + """]}"""
 
     pipeline = pdal.Pipeline(pdal_json)
-    pipeline.validate() # check if our JSON and options were good
-    #pipeline.loglevel = 8 #really noisy
-    count = pipeline.execute()
-    #arrays = pipeline.arrays
-    metadata = pipeline.metadata
+    pipeline.validate()
 
+    count = pipeline.execute()
+    arrays = pipeline.arrays
+    
+    metadata = pipeline.metadata
     meta_dict = json.loads(metadata)
     srs = meta_dict['metadata']['readers.las'][0]['srs']
-
-    print(json.dumps(meta_dict, indent=2))
 
     hor_wkt = srs['horizontal']
     ver_wkt = srs['vertical']
 
     hor_srs=osr.SpatialReference(wkt=hor_wkt)
-    ver_srs=osr.SpatialReference(wkt=ver_wkt)    
+    ver_srs=osr.SpatialReference(wkt=ver_wkt)   
+    
+    print(hor_srs.ExportToWkt())
+    print(hor_srs.ExportToProj4())
 
     hor_cs_name = hor_srs.GetAttrValue('projcs')
     ver_cs_name = ver_srs.GetAttrValue('vert_cs')
