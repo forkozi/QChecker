@@ -18,24 +18,34 @@ extra_byte_dimensions = OrderedDict([
     ('total_tvu', ('total tvu', tpu_data_type))
     ])
 
-las_dir = r'C:\QAQC_contract\nantucket\CLASSIFIED_LAS'
+las_dir = r'C:\Users\nickf\OneDrive\NOAA\QAQC_Checker\martha_las_test'
 
-las_files = [os.path.join(las_dir, l) for l in os.listdir(las_dir) if l.endswith('.las')]
+for root, dirs, files in os.walk(las_dir):
+    for name in files:
+        las_file = os.path.join(root, name)
 
-# Set up our input and output files.
-inFile = laspy.file.File(las_files[0], mode="r")
+        if las_file.endswith('.las'):
+            inFile = laspy.file.File(las_file, mode="r")
+            headerformat = inFile.header.header_format
 
-headerformat = inFile.header.header_format
-for spec in headerformat:
-    print(spec.name),
-    print(inFile.header.reader.get_header_property(spec.name))
+            #for spec in headerformat:
+            #    print(spec.name),
+            #    print(inFile.header.reader.get_header_property(spec.name))
     
-point_records = inFile.points
-print(point_records.dtype)
+            header = {}
+            header['VLRs'] = {}
+            print('{}{} has {} VLR(s){}'.format('#' * 20, os.path.join(*las_file.split('\\')[-2:]), len(inFile.header.vlrs), '#' * 20))
+            for i, vlr in enumerate(inFile.header.vlrs):
+                print('{}VLR {} (Record ID {}) {}'.format('-' * 10, i, vlr.record_id, '-' * 10))
+                print(vlr.body_summary())
+                print(vlr.parsed_body)
 
-# for dim in extra_byte_dimensions:
-#     print(dim),
-#     print(inFile.reader.get_dimension(dim))
+            #point_records = inFile.points
+            #print(point_records.dtype)
 
-print inFile.extra_bytes
+            # for dim in extra_byte_dimensions:
+            #     print(dim),
+            #     print(inFile.reader.get_dimension(dim))
+
+            #print inFile.extra_bytes
 

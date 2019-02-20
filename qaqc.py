@@ -921,20 +921,20 @@ class QaqcTileCollection:
 
 
         # save plots
-        img = os.path.join(self.config['qaqc_dir'], 'QAQC_Results_Dashboard_1.png'
-        print('saving {}...'.format())
+        img = os.path.join(self.config['qaqc_dir'], 'QAQC_Results_Dashboard_1.png')
+        print('saving {}...'.format(img))
         l = layout([[[p1, p2]]], sizing_mode='fixed')
         export_png(l, filename=img)
 
         # save check result maps
-        img = os.path.join(self.config['qaqc_dir'], 'QAQC_Results_Dashboard_2.png'
-        print('saving {}...'.format())
+        img = os.path.join(self.config['qaqc_dir'], 'QAQC_Results_Dashboard_2.png')
+        print('saving {}...'.format(img))
         l = layout([[np.reshape(check_pass_fail_plots, (-1, 3)).tolist()]], sizing_mode='fixed')
         export_png(l, filename=img)
 
         # save class count maps
-        img = os.path.join(self.config['qaqc_dir'], 'QAQC_Results_Dashboard_3.png'
-        print('saving {}...'.format())
+        img = os.path.join(self.config['qaqc_dir'], 'QAQC_Results_Dashboard_3.png')
+        print('saving {}...'.format(img))
         l = layout([[np.reshape(class_count_plots, (-1, 3)).tolist()]], sizing_mode='fixed')
         export_png(l, filename=img)
 
