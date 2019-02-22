@@ -18,34 +18,38 @@ extra_byte_dimensions = OrderedDict([
     ('total_tvu', ('total tvu', tpu_data_type))
     ])
 
-las_dir = r'C:\Users\nickf\OneDrive\NOAA\QAQC_Checker\martha_las_test'
+las_dir = r'Z:\martha_las_test'
+#las_dir = r'C:\QAQC_contract\nantucket\CLASSIFIED_LAS'
+las_tile = 'Z:/martha_las_test/mhw/2016_374000e_4594000n_las.las'
+las_tile = 'C:/QAQC_contract/nantucket/CLASSIFIED_LAS/2016_399500e_4574000n_las.las'
 
-for root, dirs, files in os.walk(las_dir):
-    for name in files:
-        las_file = os.path.join(root, name)
+#for root, dirs, files in os.walk(las_dir):
+#    for name in files:
+#        las_file = os.path.join(root, name)
 
-        if las_file.endswith('.las'):
-            inFile = laspy.file.File(las_file, mode="r")
-            headerformat = inFile.header.header_format
+#        if las_file.endswith('.las'):
 
-            #for spec in headerformat:
-            #    print(spec.name),
-            #    print(inFile.header.reader.get_header_property(spec.name))
+inFile = laspy.file.File(las_tile, mode="r")
+headerformat = inFile.header.header_format
+
+#for spec in headerformat:
+#    print(spec.name),
+#    print(inFile.header.reader.get_header_property(spec.name))
     
-            header = {}
-            header['VLRs'] = {}
-            print('{}{} has {} VLR(s){}'.format('#' * 20, os.path.join(*las_file.split('\\')[-2:]), len(inFile.header.vlrs), '#' * 20))
-            for i, vlr in enumerate(inFile.header.vlrs):
-                print('{}VLR {} (Record ID {}) {}'.format('-' * 10, i, vlr.record_id, '-' * 10))
-                print(vlr.body_summary())
-                print(vlr.parsed_body)
+header = {}
+header['VLRs'] = {}
+#print('{}{} has {} VLR(s){}'.format('#' * 20, os.path.join(*las_file.split('\\')[-2:]), len(inFile.header.vlrs), '#' * 20))
+for i, vlr in enumerate(inFile.header.vlrs):
+    print('{}VLR {} (Record ID {}) {}'.format('-' * 10, i, vlr.record_id, '-' * 10))
+    print(vlr.body_summary())
+    print(vlr.parsed_body)
 
-            #point_records = inFile.points
-            #print(point_records.dtype)
+#point_records = inFile.points
+#print(point_records.dtype)
 
-            # for dim in extra_byte_dimensions:
-            #     print(dim),
-            #     print(inFile.reader.get_dimension(dim))
+# for dim in extra_byte_dimensions:
+#     print(dim),
+#     print(inFile.reader.get_dimension(dim))
 
-            #print inFile.extra_bytes
+#print inFile.extra_bytes
 

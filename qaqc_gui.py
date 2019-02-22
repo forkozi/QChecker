@@ -582,6 +582,22 @@ class MainGuiPage(ttk.Frame):
 
     def add_checks(self):
 
+        check = 'naming'
+        get_key_options_def = self.get_naming_types()
+        state = 'disabled'
+        command = None
+        def add_check_key(check, get_key_options_def, state):
+            self.gui['check_keys'][check][0] = tk.StringVar()
+            self.gui['check_keys'][check][0].set(
+                self.config['check_keys'][check])
+            self.gui['check_keys'][check][1] = tk.OptionMenu(
+                checks_frame, 
+                self.gui['check_keys'][check][0],
+                *get_key_options_def,
+                command=None)
+            self.gui['check_keys'][check][1].config(state=state)
+            self.gui['check_keys'][check][1].configure(anchor='w')
+
         def add_naming_key():
             self.gui['check_keys']['naming'][0] = tk.StringVar()
             self.gui['check_keys']['naming'][0].set(
@@ -668,7 +684,7 @@ class MainGuiPage(ttk.Frame):
                 self.gui['check_keys']['exp_cls'][0], 
                 *self.get_class_picker_msg(),
                 command=lambda x: self.pick_classes())
-            #self.gui['check_keys']['exp_cls'][1].config(state='disabled')
+            self.gui['check_keys']['exp_cls'][1].config(state='disabled')
             self.gui['check_keys']['exp_cls'][1].configure(anchor='w')
 
         def add_supp_las_domain():
