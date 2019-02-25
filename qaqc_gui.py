@@ -684,7 +684,7 @@ class MainGuiPage(ttk.Frame):
                 self.gui['check_keys']['exp_cls'][0], 
                 *self.get_class_picker_msg(),
                 command=lambda x: self.pick_classes())
-            self.gui['check_keys']['exp_cls'][1].config(state='disabled')
+            #self.gui['check_keys']['exp_cls'][1].config(state='disabled')
             self.gui['check_keys']['exp_cls'][1].configure(anchor='w')
 
         def add_supp_las_domain():

@@ -241,3 +241,6 @@ ModelManifest.xml
 # FAKE - F# Make
 .fake/
 /QAQC_checks/QAQC_checks.pyproj
+/dist/qaqc/bokeh
+/dist/qaqc/Include
+/dist/qaqc
