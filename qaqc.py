@@ -114,6 +114,57 @@ class LasTileCollection():
 class LasTile:
 
     def __init__(self, las_path, config):
+        self.path = las_path
+        self.name = os.path.splitext(las_path.split(os.sep)[-1])[0]
+        self.inFile = File(self.path, mode="r")
+        self.config = config
+        self.is_pyramided = os.path.isfile(self.path.replace('.las', '.qvr'))
+        self.to_pyramid = self.config.to_pyramid
+        self.vlrs = self.get_vlrs()
+        self.geotiff_keys = self.get_geotif_keys()
+        self.hor_srs = self.get_hor_srs()
+        self.ver_srs = self.get_ver_srs()
+
+        self.header = get_useful_las_header_info()
+        self.las_extents = {
+            'ExtentXMin': self.header['x_min'],
+            'ExtentXMax': self.header['x_max'],
+            'ExtentYMin': self.header['y_min'],
+            'ExtentYMax': self.header['y_max'],
+            }
+
+        self.centroid_x, self.centroid_y = calc_las_centroid()
+
+        self.tile_extents = {
+            'tile_top': self.centroid_y + self.config.tile_size / 2,
+            'tile_bottom': self.centroid_y - self.config.tile_size / 2,
+            'tile_left': self.centroid_x - self.config.tile_size / 2,
+            'tile_right': self.centroid_x + self.config.tile_size / 2,
+            }
+
+        self.tile_poly_wkt = GeoObject(Polygon([
+            (self.tile_extents['tile_left'], self.tile_extents['tile_top']), 
+            (self.tile_extents['tile_right'], self.tile_extents['tile_top']), 
+            (self.tile_extents['tile_right'], self.tile_extents['tile_bottom']), 
+            (self.tile_extents['tile_left'], self.tile_extents['tile_bottom']),
+            (self.tile_extents['tile_left'], self.tile_extents['tile_top']), 
+            ])).wkt()
+
+        self.tile_centroid_wkt = GeoObject(Point(self.centroid_x, self.centroid_y)).wkt()
+        self.classes_present, self.class_counts = self.get_class_counts()
+        self.has_bathy = True if 'class26' in self.class_counts.keys() else False
+        self.has_ground = True if 'class2' in self.class_counts.keys() else False
+
+        self.checks_result = {
+            'naming': None,
+            'version': None,
+            'pdrf': None,
+            'gps_time': None,
+            'hdatum': None,
+            'vdatum': None,
+            'pnt_src_ids': None,
+            'exp_cls': None,
+        }
 
         def get_useful_las_header_info():
             info_to_get = 'global_encoding,version_major,version_minor,' \
@@ -173,57 +224,6 @@ class LasTile:
             las_centroid_y = las_nw_y - self.config.tile_size / 2
             return (las_centroid_x, las_centroid_y)
 
-        self.path = las_path
-        self.name = os.path.splitext(las_path.split(os.sep)[-1])[0]
-        self.inFile = File(self.path, mode="r")
-        self.config = config
-        self.is_pyramided = os.path.isfile(self.path.replace('.las', '.qvr'))
-        self.to_pyramid = self.config.to_pyramid
-        self.vlrs = self.get_vlrs()
-        self.geotiff_keys = self.get_geotif_keys()
-        self.hor_srs = self.get_hor_srs()
-        self.ver_srs = self.get_ver_srs()
-
-        self.header = get_useful_las_header_info()
-        self.las_extents = {
-            'ExtentXMin': self.header['x_min'],
-            'ExtentXMax': self.header['x_max'],
-            'ExtentYMin': self.header['y_min'],
-            'ExtentYMax': self.header['y_max'],
-            }
-
-        self.centroid_x, self.centroid_y = calc_las_centroid()
-
-        self.tile_extents = {
-            'tile_top': self.centroid_y + self.config.tile_size / 2,
-            'tile_bottom': self.centroid_y - self.config.tile_size / 2,
-            'tile_left': self.centroid_x - self.config.tile_size / 2,
-            'tile_right': self.centroid_x + self.config.tile_size / 2,
-            }
-
-        self.tile_poly_wkt = GeoObject(Polygon([
-            (self.tile_extents['tile_left'], self.tile_extents['tile_top']), 
-            (self.tile_extents['tile_right'], self.tile_extents['tile_top']), 
-            (self.tile_extents['tile_right'], self.tile_extents['tile_bottom']), 
-            (self.tile_extents['tile_left'], self.tile_extents['tile_bottom']),
-            (self.tile_extents['tile_left'], self.tile_extents['tile_top']), 
-            ])).wkt()
-
-        self.tile_centroid_wkt = GeoObject(Point(self.centroid_x, self.centroid_y)).wkt()
-        self.classes_present, self.class_counts = self.get_class_counts()
-        self.has_bathy = True if 'class26' in self.class_counts.keys() else False
-        self.has_ground = True if 'class2' in self.class_counts.keys() else False
-
-        self.checks_result = {
-            'naming': None,
-            'version': None,
-            'pdrf': None,
-            'gps_time': None,
-            'hdatum': None,
-            'vdatum': None,
-            'pnt_src_ids': None,
-            'exp_cls': None,
-        }
 
         if self.to_pyramid and not self.is_pyramided:
             self.create_las_pyramids()
