@@ -14,6 +14,7 @@ import pathos.pools as pp
 import re
 from geodaisy import GeoObject
 import ast
+import pdal
 
 import Tkinter as tk
 import ttk
@@ -70,6 +71,8 @@ class Configuration:
         self.tile_shp_NAD83_UTM_CENTROIDS = os.path.join(self.qaqc_dir, 'tiles_centroids_NAD83_UTM.shp')
         self.tile_csv = os.path.join(self.qaqc_dir, 'tiles.csv')
 
+        self.epsg_json = data['epsg_json']
+
     def __str__(self):
         return json.dumps(self.data, indent=4, sort_keys=True)
 
@@ -111,12 +114,6 @@ class LasTileCollection():
 class LasTile:
 
     def __init__(self, las_path, config):
-        self.path = las_path
-        self.name = os.path.splitext(las_path.split(os.sep)[-1])[0]
-        self.inFile = File(self.path, mode="r")
-        self.config = config
-        self.is_pyramided = os.path.isfile(self.path.replace('.las', '.qvr'))
-        self.to_pyramid = self.config.to_pyramid
 
         def get_useful_las_header_info():
             info_to_get = 'global_encoding,version_major,version_minor,' \
@@ -125,12 +122,47 @@ class LasTile:
             header = {}
             for info in info_to_get.split(','):
                 header[info] = self.inFile.header.reader.get_header_property(info)
-            header['VLRs'] = {}
-            for vlr in self.inFile.header.vlrs:
-                # get coordinate system name (e.g., NAD_1983_2011_UTM_Zone_19N)
-                if vlr.record_id == 34737:
-                    header['VLRs']['coord_sys'] = vlr.parsed_body[0].decode('utf-8').split('|')[0]
             return header
+
+        def get_vlrs():
+            vlrs = {}
+            for i, vlr in enumerate(self.inFile.header.vlrs):
+                vlrs.update({vlr.record_id: vlr.parsed_body})
+            return vlrs
+
+        def get_geotif_keys():
+            geotiff_key_tag = 34735  # GeoKeyDirectoryTag
+            key_entries = list(self.vlrs[geotiff_key_tag])  
+            nth = 4
+            keys = [key_entries[nth*i:nth*i+nth] for i in range(0,math.ceil(len(key_entries)/nth))]
+            # KeyEntry = {KeyID, TIFFTagLocation, Count, Value_Offset}
+            for key in keys:
+                geotiff_keys.update({
+                    key[0]: {
+                        'TIFFTagLocation': key[1],
+                        'Count': key[2],
+                        'Value_Offset': key[3],
+                        }
+                    })
+            return geotiff_keys
+
+        def get_hor_srs():
+            with open(self.config.epsg_json) as f:
+                epsgs = json.load(f)
+            hor_key_id = 3072  # ProjectedCSTypeGeoKey
+            hor_srs_epsg = str(self.geotiff_keys[hor_key_id]['Value_Offset'])
+            self.hor_srs = epsgs[hor_srs_epsg]
+
+        def get_ver_srs():
+            vcs_keys = [4097, 4096]  # in prefered ordered
+            # 4097 = VerticalCitationGeoKey
+            # 4096 = VerticalCSTypeGeoKey
+            geo_ascii_params_tag = 34737  # GeoAsciiParamsTag
+            ver_srs = 'no vertical coordinate system info provided'
+            for key in vcs_keys:
+                start_i = self.geotiff_keys[key]['Value_Offset']
+                end_i = start_i + self.geotiff_keys[key]['Count']
+                self.ver_srs = self.vlrs[geo_ascii_params_tag][0].decode('utf-8')[start_i:end_i-1]
 
         def calc_las_centroid():
             data_nw_x = self.las_extents['ExtentXMin']
@@ -140,6 +172,17 @@ class LasTile:
             las_centroid_x = las_nw_x + self.config.tile_size / 2
             las_centroid_y = las_nw_y - self.config.tile_size / 2
             return (las_centroid_x, las_centroid_y)
+
+        self.path = las_path
+        self.name = os.path.splitext(las_path.split(os.sep)[-1])[0]
+        self.inFile = File(self.path, mode="r")
+        self.config = config
+        self.is_pyramided = os.path.isfile(self.path.replace('.las', '.qvr'))
+        self.to_pyramid = self.config.to_pyramid
+        self.vlrs = self.get_vlrs()
+        self.geotiff_keys = self.get_geotif_keys()
+        self.hor_srs = self.get_hor_srs()
+        self.ver_srs = self.get_ver_srs()
 
         self.header = get_useful_las_header_info()
         self.las_extents = {
@@ -231,9 +274,6 @@ class LasTile:
 
     def get_pt_src_ids(self):
         return np.unique(self.inFile.pt_src_id)
-
-    def get_hdatum(self):
-        return self.header['VLRs']['coord_sys']
 
     def create_las_pyramids(self):
         exe = r'C:\Program Files\Common Files\LP360\LDPyramid.exe'
@@ -450,7 +490,7 @@ class QaqcTile:
         return passed
 
     def check_hdatum(self, tile):  # TODO
-        hdatum = tile.get_hdatum()
+        hdatum = tile.hor_srs
         if hdatum == self.config.hdatum_key:
             passed = self.passed_text
         else:
@@ -472,7 +512,15 @@ class QaqcTile:
         return passed
 
     def check_vdatum(self):
-        pass
+        vdatum = tile.ver_srs
+        if vdatum == self.config.vdatum_key:
+            passed = self.passed_text
+        else:
+            passed = self.failed_text
+        tile.checks_result['vdatum'] = vdatum
+        tile.checks_result['vdatum_passed'] = passed
+        logging.info(tile.checks_result['vdatum'])
+        return passed
 
     def check_pt_src_ids(self, tile):
         unq_pt_src_ids = tile.get_pt_src_ids()

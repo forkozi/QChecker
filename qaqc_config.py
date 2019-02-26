@@ -41,7 +41,8 @@ config_data = {
   'to_pyramid': True,
   'tile_size': '500',
   'contractor_shp': 'C:\\QAQC_contract\\nantucket\\EXTENTS\\final\\Nantucket_TileGrid.shp',
-  'supp_las_domain': 'Topo-Bathy Lidar Domain Profile'
+  'supp_las_domain': 'Topo-Bathy Lidar Domain Profile',
+  'epsg_json': 'Z:\qaqc\epsg_lut.json',
 }
 
 with open('Z:\qaqc\qaqc_config.json', 'w') as f:

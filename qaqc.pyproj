@@ -6,7 +6,7 @@
     <ProjectGuid>f842e6fd-4c69-40e3-a39e-92b094b3b673</ProjectGuid>
     <ProjectHome>
     </ProjectHome>
-    <StartupFile>pdal_play.py</StartupFile>
+    <StartupFile>qaqc_gui.py</StartupFile>
     <SearchPath>..\Program Files (x86)\ArcGIS\Desktop10.5\arcpy;..\Program Files (x86)\ArcGIS\Desktop10.5\ArcToolbox\Scripts;..\Program Files (x86)\ArcGIS\Desktop10.5\arcpy;..\Program Files (x86)\ArcGIS\Desktop10.5\ArcToolbox\Scripts;..\Program Files (x86)\ArcGIS\Desktop10.5\arcpy;..\Program Files (x86)\ArcGIS\Desktop10.5\ArcToolbox\Scripts;..\Program Files (x86)\ArcGIS\Desktop10.5\arcpy;..\Program Files (x86)\ArcGIS\Desktop10.5\ArcToolbox\Scripts;..\Program Files (x86)\ArcGIS\Desktop10.5\arcpy;..\Program Files (x86)\ArcGIS\Desktop10.5\ArcToolbox\Scripts;..\Program Files (x86)\ArcGIS\Desktop10.5\arcpy;..\Program Files (x86)\ArcGIS\Desktop10.5\ArcToolbox\Scripts;..\Program Files (x86)\ArcGIS\Desktop10.5\arcpy;..\Program Files (x86)\ArcGIS\Desktop10.5\ArcToolbox\Scripts;..\Program Files (x86)\ArcGIS\Desktop10.5\arcpy;..\Program Files (x86)\ArcGIS\Desktop10.5\ArcToolbox\Scripts;..\Program Files (x86)\ArcGIS\Desktop10.5\arcpy;..\Program Files (x86)\ArcGIS\Desktop10.5\ArcToolbox\Scripts;..\Program Files (x86)\ArcGIS\Desktop10.5\arcpy;..\Program Files (x86)\ArcGIS\Desktop10.5\ArcToolbox\Scripts;..\Program Files (x86)\ArcGIS\Desktop10.5\arcpy;..\Program Files (x86)\ArcGIS\Desktop10.5\ArcToolbox\Scripts;C:\Program Files (x86)\ArcGIS\Desktop10.5\arcpy;C:\Program Files (x86)\ArcGIS\Desktop10.5\bin64;C:\Program Files (x86)\ArcGIS\Desktop10.5\ArcToolbox\Scripts</SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
     <OutputPath>.</OutputPath>
@@ -28,6 +28,12 @@
   <ItemGroup>
     <Compile Include="extra_bytes_play.py" />
     <Compile Include="config_las_json.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="create_epsg_json.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="module1.py">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="setup.py">
