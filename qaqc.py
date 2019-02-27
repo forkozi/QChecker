@@ -14,7 +14,6 @@ import pathos.pools as pp
 import re
 from geodaisy import GeoObject
 import ast
-import pdal
 
 import Tkinter as tk
 import ttk

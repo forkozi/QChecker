@@ -1,0 +1,23 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 15
+VisualStudioVersion = 15.0.28307.421
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{888888A0-9F3D-457C-B088-3A5042F75D52}") = "QAQC_Checker_GITHUB", "QAQC_Checker_GITHUB.pyproj", "{CAFAD0EC-F83C-4C48-85AF-490B0DA89E0D}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{CAFAD0EC-F83C-4C48-85AF-490B0DA89E0D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CAFAD0EC-F83C-4C48-85AF-490B0DA89E0D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {2B9E3BEB-3F0C-486C-8EEC-63751B0875F3}
+	EndGlobalSection
+EndGlobal

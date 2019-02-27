@@ -32,7 +32,7 @@ class QaqcApp(tk.Tk):
         splash = Splash(self)
 
         version = 'v1.0.0 alpha'
-        tk.Tk.wm_title(self, 'QAQC Checker {}'.format(version))
+        tk.Tk.wm_title(self, 'Q-Checker {}'.format(version))
         tk.Tk.iconbitmap(self, 'qaqc.ico')
 
         container = tk.Frame(self)
@@ -183,7 +183,7 @@ class QaqcApp(tk.Tk):
     def show_about():
         about = tk.Toplevel()
         tk.Toplevel.iconbitmap(about, 'qaqc.ico')
-        about.wm_title('About QAQC Checker')
+        about.wm_title('About Q-Checker')
         splash_img = tk.PhotoImage(file='SplashScreen.gif')
         label = tk.Label(about, image=splash_img)
         label.pack()
