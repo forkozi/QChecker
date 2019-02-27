@@ -6,7 +6,7 @@
     <ProjectGuid>f842e6fd-4c69-40e3-a39e-92b094b3b673</ProjectGuid>
     <ProjectHome>
     </ProjectHome>
-    <StartupFile>qaqc_gui.py</StartupFile>
+    <StartupFile>extra_bytes_play.py</StartupFile>
     <SearchPath>..\Program Files (x86)\ArcGIS\Desktop10.5\arcpy;..\Program Files (x86)\ArcGIS\Desktop10.5\ArcToolbox\Scripts;..\Program Files (x86)\ArcGIS\Desktop10.5\arcpy;..\Program Files (x86)\ArcGIS\Desktop10.5\ArcToolbox\Scripts;..\Program Files (x86)\ArcGIS\Desktop10.5\arcpy;..\Program Files (x86)\ArcGIS\Desktop10.5\ArcToolbox\Scripts;..\Program Files (x86)\ArcGIS\Desktop10.5\arcpy;..\Program Files (x86)\ArcGIS\Desktop10.5\ArcToolbox\Scripts;..\Program Files (x86)\ArcGIS\Desktop10.5\arcpy;..\Program Files (x86)\ArcGIS\Desktop10.5\ArcToolbox\Scripts;..\Program Files (x86)\ArcGIS\Desktop10.5\arcpy;..\Program Files (x86)\ArcGIS\Desktop10.5\ArcToolbox\Scripts;..\Program Files (x86)\ArcGIS\Desktop10.5\arcpy;..\Program Files (x86)\ArcGIS\Desktop10.5\ArcToolbox\Scripts;..\Program Files (x86)\ArcGIS\Desktop10.5\arcpy;..\Program Files (x86)\ArcGIS\Desktop10.5\ArcToolbox\Scripts;..\Program Files (x86)\ArcGIS\Desktop10.5\arcpy;..\Program Files (x86)\ArcGIS\Desktop10.5\ArcToolbox\Scripts;..\Program Files (x86)\ArcGIS\Desktop10.5\arcpy;..\Program Files (x86)\ArcGIS\Desktop10.5\ArcToolbox\Scripts;..\Program Files (x86)\ArcGIS\Desktop10.5\arcpy;..\Program Files (x86)\ArcGIS\Desktop10.5\ArcToolbox\Scripts;C:\Program Files (x86)\ArcGIS\Desktop10.5\arcpy;C:\Program Files (x86)\ArcGIS\Desktop10.5\bin64;C:\Program Files (x86)\ArcGIS\Desktop10.5\ArcToolbox\Scripts</SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
     <OutputPath>.</OutputPath>
