@@ -49,6 +49,8 @@ with open('LAS_v14.txt', 'r') as f:
 
             headerformat = inFile.header.header_format
    
+            print(inFile.header.get_wkt())
+
             version_major = inFile.header.reader.get_header_property('version_major')
             version_minor = inFile.header.reader.get_header_property('version_minor')
             version = r'v{}.{}'.format(version_major, version_minor)
@@ -64,7 +66,7 @@ with open('LAS_v14.txt', 'r') as f:
             geotiff_info = {}
             key_entries = list(vlrs[34735])  # GeoKeyDirectoryTag
             nth = 4
-            keys = [key_entries[nth*i:nth*i+nth] for i in range(0,math.ceil(len(key_entries)/nth))]
+            keys = [key_entries[nth*i:nth*i+nth] for i in range(0, int(math.ceil(len(key_entries)/nth)))]
             # KeyEntry = {KeyID, TIFFTagLocation, Count, Value_Offset}
             for key in keys:
                 new_key = {
@@ -74,13 +76,12 @@ with open('LAS_v14.txt', 'r') as f:
                         'Value_Offset': key[3],
                         }
                     }
-                #print(new_key)
+                print(new_key)
                 geotiff_info.update(new_key)
 
             vcs_keys = [4096, 4097]
             contains_vcs_info = any(key in geotiff_info.keys() for key in vcs_keys)
 
-            line = f.readline()
 
             #if not contains_vcs_info:
             #    with open('LAS_no_ver_cs.txt', 'a') as f:
@@ -122,3 +123,5 @@ with open('LAS_v14.txt', 'r') as f:
 
         except Exception as e:
             pass
+        
+        line = f.readline()

@@ -14,13 +14,14 @@ import pathos.pools as pp
 import re
 from geodaisy import GeoObject
 import ast
-
+import math
 import Tkinter as tk
 import ttk
 import time
 import datetime
 import progressbar
 import matplotlib.pyplot as plt
+import pycrs
 
 
 class Configuration:
@@ -113,16 +114,101 @@ class LasTileCollection():
 class LasTile:
 
     def __init__(self, las_path, config):
+
+        def get_useful_las_header_info():
+            info_to_get = 'global_encoding,version_major,version_minor,' \
+                          'created_day,created_year,' \
+                          'data_format_id,x_min,x_max,y_min,y_max'
+            header = {}
+            for info in info_to_get.split(','):
+                header[info] = self.inFile.header.reader.get_header_property(info)
+
+            self.version = '{}.{}'.format(header['version_major'], header['version_minor'])
+            return header
+
+        def get_vlrs():
+            vlrs = {}
+            for i, vlr in enumerate(self.inFile.header.vlrs):
+                vlrs.update({vlr.record_id: vlr.parsed_body})
+            return vlrs
+
+        def get_geotif_keys():
+            geotiff_key_tag = 34735  # GeoKeyDirectoryTag
+            key_entries = list(self.vlrs[geotiff_key_tag])  
+            nth = 4
+            keys = [key_entries[nth*i:nth*i+nth] for i in range(0, int(math.ceil(len(key_entries)/nth)))]
+            # KeyEntry = {KeyID, TIFFTagLocation, Count, Value_Offset}
+            geotiff_keys = {}
+            for key in keys:
+                geotiff_keys.update({
+                    key[0]: {
+                        'TIFFTagLocation': key[1],
+                        'Count': key[2],
+                        'Value_Offset': key[3],
+                        }
+                    })
+            return geotiff_keys
+
+        def get_hor_srs():
+            hor_srs = None
+            if self.version == '1.2':
+                try:
+                    with open(self.config.epsg_json) as f:  # TODO: doesn't have to happen for every tile
+                        epsgs = json.load(f)
+                    hor_key_id = 3072  # ProjectedCSTypeGeoKey
+                    hor_srs_epsg = str(self.geotiff_keys[hor_key_id]['Value_Offset'])
+                    hor_srs = epsgs[hor_srs_epsg]
+                except Exception as e:
+                    hor_srs = 'no horizontal coordinate system specified in GeoTiff keys'
+            elif self.version == '1.4':
+                v14_hcs_key = 2112  # 2112 = Las 1.4 spec for hor. coord. sys. info
+                hor_cs_wkt = self.vlrs[v14_hcs_key][0].decode('utf-8')
+                # DO pycrs things...
+                hor_cs = pycrs.parse.from_unknown_wkt(hor_cs_wkt)
+
+            return hor_srs
+
+        def get_ver_srs():
+            geo_ascii_params_tag = 34737  # GeoAsciiParamsTag (optional in v1.4)
+            ver_srs = None
+            if self.version == '1.2':  # ver srs specified in geotiff keys
+                v12_vcs_keys = [4097, 4096]  # in prefered ordered
+                # 4097 = VerticalCitationGeoKey
+                # 4096 = VerticalCSTypeGeoKey
+                if any(key in self.geotiff_keys.keys() for key in v12_vcs_keys):
+                    for key in v12_vcs_keys:
+                        start_i = self.geotiff_keys[key]['Value_Offset']
+                        end_i = start_i + self.geotiff_keys[key]['Count']
+                        ver_srs = self.vlrs[geo_ascii_params_tag][0].decode('utf-8')[start_i:end_i-1]
+                        if ver_srs:
+                            break
+                else:
+                    ver_srs = 'no vertical coordinate system specified in GeoTiff keys'
+            elif self.version == '1.4':  # ver srs specified in ogc wkt
+                if self.inFile.header.get_wkt():  # i.e., if wkt bit is set to 1
+                    ver_srs = self.vlrs[inFile][0].decode('utf-8')
+                    # DO pycrs things...
+                else:
+                    ver_srs = 'WKT vertical coordinate '
+
+            return ver_srs
+
+        def calc_las_centroid():
+            data_nw_x = self.las_extents['ExtentXMin']
+            data_nw_y = self.las_extents['ExtentYMax']
+            las_nw_x = data_nw_x - (data_nw_x % self.config.tile_size)
+            las_nw_y = data_nw_y + self.config.tile_size - (data_nw_y % self.config.tile_size)
+            las_centroid_x = las_nw_x + self.config.tile_size / 2
+            las_centroid_y = las_nw_y - self.config.tile_size / 2
+            return (las_centroid_x, las_centroid_y)
+        
         self.path = las_path
         self.name = os.path.splitext(las_path.split(os.sep)[-1])[0]
+        self.version = None
         self.inFile = File(self.path, mode="r")
         self.config = config
         self.is_pyramided = os.path.isfile(self.path.replace('.las', '.qvr'))
         self.to_pyramid = self.config.to_pyramid
-        self.vlrs = self.get_vlrs()
-        self.geotiff_keys = self.get_geotif_keys()
-        self.hor_srs = self.get_hor_srs()
-        self.ver_srs = self.get_ver_srs()
 
         self.header = get_useful_las_header_info()
         self.las_extents = {
@@ -165,64 +251,10 @@ class LasTile:
             'exp_cls': None,
         }
 
-        def get_useful_las_header_info():
-            info_to_get = 'global_encoding,version_major,version_minor,' \
-                          'created_day,created_year,' \
-                          'data_format_id,x_min,x_max,y_min,y_max'
-            header = {}
-            for info in info_to_get.split(','):
-                header[info] = self.inFile.header.reader.get_header_property(info)
-            return header
-
-        def get_vlrs():
-            vlrs = {}
-            for i, vlr in enumerate(self.inFile.header.vlrs):
-                vlrs.update({vlr.record_id: vlr.parsed_body})
-            return vlrs
-
-        def get_geotif_keys():
-            geotiff_key_tag = 34735  # GeoKeyDirectoryTag
-            key_entries = list(self.vlrs[geotiff_key_tag])  
-            nth = 4
-            keys = [key_entries[nth*i:nth*i+nth] for i in range(0,math.ceil(len(key_entries)/nth))]
-            # KeyEntry = {KeyID, TIFFTagLocation, Count, Value_Offset}
-            for key in keys:
-                geotiff_keys.update({
-                    key[0]: {
-                        'TIFFTagLocation': key[1],
-                        'Count': key[2],
-                        'Value_Offset': key[3],
-                        }
-                    })
-            return geotiff_keys
-
-        def get_hor_srs():
-            with open(self.config.epsg_json) as f:
-                epsgs = json.load(f)
-            hor_key_id = 3072  # ProjectedCSTypeGeoKey
-            hor_srs_epsg = str(self.geotiff_keys[hor_key_id]['Value_Offset'])
-            self.hor_srs = epsgs[hor_srs_epsg]
-
-        def get_ver_srs():
-            vcs_keys = [4097, 4096]  # in prefered ordered
-            # 4097 = VerticalCitationGeoKey
-            # 4096 = VerticalCSTypeGeoKey
-            geo_ascii_params_tag = 34737  # GeoAsciiParamsTag
-            ver_srs = 'no vertical coordinate system info provided'
-            for key in vcs_keys:
-                start_i = self.geotiff_keys[key]['Value_Offset']
-                end_i = start_i + self.geotiff_keys[key]['Count']
-                self.ver_srs = self.vlrs[geo_ascii_params_tag][0].decode('utf-8')[start_i:end_i-1]
-
-        def calc_las_centroid():
-            data_nw_x = self.las_extents['ExtentXMin']
-            data_nw_y = self.las_extents['ExtentYMax']
-            las_nw_x = data_nw_x - (data_nw_x % self.config.tile_size)
-            las_nw_y = data_nw_y + self.config.tile_size - (data_nw_y % self.config.tile_size)
-            las_centroid_x = las_nw_x + self.config.tile_size / 2
-            las_centroid_y = las_nw_y - self.config.tile_size / 2
-            return (las_centroid_x, las_centroid_y)
-
+        self.vlrs = get_vlrs()
+        self.geotiff_keys = get_geotif_keys()
+        self.hor_srs = get_hor_srs()
+        self.ver_srs = get_ver_srs()
 
         if self.to_pyramid and not self.is_pyramided:
             self.create_las_pyramids()
@@ -510,7 +542,7 @@ class QaqcTile:
         logging.info(tile.checks_result['exp_cls'])
         return passed
 
-    def check_vdatum(self):
+    def check_vdatum(self, tile):
         vdatum = tile.ver_srs
         if vdatum == self.config.vdatum_key:
             passed = self.passed_text
@@ -840,7 +872,6 @@ class QaqcTileCollection:
         from bokeh.palettes import Blues
         from bokeh.transform import log_cmap, factor_cmap
         from bokeh.layouts import layout, gridplot
-        from bokeh.core.properties import value
 
         # qaqc CENTROIDS
         self.gen_qaqc_json_WebMercator_CENTROIDS(self.config.qaqc_geojson_WebMercator_CENTROIDS)
@@ -1025,7 +1056,6 @@ class QaqcTileCollection:
         p2.xaxis.major_label_orientation = "vertical"
         p2.xaxis.minor_tick_line_color = None
 
-
         ## save plots
         #img = os.path.join(self.config.qaqc_dir, 'QAQC_Results_Dashboard_1.png')
         #print('saving {}...'.format(img))
@@ -1135,7 +1165,7 @@ def run_qaqc(config_json):
         level=logging.INFO)
     
     nantucket = LasTileCollection(config.las_tile_dir)
-    qaqc = QaqcTileCollection(nantucket.get_las_tile_paths()[0:1], config)
+    qaqc = QaqcTileCollection(nantucket.get_las_tile_paths()[0:20], config)
     
     qaqc.run_qaqc_tile_collection_checks(multiprocess=False)
     qaqc.set_qaqc_results_df()

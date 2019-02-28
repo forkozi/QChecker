@@ -15,7 +15,7 @@ config_data = {
     'hdatum': 'NAD_1983_2011_UTM_Zone_4N',
     'naming': 'yyyy_[easting]e_[northing]n_las',
     'exp_cls': '02,40',
-    'vdatum': 'GRS80',
+    'vdatum': 'Ellipoid (Meters)',
     'pt_src_ids': 'Verify Unique Flight Line IDs'
   },
   'surfaces_to_make': {

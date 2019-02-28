@@ -5,7 +5,7 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>{cafad0ec-f83c-4c48-85af-490b0da89e0d}</ProjectGuid>
     <ProjectHome />
-    <StartupFile>qaqc_gui.py</StartupFile>
+    <StartupFile>extra_bytes_play.py</StartupFile>
     <SearchPath>C:\Program Files (x86)\ArcGIS\Desktop10.5\arcpy;C:\Program Files (x86)\ArcGIS\Desktop10.5\bin64;C:\Program Files (x86)\ArcGIS\Desktop10.5\ArcToolbox\Scripts</SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
     <OutputPath>.</OutputPath>
@@ -46,6 +46,7 @@
   </ItemGroup>
   <ItemGroup>
     <InterpreterReference Include="CondaEnv|CondaEnv|qaqc_checker" />
+    <InterpreterReference Include="CondaEnv|CondaEnv|QChecker" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets" />
 </Project>
