@@ -5,6 +5,7 @@ import pandas as pd
 import os
 
 from qaqc import *
+
  
 LARGE_FONT = ('Verdanna', 12)
 LARGE_FONT_BOLD = ('Verdanna', 12, 'bold')
@@ -43,7 +44,7 @@ def get_wkt_ids():
 def get_proj_names():
     with open('Z:\qaqc\project_list.txt', 'r') as f:
        project_ids = [s.strip() for s in f.readlines()]
-    print project_ids
+    print(project_ids)
     return tuple(project_ids)
 
 metadata = {
@@ -97,7 +98,7 @@ label.grid(row=0, columnspan=3, pady=(10, 0), sticky=W)
 def get_file():
     dir_str = tkFileDialog.askopenfilename()
     displayed_dir = r'...\{}'.format(dir_str.split('/')[-1])  # tk uses forward slashes
-    print displayed_dir
+    print(displayed_dir)
     return dir_str, displayed_dir
 
 def file0_clicked():
@@ -147,7 +148,7 @@ label.grid(row=0, columnspan=3, pady=(10, 0), sticky=W)
 def get_dir():
     dir_str = tkFileDialog.askdirectory()
     displayed_dir = '...\{}\\'.format(dir_str.split('/')[-1])  # tk uses forward slashes
-    print displayed_dir
+    print(displayed_dir)
     return dir_str, displayed_dir
 
 def dir0_clicked():

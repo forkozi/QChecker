@@ -24,7 +24,7 @@ for row in rows:
 
 wkts_df = pd.DataFrame(wkts)
 wkts_df.to_csv('Z:\qaqc\wkts.csv', index=False)
-print wkts_df
+print(wkts_df)
 
 #wkts = [wkts[i].text for i in range(len(wkts))]
 
