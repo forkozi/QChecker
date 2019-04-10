@@ -1,0 +1,50 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003" DefaultTargets="Build">
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <SchemaVersion>2.0</SchemaVersion>
+    <ProjectGuid>{c38a03c2-3023-49b8-8959-a7450dcc7b3d}</ProjectGuid>
+    <ProjectHome />
+    <StartupFile>config_las_json.py</StartupFile>
+    <SearchPath />
+    <WorkingDirectory>.</WorkingDirectory>
+    <OutputPath>.</OutputPath>
+    <ProjectTypeGuids>{888888a0-9f3d-457c-b088-3a5042f75d52}</ProjectTypeGuids>
+    <LaunchProvider>Standard Python launcher</LaunchProvider>
+    <InterpreterId>CondaEnv|CondaEnv|qchecker_py27</InterpreterId>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)' == 'Debug'" />
+  <PropertyGroup Condition="'$(Configuration)' == 'Release'" />
+  <PropertyGroup>
+    <VisualStudioVersion Condition=" '$(VisualStudioVersion)' == '' ">10.0</VisualStudioVersion>
+  </PropertyGroup>
+  <ItemGroup>
+    <Content Include="checked-checkbox.png" />
+    <Content Include="finish_message.txt" />
+    <Content Include="geojson.html" />
+    <Content Include="las_classes.txt" />
+    <Content Include="LAS_no_ver_cs.txt" />
+    <Content Include="LAS_v14.txt" />
+    <Content Include="project_list.txt" />
+    <Content Include="qaqc.gif" />
+    <Content Include="qaqc.ico" />
+    <Content Include="QAQC_Summary_FL1608_TB_N_DogIsland_p.html" />
+    <Content Include="SplashScreen.gif" />
+    <Content Include="SplashScreen.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="config_las_json.py" />
+    <Compile Include="create_epsg_json.py" />
+    <Compile Include="extra_bytes_play.py" />
+    <Compile Include="module1.py" />
+    <Compile Include="pdal_play.py" />
+    <Compile Include="qaqc.py" />
+    <Compile Include="qaqc_config.py" />
+    <Compile Include="qaqc_gui.py" />
+    <Compile Include="setup.py" />
+  </ItemGroup>
+  <ItemGroup>
+    <InterpreterReference Include="CondaEnv|CondaEnv|qchecker_py27" />
+  </ItemGroup>
+  <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets" />
+</Project>

@@ -820,6 +820,8 @@ class MainGuiPage(ttk.Frame):
     
 
 if __name__ == '__main__':
+    qchecker_path = os.path.dirname(os.path.realpath(__file__))
+    os.chdir(qchecker_path)
     app = QaqcApp()
     app.resizable(0, 0)
     app.geometry('400x815')

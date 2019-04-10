@@ -1,11 +1,11 @@
 import os
 import json
 import logging
+import numpy as np
 import pandas as pd
 import geopandas as gpd
 from shapely.geometry import Point, Polygon
 from shapely import wkt
-import numpy as np
 import subprocess
 from laspy.file import File
 import xml.etree.ElementTree as ET
@@ -21,7 +21,6 @@ import time
 import datetime
 import progressbar
 import matplotlib.pyplot as plt
-import pycrs
 
 
 class Configuration:
@@ -163,8 +162,6 @@ class LasTile:
             elif self.version == '1.4':
                 v14_hcs_key = 2112  # 2112 = Las 1.4 spec for hor. coord. sys. info
                 hor_cs_wkt = self.vlrs[v14_hcs_key][0].decode('utf-8')
-                # DO pycrs things...
-                hor_cs = pycrs.parse.from_unknown_wkt(hor_cs_wkt)
 
             return hor_srs
 
@@ -186,8 +183,8 @@ class LasTile:
                     ver_srs = 'no vertical coordinate system specified in GeoTiff keys'
             elif self.version == '1.4':  # ver srs specified in ogc wkt
                 if self.inFile.header.get_wkt():  # i.e., if wkt bit is set to 1
-                    ver_srs = self.vlrs[inFile][0].decode('utf-8')
-                    # DO pycrs things...
+                    v14_wkt_key = 2112  # 2112 = Las 1.4 spec for hor. coord. sys. info
+                    ver_srs = self.vlrs[v14_wkt_key][0].decode('utf-8')
                 else:
                     ver_srs = 'WKT vertical coordinate '
 
@@ -253,8 +250,8 @@ class LasTile:
 
         self.vlrs = get_vlrs()
         self.geotiff_keys = get_geotif_keys()
-        self.hor_srs = get_hor_srs()
-        self.ver_srs = get_ver_srs()
+        self.hor_srs = None
+        self.ver_srs = None
 
         if self.to_pyramid and not self.is_pyramided:
             self.create_las_pyramids()
@@ -295,6 +292,7 @@ class LasTile:
 
     def get_gps_time(self):
         gps_times = {0: 'GPS Week Time', 1: 'Satellite GPS Time'}
+        print(self.header['global_encoding'])
         return gps_times[self.header['global_encoding']]
 
     def get_las_version(self):
