@@ -15,8 +15,8 @@ import re
 from geodaisy import GeoObject
 import ast
 import math
-import Tkinter as tk
-import ttk
+import tkinter as tk
+from tkinter import ttk
 import time
 import datetime
 import progressbar

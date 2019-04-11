@@ -1,13 +1,13 @@
 from qaqc import run_qaqc
-import Tkinter as tk
-import tkFileDialog
-import ttk
+import tkinter as tk
+from tkinter import ttk, filedialog
 import os
 import time
 import json
 import pandas as pd
 import matplotlib
 import threading
+
 
 #matplotlib.use('Agg')
 
@@ -469,7 +469,7 @@ class MainGuiPage(ttk.Frame):
 
         def bind_files_command(f):
             def func():
-                file_str = tkFileDialog.askopenfilename()
+                file_str = filedialog.askopenfilename()
                 display_str = self.build_display_str(file_str)
                 self.gui['files_to_set'][f][1].configure(text=display_str)
                 self.gui['files_to_set'][f][2] = file_str 
@@ -503,7 +503,7 @@ class MainGuiPage(ttk.Frame):
 
         def bind_dirs_command(d):
             def func():
-                dir_str = tkFileDialog.askdirectory()
+                dir_str = filedialog.askdirectory()
                 display_str = self.build_display_str(dir_str)
                 self.gui['dirs_to_set'][d][1].configure(text=display_str)
                 self.gui['dirs_to_set'][d][2] = dir_str 
@@ -724,7 +724,7 @@ class MainGuiPage(ttk.Frame):
         
         def bind_dirs_command(s):
             def func():
-                dir_str = tkFileDialog.askdirectory()
+                dir_str = filedialog.askdirectory()
                 display_str = self.build_display_str(dir_str)
                 self.gui['surfaces_to_make'][s][2].configure(text=display_str)
                 self.gui['surfaces_to_make'][s][3] = dir_str 
@@ -733,7 +733,7 @@ class MainGuiPage(ttk.Frame):
 
         def bind_file_command(s):
             def func():
-                file_str = tkFileDialog.askopenfilename()
+                file_str = filedialog.askopenfilename()
                 display_str = self.build_display_str(file_str)
                 self.gui['mosaics_to_make'][s][2].configure(text=display_str)
                 self.gui['mosaics_to_make'][s][3] = file_str 
