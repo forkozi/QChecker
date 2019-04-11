@@ -292,8 +292,9 @@ class LasTile:
 
     def get_gps_time(self):
         gps_times = {0: 'GPS Week Time', 1: 'Satellite GPS Time'}
-        print(self.header['global_encoding'])
-        return gps_times[self.header['global_encoding']]
+        bit_num_gps_time_type = 0
+        gps_time_type_bit = int(bin(self.header['global_encoding'])[2:0].zfill(16)[::-1][bit_num_gps_time_type])
+        return gps_times[gps_time_type_bit]
 
     def get_las_version(self):
         return '{}.{}'.format(self.header['version_major'], self.header['version_minor'])
@@ -406,10 +407,10 @@ class Surface:
         logging.info('updating dz export settings xml with las extents...')
         tree = ET.parse(self.config.dz_export_settings)
         root = tree.getroot()
-        for extent, val in self.las_extents.iteritems():
+        for extent, val in self.las_extents.items():
             for e in root.findall(extent):
                 e.text = str(val)
-        new_dz_settings = ET.tostring(root)
+        new_dz_settings = ET.tostring(root).decode('utf-8')  # is byte string
         myfile = open(self.config.dz_export_settings, "w")
         myfile.write(new_dz_settings)
 
@@ -590,7 +591,7 @@ class QaqcTile:
         import xml.etree.ElementTree as ET
         #logging.basicConfig(format='%(asctime)s:%(message)s', level=logging.INFO)
         tile = LasTile(las_path, self.config)
-        for c in [k for k, v in self.config.checks_to_do.iteritems() if v]:
+        for c in [k for k, v in self.config.checks_to_do.items() if v]:
             logging.debug('running {}...'.format(c))
             result = self.checks[c](tile)
             logging.debug(result)
@@ -606,12 +607,12 @@ class QaqcTile:
             logging.info('starting {}...'.format(las_path))
             tile = LasTile(las_path, self.config)
 
-            for c in [k for k, v in self.config.checks_to_do.iteritems() if v]:
+            for c in [k for k, v in self.config.checks_to_do.items() if v]:
                 logging.debug('running {}...'.format(c))
                 result = self.checks[c](tile)
                 logging.debug(result)
 
-            for c in [k for k, v in self.config.surfaces_to_make.iteritems() if v[0]]:
+            for c in [k for k, v in self.config.surfaces_to_make.items() if v[0]]:
                 logging.debug('running {}...'.format(c))
                 result = self.surfaces[c](tile)
                 logging.debug(result)
@@ -799,7 +800,7 @@ class QaqcTileCollection:
                 las_classes = json.load(lcf)
             
             def find(key, dictionary):
-                for k, v in dictionary.iteritems():
+                for k, v in dictionary.items():
                     if k == key:
                         yield v
                     elif isinstance(v, dict):
@@ -1179,7 +1180,7 @@ def run_qaqc(config_json):
         logging.info('{} alread exists'.format(config.tile_shp_NAD83_UTM_CENTROIDS))
     
     # build the mosaics the user checked
-    mosaic_types = [k for k, v in config.mosaics_to_make.iteritems() if v[0]]
+    mosaic_types = [k for k, v in config.mosaics_to_make.items() if v[0]]
     if mosaic_types:
         print('building mosaics {}...'.format(tuple([m.encode("utf-8") for m in mosaic_types])))
         for m in progressbar.progressbar(mosaic_types, redirect_stdout=True):

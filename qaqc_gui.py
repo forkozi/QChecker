@@ -143,32 +143,32 @@ class QaqcApp(tk.Tk):
     def save_config(self):
 
         # options
-        for k, v in self.components['options'].iteritems():
+        for k, v in self.components['options'].items():
             self.configuration[k] = v[1].get()
             
         # files_to_set
-        for k, v in self.components['files_to_set'].iteritems():
+        for k, v in self.components['files_to_set'].items():
             self.configuration[k] = v[2]
 
         # dirs_to_set
-        for k, v in self.components['dirs_to_set'].iteritems():
+        for k, v in self.components['dirs_to_set'].items():
             self.configuration[k] = v[2]
 
         # checks_to_do
-        for k, v in self.components['checks_to_do'].iteritems():
+        for k, v in self.components['checks_to_do'].items():
             self.configuration['checks_to_do'][k] = v[1].get()
 
         # check_keys
-        for k, v in self.components['check_keys'].iteritems():
+        for k, v in self.components['check_keys'].items():
             self.configuration['check_keys'][k] = v[0].get()
 
         # surfaces_to_make
-        for k, v in self.components['surfaces_to_make'].iteritems():
+        for k, v in self.components['surfaces_to_make'].items():
             self.configuration['surfaces_to_make'][k][0] = v[1].get()
             self.configuration['surfaces_to_make'][k][1] = v[3]
 
         # mosaics_to_make
-        for k, v in self.components['mosaics_to_make'].iteritems():
+        for k, v in self.components['mosaics_to_make'].items():
             self.configuration['mosaics_to_make'][k][0] = v[1].get()
             self.configuration['mosaics_to_make'][k][1] = v[3]
 
@@ -254,7 +254,7 @@ class MainGuiPage(ttk.Frame):
 
     def get_checked_classes(self, popup, vars):
         checked_classes = []
-        for k, v in vars.iteritems():
+        for k, v in vars.items():
             if v.get():
                 checked_classes.append(k)
         self.gui['check_keys']['exp_cls'][0].set(','.join(checked_classes))
@@ -277,7 +277,7 @@ class MainGuiPage(ttk.Frame):
                              font=NORM_FONT_BOLD)
             label.grid(row=0, sticky=tk.EW)
             core_classes = las_classes[las_version]['classes']
-            for i, (k, v) in enumerate(sorted(core_classes.iteritems()), 1):
+            for i, (k, v) in enumerate(sorted(core_classes.items()), 1):
                 vars.update({k: tk.BooleanVar()})
                 vars[k].set(self.get_class_status(k))
                 class_check = tk.Checkbutton(core_classes_frame, text='{}: {}'.format(k, v), 
@@ -299,7 +299,7 @@ class MainGuiPage(ttk.Frame):
         def add_supp_classes():
             avail_domains = las_classes[las_version]['supplemental']
             curr_domain_classes = avail_domains[self.gui['supp_las_domain'].get()]['classes']
-            for i, (k, v) in enumerate(sorted(curr_domain_classes.iteritems()), 2):
+            for i, (k, v) in enumerate(sorted(curr_domain_classes.items()), 2):
                 vars.update({k: tk.BooleanVar()})
                 vars[k].set(self.get_class_status(k))
                 class_check = tk.Checkbutton(supp_classes_frame, 
