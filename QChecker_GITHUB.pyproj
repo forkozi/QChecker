@@ -6,12 +6,12 @@
     <ProjectGuid>{f6ec5861-b585-4fc8-91fb-ea1f234f9381}</ProjectGuid>
     <ProjectHome />
     <StartupFile>qaqc_gui.py</StartupFile>
-    <SearchPath>C:\Program Files\ArcGIS\Pro\Resources\ArcPy;C:\Program Files\ArcGIS\Pro\Resources\ArcToolBox\Scripts;C:\Program Files\ArcGIS\Pro\Resources\ArcPy;C:\Program Files\ArcGIS\Pro\Resources\ArcToolBox\Scripts;C:\Program Files\ArcGIS\Pro\bin</SearchPath>
+    <SearchPath>C:\Program Files\ArcGIS\Pro\Resources\ArcPy;C:\Program Files\ArcGIS\Pro\Resources\ArcToolBox\Scripts;C:\Program Files\ArcGIS\Pro\Resources\ArcPy;C:\Program Files\ArcGIS\Pro\Resources\ArcToolBox\Scripts;C:\Program Files\ArcGIS\Pro\bin;C:\Program Files\ArcGIS\Pro\Resources\ArcPy;C:\Program Files\ArcGIS\Pro\Resources\ArcToolBox\Scripts;C:\Program Files\ArcGIS\Pro\bin;C:\Program Files\ArcGIS\Pro\Resources\ArcPy;C:\Program Files\ArcGIS\Pro\Resources\ArcToolBox\Scripts;C:\Program Files\ArcGIS\Pro\bin;C:\Program Files\ArcGIS\Pro\Resources\ArcPy;C:\Program Files\ArcGIS\Pro\Resources\ArcToolBox\Scripts;C:\Program Files\ArcGIS\Pro\bin;C:\</SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
     <OutputPath>.</OutputPath>
     <ProjectTypeGuids>{888888a0-9f3d-457c-b088-3a5042f75d52}</ProjectTypeGuids>
     <LaunchProvider>Standard Python launcher</LaunchProvider>
-    <InterpreterId>CondaEnv|CondaEnv|arcgispro-py3</InterpreterId>
+    <InterpreterId>CondaEnv|CondaEnv|qchecker</InterpreterId>
     <IsWindowsApplication>False</IsWindowsApplication>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)' == 'Debug'" />
@@ -49,6 +49,7 @@
   </ItemGroup>
   <ItemGroup>
     <InterpreterReference Include="CondaEnv|CondaEnv|arcgispro-py3" />
+    <InterpreterReference Include="CondaEnv|CondaEnv|qchecker" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets" />
 </Project>

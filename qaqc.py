@@ -23,6 +23,8 @@ import progressbar
 import matplotlib.pyplot as plt
 
 
+os.environ["PROJ_LIB"] = "C:\Anaconda\envs\env_name\Library\share"
+
 class Configuration:
     def __init__(self, config):
 
@@ -470,8 +472,8 @@ class QaqcTile:
         if pattern.match(tile.name):
             # then check name components
             tile_name_parts = tile.name.split('_')
-            easting = tile_name_parts[1].replace('e', '')
-            northing = tile_name_parts[2].replace('n', '')
+            easting = int(tile_name_parts[1].replace('e', ''))
+            northing = int(tile_name_parts[2].replace('n', ''))
             easting_good = self.passed_text if easting >= min_easting and easting <= max_easting else self.failed_text
             northing_good = self.passed_text if northing >= min_northing and northing <= max_northing else self.failed_text
             if easting_good and northing_good:
@@ -689,6 +691,10 @@ class QaqcTileCollection:
         nad83_utm_z19 = {'init': 'epsg:26919'}
         gdf = gpd.GeoDataFrame(df, crs=nad83_utm_z19, geometry='Coordinates')
         web_mercator = {'init': 'epsg:3857'}
+        import sys
+        print(sys.version)
+        for p in sys.path:
+            print(p)
         gdf = gdf.to_crs(web_mercator)
         return gdf
 
@@ -845,7 +851,8 @@ class QaqcTileCollection:
 
         
         test_results = get_test_results()
-        test_result_fields = [r.encode('utf-8') for r in list(test_results.columns)]
+        #test_result_fields = [r.encode('utf-8') for r in list(test_results.columns)]
+        test_result_fields = test_results.columns
 
         result_counts = df[test_result_fields].apply(pd.Series.value_counts).fillna(0).transpose()#.astype(np.int64)
         present_classes = get_classes_present(df.columns)
