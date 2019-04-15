@@ -3,6 +3,7 @@ import json
 
 config_data = {
   'dz_mxd': 'C:\\QAQC_contract\\nantucket\\QAQC_nantucket.mxd',
+  'dz_aprx': 'C:\\QAQC_contract\\nantucket\\nantucket_qaqc_arcpro_project\\nantucket_qaqc_arcpro_project.aprx',
   'mosaics_to_make': {
     'Hillshade': [ False, 'C:/QAQC_contract/nantucket/qaqc_nantucket.gdb/FL1608_TB_N_DogIsland_p_hillshade_mosaic' ],
     'Dz': [ False, 'C:/QAQC_contract/nantucket/qaqc_nantucket.gdb/FL1608_TB_N_DogIsland_p_dz_mosaic' ]
@@ -45,5 +46,5 @@ config_data = {
   'epsg_json': 'Z:\qaqc\epsg_lut.json',
 }
 
-with open('Z:\qaqc\qaqc_config.json', 'w') as f:
+with open('Z:\QChecker\QChecker_GITHUB\qaqc_config.json', 'w') as f:
     json.dump(config_data, f)

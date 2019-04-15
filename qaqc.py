@@ -52,6 +52,7 @@ class Configuration:
         self.pt_src_ids_key = data['check_keys']['pt_src_ids']
 
         self.dz_mxd  = data['dz_mxd']
+        self.dz_aprx = data['dz_aprx']
         self.dz_export_settings = data['dz_export_settings']
         self.dz_classes_template = data['dz_classes_template']
 
@@ -355,24 +356,24 @@ class Mosaic:
             logging.info(e)
 
     def add_mosaic_to_mxd(self):
-        mxd = arcpy.mapping.MapDocument(self.config.dz_mxd)
-        df = arcpy.mapping.ListDataFrames(mxd)[0]
-        arcpy.MakeRasterLayer_management(self.mosaic_raster_path, self.mosaic_raster_basename)
-        dz_lyr = arcpy.mapping.Layer(self.mosaic_raster_basename)
         try:
-            arcpy.mapping.AddLayer(df, dz_lyr, 'AUTO_ARRANGE')
-            mxd.save()
+            aprx = arcpy.mp.ArcGISProject(self.config.dz_aprx)
+            m = aprx.listMaps()[0]
+            arcpy.MakeRasterLayer_management(self.mosaic_raster_path, self.mosaic_raster_basename)
+            lyr = arcpy.mp.LayerFile(self.mosaic_raster_basename)
+            m.addLayer(lyr, 'TOP')
+            aprx.save()
         except Exception as e:
             logging.info(e)
 
     def update_raster_symbology(self):
-        mxd = arcpy.mapping.MapDocument(self.config.dz_mxd)
-        df = arcpy.mapping.ListDataFrames(mxd)[0]
-        raster_to_update = arcpy.mapping.ListLayers(mxd, self.mosaic_raster_basename, df)[0]
-        dz_classes_lyr = arcpy.mapping.Layer(self.config.dz_classes_template)
-        arcpy.mapping.UpdateLayer(df, raster_to_update, dz_classes_lyr, True)
         try:
-            mxd.save()
+            aprx = arcpy.mp.ArcGISProject(self.config.dz_aprx)
+            m = aprx.listMaps()[0]
+            raster_to_update = m.listLayers(self.mosaic_raster_basename)[0]
+            dz_classes_lyr = arcpy.mp.LayerFile(self.config.dz_classes_template)
+            arcpy.mp.UpdateLayer(df, raster_to_update, dz_classes_lyr, True)
+            aprx.save()
         except Exception as e:
             logging.info(e)
 
@@ -691,10 +692,6 @@ class QaqcTileCollection:
         nad83_utm_z19 = {'init': 'epsg:26919'}
         gdf = gpd.GeoDataFrame(df, crs=nad83_utm_z19, geometry='Coordinates')
         web_mercator = {'init': 'epsg:3857'}
-        import sys
-        print(sys.version)
-        for p in sys.path:
-            print(p)
         gdf = gdf.to_crs(web_mercator)
         return gdf
 
@@ -761,6 +758,7 @@ class QaqcTileCollection:
         gdf.to_csv(output, index=False)
 
     def gen_qaqc_shp_NAD83_UTM(self, output):
+        print('outputing tile qaqc results to {}...'.format(config.qaqc_shp_NAD83_UTM_POLYGONS))
         gdf = self.gen_qaqc_results_gdf_NAD83_UTM_POLYGONS()
         gdf = gdf.drop(columns=['ExtentXMax','ExtentXMin', 'ExtentYMax', 
                                 'ExtentYMin', 'centroid_x', 'centroid_y', 
@@ -774,12 +772,14 @@ class QaqcTileCollection:
         except Exception as e:
             logging.info(e)
         logging.info(self.config.dz_mxd)
-        mxd = arcpy.mapping.MapDocument(self.config.dz_mxd)
-        df = arcpy.mapping.ListDataFrames(mxd)[0]
-        qaqc_lyr = arcpy.mapping.Layer(output)
+
         try:
-            arcpy.mapping.AddLayer(df, qaqc_lyr, 'TOP')  # add qaqc tile shp
-            mxd.save()
+
+            aprx = arcpy.mp.ArcGISProject(self.config.dz_aprx)
+            m = aprx.listMaps()[0]
+            qaqc_lyr = arcpy.mp.LayerFile(output)
+            m.addLayer(qaqc_lyr, 'TOP')
+            aprx.save()
         except Exception as e:
             logging.info(e)
 
@@ -874,7 +874,7 @@ class QaqcTileCollection:
         from bokeh.io import output_file, show, export_png
         from bokeh.models import ColumnDataSource, PrintfTickFormatter, GeoJSONDataSource, ColorBar, HoverTool, LegendItem, Legend, Range1d
         from bokeh.plotting import figure
-        from bokeh.tile_providers import CARTODBPOSITRON
+        from bokeh.tile_providers import get_providers, Vendors
         from bokeh.palettes import Blues
         from bokeh.transform import log_cmap, factor_cmap
         from bokeh.layouts import layout, gridplot
@@ -885,7 +885,7 @@ class QaqcTileCollection:
             geojson_qaqc_centroids = f.read()
             geojson_dict_centroids = json.loads(geojson_qaqc_centroids)
 
-        output_file('z:\qaqc\QAQC_Summary_{}.html'.format(self.config.project_name))
+        output_file('z:\QChecker\QAQC_Summary_{}.html'.format(self.config.project_name))
         qaqc_centroids = GeoJSONDataSource(geojson=geojson_qaqc_centroids)
 
         check_labels = {
@@ -940,7 +940,7 @@ class QaqcTileCollection:
                      source=qaqc_centroids, 
                      color=color_mapper)
 
-            p.add_tile(CARTODBPOSITRON)
+            p.add_tile(get_provider('CARTOPOSITION'))
             class_count_plots.append(p)
 
         add_empty_plots_to_reshape(class_count_plots)
@@ -1142,12 +1142,12 @@ class QaqcTileCollection:
         gdf.to_file(geojson, driver="GeoJSON")
 
     def add_layer_to_mxd(self, layer):
-        mxd = arcpy.mapping.MapDocument(self.config.dz_mxd)
-        df = arcpy.mapping.ListDataFrames(mxd)[0]
-        lyr = arcpy.mapping.Layer(layer)
         try:
-            arcpy.mapping.AddLayer(df, lyr, 'TOP')
-            mxd.save()
+            aprx = arcpy.mp.ArcGISProject(self.config.dz_aprx)
+            m = aprx.listMaps()[0]
+            lyr = arcpy.mp.LayerFile(layer)
+            m.addLayer(lyr, 'TOP')
+            aprx.save()
         except Exception as e:
             logging.info(e)
 
@@ -1175,8 +1175,7 @@ def run_qaqc(config_json):
     
     qaqc.run_qaqc_tile_collection_checks(multiprocess=False)
     qaqc.set_qaqc_results_df()
-    print('outputing tile qaqc results to {}...'.format(config.qaqc_shp_NAD83_UTM_POLYGONS))
-    #qaqc.gen_qaqc_shp_NAD83_UTM(config.qaqc_shp_NAD83_UTM_POLYGONS)
+    qaqc.gen_qaqc_shp_NAD83_UTM(config.qaqc_shp_NAD83_UTM_POLYGONS)
     qaqc.gen_summary_graphic()
     
     if not os.path.isfile(config.tile_shp_NAD83_UTM_CENTROIDS):
