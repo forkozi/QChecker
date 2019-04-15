@@ -1,0 +1,45 @@
+{ 
+ "las_spec": {
+  "0": "never classified",
+  "1": "Unclassified",
+  "2": "Ground",
+  "3": "Low Vegetation",
+  "4": "Medium Vegetation",
+  "5": "High Vegetation",
+  "6": "Building",
+  "7": "Low Point (noise)",
+  "8": "*Reserved*",
+  "9": "Water",
+  "10": "Rail",
+  "11": "Road Surface",
+  "12": "*Reserved*",
+  "13": "Wire -- Guard (Shield)",
+  "14": "Wire -- Conductor (Phase)",
+  "15": "Transmission Tower",
+  "16": "Wire-structure Connector (e.g Insulator)",
+  "17": "Bridge Deck",
+  "18": "High Noise",
+  "19": "?",
+  "20": "?",
+  "21": "?",
+  "22": "?"
+ },
+ "supplemental": {
+  "23": "Unrefracted Sensor Noise",
+  "24": "Refracted Sensor Noise",
+  "25": "Water Column",
+  "26": "Bathymetric Point",
+  "27": "Water Surface",
+  "28": "Derived Water Surface",
+  "29": "Submerged Object",
+  "30": "IHO S-57 Object"
+  }
+ "topo_bathy_domain": {
+  "40": "Bathymetric point",
+  "41": "Water surface",
+  "42": "Derived water surface",
+  "43": "Submerged object",
+  "44": "IHO S-57 object",
+  "45": "No-bottom-found-at"
+ }
+}
