@@ -7,6 +7,7 @@ import json
 import pandas as pd
 import matplotlib
 import threading
+import logging
 
 
 #matplotlib.use('Agg')
@@ -86,8 +87,8 @@ class QaqcApp(tk.Tk):
                                     self.configuration['dz_classes_template'], '.lyr'],
             'dz_export_settings': ['Dz Export Settings', None, 
                                    self.configuration['dz_export_settings'], '.xml'],
-            'dz_mxd': ['QAQC ArcGIS Map', None, 
-                       self.configuration['dz_mxd'], '.mxd'],
+            'dz_aprx': ['QAQC ArcGIS PRO Project', None, 
+                       self.configuration['dz_aprx'], '.aprx'],
             }})
 
         self.components.update({'dirs_to_set': {
@@ -822,6 +823,20 @@ class MainGuiPage(ttk.Frame):
 if __name__ == '__main__':
     qchecker_path = os.path.dirname(os.path.realpath(__file__))
     os.chdir(qchecker_path)
+
+    now = datetime.datetime.now()
+    date_time_now_str = '{}{}{}_{}{}{}'.format(now.year, 
+                                               str(now.month).zfill(2), 
+                                               str(now.day).zfill(2),
+                                               str(now.hour).zfill(2),
+                                               str(now.minute).zfill(2),
+                                               str(now.second).zfill(2))
+
+    log_file = os.path.join(qchecker_path, 'cBLUE_{}.log'.format(date_time_now_str))
+    logging.basicConfig(filename=log_file,
+                        format='%(asctime)s:%(message)s',
+                        level=logging.INFO)
+
     app = QaqcApp()
     app.resizable(0, 0)
     app.geometry('400x815')

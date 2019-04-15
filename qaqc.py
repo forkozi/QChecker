@@ -23,7 +23,7 @@ import progressbar
 import matplotlib.pyplot as plt
 
 
-os.environ["PROJ_LIB"] = "C:\Anaconda\envs\env_name\Library\share"
+#os.environ["PROJ_LIB"] = "C:\Anaconda\envs\env_name\Library\share"
 
 class Configuration:
     def __init__(self, config):
@@ -51,7 +51,6 @@ class Configuration:
         self.version_key = data['check_keys']['version']
         self.pt_src_ids_key = data['check_keys']['pt_src_ids']
 
-        self.dz_mxd  = data['dz_mxd']
         self.dz_aprx = data['dz_aprx']
         self.dz_export_settings = data['dz_export_settings']
         self.dz_classes_template = data['dz_classes_template']
@@ -355,7 +354,7 @@ class Mosaic:
         except Exception as e:            
             logging.info(e)
 
-    def add_mosaic_to_mxd(self):
+    def add_mosaic_to_aprx(self):
         try:
             aprx = arcpy.mp.ArcGISProject(self.config.dz_aprx)
             m = aprx.listMaps()[0]
@@ -605,7 +604,7 @@ class QaqcTile:
         #self.progress[1]['maximum'] = num_las
         tic = time.time()
 
-        print('performing tile qaqc processes...')
+        print('performing tile qaqc processes (details logged in log file)...')
         for las_path in progressbar.progressbar(las_paths, redirect_stdout=True):
             logging.info('starting {}...'.format(las_path))
             tile = LasTile(las_path, self.config)
@@ -758,7 +757,7 @@ class QaqcTileCollection:
         gdf.to_csv(output, index=False)
 
     def gen_qaqc_shp_NAD83_UTM(self, output):
-        print('outputing tile qaqc results to {}...'.format(config.qaqc_shp_NAD83_UTM_POLYGONS))
+        print('outputing tile qaqc results to {}...'.format(self.config.qaqc_shp_NAD83_UTM_POLYGONS))
         gdf = self.gen_qaqc_results_gdf_NAD83_UTM_POLYGONS()
         gdf = gdf.drop(columns=['ExtentXMax','ExtentXMin', 'ExtentYMax', 
                                 'ExtentYMin', 'centroid_x', 'centroid_y', 
@@ -767,18 +766,20 @@ class QaqcTileCollection:
         logging.info(gdf)
         gdf.to_file(output, driver='ESRI Shapefile')
         sr = arcpy.SpatialReference('NAD 1983 UTM Zone 19N')  # 2011?
+
         try:
+            logging.info('defining {} as {}...'.format(output, sr.name))
             arcpy.DefineProjection_management(output, sr)
         except Exception as e:
             logging.info(e)
-        logging.info(self.config.dz_mxd)
+
+        logging.info(self.config.dz_aprx)
 
         try:
-
+            logging.info('adding {} to {}...'.format(output, self.config.dz_aprx))
             aprx = arcpy.mp.ArcGISProject(self.config.dz_aprx)
             m = aprx.listMaps()[0]
-            qaqc_lyr = arcpy.mp.LayerFile(output)
-            m.addLayer(qaqc_lyr, 'TOP')
+            m.addDataFromPath(output)
             aprx.save()
         except Exception as e:
             logging.info(e)
@@ -874,7 +875,7 @@ class QaqcTileCollection:
         from bokeh.io import output_file, show, export_png
         from bokeh.models import ColumnDataSource, PrintfTickFormatter, GeoJSONDataSource, ColorBar, HoverTool, LegendItem, Legend, Range1d
         from bokeh.plotting import figure
-        from bokeh.tile_providers import get_providers, Vendors
+        from bokeh.tile_providers import get_provider, Vendors
         from bokeh.palettes import Blues
         from bokeh.transform import log_cmap, factor_cmap
         from bokeh.layouts import layout, gridplot
@@ -936,11 +937,11 @@ class QaqcTileCollection:
             p.toolbar.logo = None
             #p.toolbar_location = None
 
+            p.add_tile(get_provider(Vendors.CARTODBPOSITRON))
             p.circle(x='x', y='y', size=3, alpha=0.5, 
                      source=qaqc_centroids, 
                      color=color_mapper)
 
-            p.add_tile(get_provider('CARTOPOSITION'))
             class_count_plots.append(p)
 
         add_empty_plots_to_reshape(class_count_plots)
@@ -983,11 +984,11 @@ class QaqcTileCollection:
                                        palette=list(cmap.values()), 
                                        factors=list(cmap.keys()))
 
+            p.add_tile(get_provider(Vendors.CARTODBPOSITRON))
             p.circle(x='x', y='y', size=3, alpha=0.5, 
                      source=qaqc_centroids,
                      color=color_mapper)
 
-            p.add_tile(CARTODBPOSITRON)
             check_pass_fail_plots.append(p)
 
         add_empty_plots_to_reshape(check_pass_fail_plots)
@@ -1095,7 +1096,7 @@ class QaqcTileCollection:
         mosaic.create_raster_catalog()
         mosaic.add_dir_to_raster_catalog()
         mosaic.mosaic_raster_catalog()
-        mosaic.add_mosaic_to_mxd()
+        mosaic.add_mosaic_to_aprx()
         mosaic.update_raster_symbology()
 
     def gen_tile_geojson_WGS84(shp, geojson):
@@ -1141,7 +1142,7 @@ class QaqcTileCollection:
         gdf = gdf.to_crs(WebMercator)
         gdf.to_file(geojson, driver="GeoJSON")
 
-    def add_layer_to_mxd(self, layer):
+    def add_layer_to_aprx(self, layer):
         try:
             aprx = arcpy.mp.ArcGISProject(self.config.dz_aprx)
             m = aprx.listMaps()[0]
@@ -1155,23 +1156,9 @@ class QaqcTileCollection:
 def run_qaqc(config_json):
     config = Configuration(config_json)
     logging.info(config)
-
-    now = datetime.datetime.now()
-    date_time_now_str = '{}{}{}_{}{}{}'.format(now.year, 
-                                               str(now.month).zfill(2), 
-                                               str(now.day).zfill(2),
-                                               str(now.hour).zfill(2),
-                                               str(now.minute).zfill(2),
-                                               str(now.second).zfill(2))
-
-    log_file = os.path.join(config.qaqc_dir, 'cBLUE_{}.log'.format(date_time_now_str))
-    logging.basicConfig(
-        filename=log_file, 
-        format='%(asctime)s:%(message)s', 
-        level=logging.INFO)
     
     nantucket = LasTileCollection(config.las_tile_dir)
-    qaqc = QaqcTileCollection(nantucket.get_las_tile_paths()[0:20], config)
+    qaqc = QaqcTileCollection(nantucket.get_las_tile_paths()[0:10], config)
     
     qaqc.run_qaqc_tile_collection_checks(multiprocess=False)
     qaqc.set_qaqc_results_df()
@@ -1181,7 +1168,7 @@ def run_qaqc(config_json):
     if not os.path.isfile(config.tile_shp_NAD83_UTM_CENTROIDS):
         print('creating shapefile containing centroids of contractor tile polygons...')
         tile_centroids = qaqc.gen_tile_centroids_shp_NAD83_UTM()
-        qaqc.add_layer_to_mxd(tile_centroids)
+        qaqc.add_layer_to_aprx(tile_centroids)
     else:
         logging.info('{} alread exists'.format(config.tile_shp_NAD83_UTM_CENTROIDS))
     
