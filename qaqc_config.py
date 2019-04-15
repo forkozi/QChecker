@@ -12,7 +12,7 @@ config_data = {
     'gps_time': 'Satellite GPS Time',
     'pdrf': '6',
     'version': '1.4',
-    'hdatum': 'NAD_1983_2011_UTM_Zone_4N',
+    'hdatum': 'NAD_1983_2011_UTM_Zone_19N',
     'naming': 'yyyy_[easting]e_[northing]n_las',
     'exp_cls': '02,40',
     'vdatum': 'Ellipoid (Meters)',

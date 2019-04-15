@@ -10,3 +10,4 @@
 *.sqlite
 *.vs
 *.pyc
+Thumbs.db
