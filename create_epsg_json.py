@@ -1,7 +1,7 @@
 import json
 
-epsg_file = r'Z:\qaqc\epsg_lut.csv'
-epsg_json_file = r'Z:\qaqc\epsg_lut.json'
+epsg_file = r'Z:\QChecker\QChecker_GITHUB\epsg_lut.csv'
+epsg_json_file = r'Z:\QChecker\QChecker_GITHUB\epsg_lut.json'
 
 epsgs = {}
 with open(epsg_file, 'r') as f:

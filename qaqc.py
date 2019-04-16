@@ -46,7 +46,7 @@ class Configuration:
         self.hdatum_key = data['check_keys']['hdatum']
         self.vdatum_key = data['check_keys']['vdatum']
         self.exp_cls_key = [int(n) for n in data['check_keys']['exp_cls'].split(',')]
-        self.pdrf_key = data['check_keys']['pdrf']
+        self.pdrf_key = int(data['check_keys']['pdrf'])
         self.gps_time_key = data['check_keys']['gps_time']
         self.version_key = data['check_keys']['version']
         self.pt_src_ids_key = data['check_keys']['pt_src_ids']
@@ -161,6 +161,7 @@ class LasTile:
                     hor_srs_epsg = str(self.geotiff_keys[hor_key_id]['Value_Offset'])
                     hor_srs = epsgs[hor_srs_epsg]
                 except Exception as e:
+                    print(e)
                     hor_srs = 'no horizontal coordinate system specified in GeoTiff keys'
             elif self.version == '1.4':
                 v14_hcs_key = 2112  # 2112 = Las 1.4 spec for hor. coord. sys. info
@@ -253,8 +254,8 @@ class LasTile:
 
         self.vlrs = get_vlrs()
         self.geotiff_keys = get_geotif_keys()
-        self.hor_srs = None
-        self.ver_srs = None
+        self.hor_srs = get_hor_srs()
+        self.ver_srs = get_ver_srs()
 
         if self.to_pyramid and not self.is_pyramided:
             self.create_las_pyramids()
@@ -795,6 +796,7 @@ class QaqcTileCollection:
             return present_classes
 
         def get_test_results():
+            print(df.columns)
             fields = df.columns
             test_result_fields = []
             for f in fields:
@@ -826,7 +828,7 @@ class QaqcTileCollection:
             len_check_pass_fail_plots = len(plot_list)
             while len_check_pass_fail_plots % 3 != 0:
                 p = figure(plot_width=300, 
-                           plot_height=300,)
+                           plot_height=300)
                 p.outline_line_color = None
                 p.toolbar.logo = None
                 p.toolbar_location = None
@@ -841,8 +843,7 @@ class QaqcTileCollection:
                 p.xaxis.axis_line_color = None
                 p.yaxis.axis_line_color = None
 
-                p.circle(len_check_pass_fail_plots, 0, alpha=0.0)
-                plot_list.append(p)
+                p.circle(0, 0, alpha=0.0)
                 len_check_pass_fail_plots += 1
 
         las_classes = {}
@@ -900,6 +901,7 @@ class QaqcTileCollection:
             'pt_src_ids_passed': 'Point Source IDs',
             'exp_cls_passed': 'Expected Classes'}
 
+        # class count maps
         class_count_plots = []
         for i, class_field in enumerate(class_counts.index):
             palette = Blues[9]
@@ -945,13 +947,15 @@ class QaqcTileCollection:
 
             class_count_plots.append(p)
 
+        print(len(class_count_plots))
         add_empty_plots_to_reshape(class_count_plots)
+        print(len(class_count_plots))
         class_count_grid_plot = gridplot(class_count_plots, ncols=3, plot_height=300)
         tab2 = Panel(child=class_count_grid_plot, title="Class Counts")
 
+        # pass/fail maps
         check_pass_fail_plots = []
         for i, check_field in enumerate(result_counts.index):
-
             title = check_labels[check_field]
 
             if i > 0:
@@ -981,7 +985,7 @@ class QaqcTileCollection:
                 'FAILED': '#d93b43',
                 }
 
-            color_mapper = factor_cmap(check_field, 
+            color_mapper = factor_cmap(field_name=check_field, 
                                        palette=list(cmap.values()), 
                                        factors=list(cmap.keys()))
 
@@ -992,7 +996,9 @@ class QaqcTileCollection:
 
             check_pass_fail_plots.append(p)
 
+        print(len(check_pass_fail_plots))
         add_empty_plots_to_reshape(check_pass_fail_plots)
+        print(len(check_pass_fail_plots))
         pass_fail_grid_plot = gridplot(check_pass_fail_plots, ncols=3, plot_height=300)
         tab1 = Panel(child=pass_fail_grid_plot, title="Checks Pass/Fail")
 
