@@ -593,7 +593,7 @@ class QaqcTile:
         from qaqc import LasTile, LasTileCollection
         import logging
         import xml.etree.ElementTree as ET
-        #logging.basicConfig(format='%(asctime)s:%(message)s', level=logging.INFO)
+        logging.basicConfig(format='%(asctime)s:%(message)s', level=logging.INFO)
         tile = LasTile(las_path, self.config)
         for c in [k for k, v in self.config.checks_to_do.items() if v]:
             logging.debug('running {}...'.format(c))
@@ -625,7 +625,7 @@ class QaqcTile:
 
     def run_qaqc(self, las_paths, multiprocess):
         if multiprocess:
-            p = pp.ProcessPool(4)
+            p = pp.ProcessPool(2)
             logging.info(p)
             p.imap(self.run_qaqc_checks_multiprocess, las_paths)
             p.close()
@@ -827,6 +827,7 @@ class QaqcTileCollection:
         def add_empty_plots_to_reshape(plot_list):
             len_check_pass_fail_plots = len(plot_list)
             while len_check_pass_fail_plots % 3 != 0:
+                print('hi', len_check_pass_fail_plots)
                 p = figure(plot_width=300, 
                            plot_height=300)
                 p.outline_line_color = None
@@ -842,8 +843,8 @@ class QaqcTileCollection:
                 p.yaxis.major_label_text_font_size = '0pt'
                 p.xaxis.axis_line_color = None
                 p.yaxis.axis_line_color = None
-
                 p.circle(0, 0, alpha=0.0)
+                plot_list.append(p)
                 len_check_pass_fail_plots += 1
 
         las_classes = {}
@@ -1005,7 +1006,16 @@ class QaqcTileCollection:
         # TEST RESULTS PASS/FAIL
         source = ColumnDataSource(result_counts)
         source.data.update({'labels': [check_labels[i] for i in source.data['index']]})
-        source.data.update({'FAILED_stack': [source.data['PASSED'][i] + f for i, f in enumerate(source.data['FAILED'])]})
+        
+        print(source.data)
+
+        failed = source.data.get('FAILED')
+        passed = source.data.get('PASSED')
+
+        num_failed = np.zeros(len) if num_failed is None else num_failed
+        num_passed = 0 if num_passed is None else num_passed
+
+        source.data.update({'FAILED_stack': num_failed + num_passed})
 
         cats = ['PASSED', 'FAILED']
         p1 = figure(y_range=source.data['labels'], 
@@ -1035,9 +1045,11 @@ class QaqcTileCollection:
                          line_color=None)
 
         p1.xgrid.grid_line_color = None
+
         max_passed = max(source.data['PASSED'])
         max_failed = max(source.data['FAILED'])
         max_val = max(max_passed, max_failed)
+
         p1.x_range = Range1d(0, max_val + 0.1 * max_val)
         p1.axis.minor_tick_line_color = None
         p1.outline_line_color = None

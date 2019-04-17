@@ -833,7 +833,7 @@ if __name__ == '__main__':
                                                str(now.second).zfill(2))
 
     log_file = os.path.join(qchecker_path, 'cBLUE_{}.log'.format(date_time_now_str))
-    logging.basicConfig(filename=log_file,
+    logging.basicConfig(#filename=log_file,
                         format='%(asctime)s:%(message)s',
                         level=logging.INFO)
 
