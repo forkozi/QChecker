@@ -22,6 +22,15 @@ import datetime
 import progressbar
 import matplotlib.pyplot as plt
 
+from bokeh.models.widgets import Panel, Tabs
+from bokeh.io import output_file, show, export_png
+from bokeh.models import ColumnDataSource, PrintfTickFormatter, GeoJSONDataSource, ColorBar, HoverTool, LegendItem, Legend, Range1d
+from bokeh.plotting import figure
+from bokeh.tile_providers import get_provider, Vendors
+from bokeh.palettes import Blues
+from bokeh.transform import log_cmap, factor_cmap
+from bokeh.layouts import layout, gridplot
+
 
 #os.environ["PROJ_LIB"] = "C:\Anaconda\envs\env_name\Library\share"
 
@@ -36,7 +45,11 @@ class Configuration:
 
         self.project_name = arcpy.ValidateTableName(data['project_name'])
         self.las_tile_dir = data['las_tile_dir']
-        self.qaqc_dir = data['qaqc_dir']
+        
+        self.qaqc_dir = os.path.join(data['qaqc_dir'], self.project_name)
+        if not os.path.exists(self.qaqc_dir):
+            os.makedirs(self.qaqc_dir)
+
         self.qaqc_gdb = data['qaqc_gdb']
         self.raster_dir = data['qaqc_gdb']
         self.tile_size = float(data['tile_size'])
@@ -66,7 +79,10 @@ class Configuration:
         self.qaqc_geojson_WebMercator_CENTROIDS = r'{}\qaqc_WebMercator_CENTROIDS.json'.format(self.qaqc_dir)
         self.qaqc_geojson_WebMercator_POLYGONS = r'{}\qaqc_WebMercator_POLYGONS.json'.format(self.qaqc_dir)
         self.qaqc_shp_NAD83_UTM_POLYGONS = r'{}\qaqc_NAD83_UTM.shp'.format(self.qaqc_dir)
+
         self.json_dir = r'{}\qaqc_check_results'.format(self.qaqc_dir)
+        if not os.path.exists(self.json_dir):
+            os.makedirs(self.json_dir)
 
         self.tile_geojson_WebMercator_POLYGONS = os.path.join(self.qaqc_dir, 'tiles_WebMercator_POLYGONS.json')
         self.tile_shp_NAD83_UTM_CENTROIDS = os.path.join(self.qaqc_dir, 'tiles_centroids_NAD83_UTM.shp')
@@ -796,7 +812,6 @@ class QaqcTileCollection:
             return present_classes
 
         def get_test_results():
-            print(df.columns)
             fields = df.columns
             test_result_fields = []
             for f in fields:
@@ -827,7 +842,6 @@ class QaqcTileCollection:
         def add_empty_plots_to_reshape(plot_list):
             len_check_pass_fail_plots = len(plot_list)
             while len_check_pass_fail_plots % 3 != 0:
-                print('hi', len_check_pass_fail_plots)
                 p = figure(plot_width=300, 
                            plot_height=300)
                 p.outline_line_color = None
@@ -858,39 +872,34 @@ class QaqcTileCollection:
         #test_result_fields = [r.encode('utf-8') for r in list(test_results.columns)]
         test_result_fields = test_results.columns
 
-        result_counts = df[test_result_fields].apply(pd.Series.value_counts).fillna(0).transpose()#.astype(np.int64)
+        # add column for PASSED or FAILED if it's not there (to make PASS/FAIL plotting easy)
+        result_counts = df[test_result_fields].apply(pd.Series.value_counts).fillna(0).transpose()
+        if 'FAILED' not in result_counts.columns and 'PASSED' in result_counts.columns:
+            result_counts['FAILED'] = 0
+        if 'PASSED' not in result_counts.columns and 'FAILED' in result_counts.columns:
+            result_counts['PASSED'] = 0
+        if 'FAILED' not in result_counts.columns and 'PASSED' not in result_counts.columns:
+            result_counts = pd.DataFrame({'FAILED': 0, 'PASSED': 0}, index=['No_Test_Selected'])
+
         present_classes = get_classes_present(df.columns)
         class_counts = df[present_classes].sum().to_frame()#.astype(np.int64)
         class_counts.columns = ['counts']
 
-        try:
-            passed = result_counts['PASSED']
-            failed = result_counts['FAILED']
-        except Exception as e:
-            passed = []
-            failed = []
-            print(e)
-
         print(result_counts)
         print(class_counts)
 
-        from bokeh.models.widgets import Panel, Tabs
-        from bokeh.io import output_file, show, export_png
-        from bokeh.models import ColumnDataSource, PrintfTickFormatter, GeoJSONDataSource, ColorBar, HoverTool, LegendItem, Legend, Range1d
-        from bokeh.plotting import figure
-        from bokeh.tile_providers import get_provider, Vendors
-        from bokeh.palettes import Blues
-        from bokeh.transform import log_cmap, factor_cmap
-        from bokeh.layouts import layout, gridplot
-
         # qaqc CENTROIDS
+        output_file('{}\QAQC_Summary_{}.html'.format(self.config.qaqc_dir, self.config.project_name))
+
         self.gen_qaqc_json_WebMercator_CENTROIDS(self.config.qaqc_geojson_WebMercator_CENTROIDS)
         with open(self.config.qaqc_geojson_WebMercator_CENTROIDS) as f:
             geojson_qaqc_centroids = f.read()
-            geojson_dict_centroids = json.loads(geojson_qaqc_centroids)
-
-        output_file('z:\QChecker\QAQC_Summary_{}.html'.format(self.config.project_name))
         qaqc_centroids = GeoJSONDataSource(geojson=geojson_qaqc_centroids)
+
+        self.gen_tile_geojson_WebMercator_POLYGONS(self.config.tile_geojson_WebMercator_POLYGONS)
+        with open(self.config.tile_geojson_WebMercator_POLYGONS) as f:
+            geojson_tile_polygons = f.read()
+        tile_polygons = GeoJSONDataSource(geojson=geojson_tile_polygons)
 
         check_labels = {
             'naming_passed': 'Naming Convention',
@@ -903,6 +912,10 @@ class QaqcTileCollection:
             'exp_cls_passed': 'Expected Classes'}
 
         # class count maps
+        print(df)
+        min_count = df[class_counts.index].min().min()
+        max_count = df[class_counts.index].max().max()
+
         class_count_plots = []
         for i, class_field in enumerate(class_counts.index):
             palette = Blues[9]
@@ -912,8 +925,8 @@ class QaqcTileCollection:
 
             color_mapper = log_cmap(field_name=class_field, 
                                     palette=palette, 
-                                    low=np.nanmin(df[class_field]), 
-                                    high=np.nanmax(df[class_field]), 
+                                    low=min_count,  # np.nanmin(df[class_field]), 
+                                    high=max_count,  # np.nanmax(df[class_field]), 
                                     nan_color='white')
 
             las_class = class_field.replace('class', '').zfill(2)
@@ -948,118 +961,117 @@ class QaqcTileCollection:
 
             class_count_plots.append(p)
 
-        print(len(class_count_plots))
         add_empty_plots_to_reshape(class_count_plots)
-        print(len(class_count_plots))
         class_count_grid_plot = gridplot(class_count_plots, ncols=3, plot_height=300)
         tab2 = Panel(child=class_count_grid_plot, title="Class Counts")
 
         # pass/fail maps
         check_pass_fail_plots = []
-        for i, check_field in enumerate(result_counts.index):
-            title = check_labels[check_field]
+        if result_counts.index[0] != 'No_Test_Selected':
+            for i, check_field in enumerate(result_counts.index):
+                title = check_labels[check_field]
 
-            if i > 0:
-                p = figure(title=title,
-                           x_axis_type="mercator", 
-                           y_axis_type="mercator", 
-                           x_range=check_pass_fail_plots[0].x_range,
-                           y_range=check_pass_fail_plots[0].y_range,
-                           plot_width=300, 
-                           plot_height=300,
-                           match_aspect=True, 
-                           tools=TOOLS)
-            else:
-                p = figure(title=title,
-                           x_axis_type="mercator", 
-                           y_axis_type="mercator", 
-                           plot_width=300, 
-                           plot_height=300,
-                           match_aspect=True, 
-                           tools=TOOLS)
+                if i > 0:
+                    p = figure(title=title,
+                               x_axis_type="mercator", 
+                               y_axis_type="mercator", 
+                               x_range=check_pass_fail_plots[0].x_range,
+                               y_range=check_pass_fail_plots[0].y_range,
+                               plot_width=300, 
+                               plot_height=300,
+                               match_aspect=True, 
+                               tools=TOOLS)
+                else:
+                    p = figure(title=title,
+                               x_axis_type="mercator", 
+                               y_axis_type="mercator", 
+                               plot_width=300, 
+                               plot_height=300,
+                               match_aspect=True, 
+                               tools=TOOLS)
 
-            p.toolbar.logo = None
-            #p.toolbar_location = None
+                p.toolbar.logo = None
+                #p.toolbar_location = None
 
-            cmap = {
-                'PASSED': '#599d7A',
-                'FAILED': '#d93b43',
-                }
+                cmap = {
+                    'PASSED': '#599d7A',
+                    'FAILED': '#d93b43',
+                    }
 
-            color_mapper = factor_cmap(field_name=check_field, 
-                                       palette=list(cmap.values()), 
-                                       factors=list(cmap.keys()))
+                color_mapper = factor_cmap(field_name=check_field, 
+                                           palette=list(cmap.values()), 
+                                           factors=list(cmap.keys()))
 
-            p.add_tile(get_provider(Vendors.CARTODBPOSITRON))
-            p.circle(x='x', y='y', size=3, alpha=0.5, 
-                     source=qaqc_centroids,
-                     color=color_mapper)
+                p.add_tile(get_provider(Vendors.CARTODBPOSITRON))
+                #p.patches(xs='xs', ys='ys', source=tile_polygons, fill_color=None, color='lightgray')
+                p.circle(x='x', y='y', size=3, alpha=0.5, 
+                         source=qaqc_centroids,
+                         color=color_mapper)
 
-            check_pass_fail_plots.append(p)
+                
+                check_pass_fail_plots.append(p)
 
-        print(len(check_pass_fail_plots))
         add_empty_plots_to_reshape(check_pass_fail_plots)
-        print(len(check_pass_fail_plots))
         pass_fail_grid_plot = gridplot(check_pass_fail_plots, ncols=3, plot_height=300)
         tab1 = Panel(child=pass_fail_grid_plot, title="Checks Pass/Fail")
 
         # TEST RESULTS PASS/FAIL
         source = ColumnDataSource(result_counts)
-        source.data.update({'labels': [check_labels[i] for i in source.data['index']]})
-        
-        print(source.data)
+        if source.data['index'][0] != 'No_Test_Selected':
+            source.data.update({'labels': [check_labels[i] for i in source.data['index']]})
 
-        failed = source.data.get('FAILED')
-        passed = source.data.get('PASSED')
+            failed = source.data.get('FAILED')  # None or array([...])
+            passed = source.data.get('PASSED')  # None or array([...])
 
-        num_failed = np.zeros(len) if num_failed is None else num_failed
-        num_passed = 0 if num_passed is None else num_passed
+            source.data.update({'FAILED_stack': failed + passed})
 
-        source.data.update({'FAILED_stack': num_failed + num_passed})
+            cats = ['PASSED', 'FAILED']
+            p1 = figure(y_range=source.data['labels'], 
+                        title="Check PASS/FAIL Results", 
+                        plot_width=400, 
+                        plot_height=300)
 
-        cats = ['PASSED', 'FAILED']
-        p1 = figure(y_range=source.data['labels'], 
-                    title="Check PASS/FAIL Results", 
-                    plot_width=400, 
-                    plot_height=300)
+            p1.toolbar.logo = None
+            p1.toolbar_location = None
 
-        p1.toolbar.logo = None
-        p1.toolbar_location = None
+            r_pass = p1.hbar(left=0,
+                             right='PASSED',
+                             y='labels', 
+                             height=0.9, 
+                             color='green', 
+                             source=source, 
+                             name='PASSED',
+                             line_color=None)
 
-        r_pass = p1.hbar(left=0,
-                         right='PASSED',
-                         y='labels', 
-                         height=0.9, 
-                         color='green', 
-                         source=source, 
-                         name='PASSED',
-                         line_color=None)
+            r_fail = p1.hbar(left='PASSED', 
+                             right='FAILED_stack', 
+                             y='labels', 
+                             height=0.9, 
+                             color='red',
+                             source=source, 
+                             name='FAILED',
+                             line_color=None)
 
-        r_fail = p1.hbar(left='PASSED', 
-                         right='FAILED_stack', 
-                         y='labels', 
-                         height=0.9, 
-                         color='red',
-                         source=source, 
-                         name='FAILED',
-                         line_color=None)
+            p1.xgrid.grid_line_color = None
 
-        p1.xgrid.grid_line_color = None
+            max_passed = max(passed)
+            max_failed = max(failed)
+            max_val = max(max_passed, max_failed)
 
-        max_passed = max(source.data['PASSED'])
-        max_failed = max(source.data['FAILED'])
-        max_val = max(max_passed, max_failed)
+            p1.x_range = Range1d(0, max_val + 0.1 * max_val)
+            p1.axis.minor_tick_line_color = None
+            p1.outline_line_color = None
 
-        p1.x_range = Range1d(0, max_val + 0.1 * max_val)
-        p1.axis.minor_tick_line_color = None
-        p1.outline_line_color = None
-
-        legend = Legend(items=[
-            ("PASSED", [r_pass]),
-            ("FAILED", [r_fail]),
-            ], location=(1, 15))
-        p1.add_layout(legend, 'above')
-        p1.legend.orientation = "horizontal"
+            legend = Legend(items=[
+                ("PASSED", [r_pass]),
+                ("FAILED", [r_fail]),
+                ], location=(1, 15))
+            p1.add_layout(legend, 'above')
+            p1.legend.orientation = "horizontal"
+        else:
+            p1 = figure(title="No Tests Selected", 
+                        plot_width=400, 
+                        plot_height=300) 
 
         # CLASS COUNTS
         source = ColumnDataSource(class_counts)       

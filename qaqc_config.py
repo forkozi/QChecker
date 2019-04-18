@@ -22,7 +22,7 @@ config_data = {
     'Hillshade': [ False, 'C:/QAQC_contract/nantucket/hillshade' ],
     'Dz': [ False, 'C:/QAQC_contract/nantucket/dz' ]
   },
-  'qaqc_dir': 'C:\\QAQC_contract\\nantucket',
+  'qaqc_dir': 'C:\\QAQC_contract',
   'dz_export_settings': 'C:\\QAQC_contract\\dz_export_settings.xml',
   'make_contact_centroids': False,
   'checks_to_do': {
@@ -42,7 +42,7 @@ config_data = {
   'tile_size': '500',
   'contractor_shp': 'C:\\QAQC_contract\\nantucket\\EXTENTS\\final\\Nantucket_TileGrid.shp',
   'supp_las_domain': 'Topo-Bathy Lidar Domain Profile',
-  'epsg_json': 'Z:\qaqc\epsg_lut.json',
+  'epsg_json': 'Z:\QChecker\QChecker_GITHUB\epsg_lut.json',
 }
 
 with open('Z:\QChecker\QChecker_GITHUB\qaqc_config.json', 'w') as f:

@@ -92,7 +92,7 @@ class QaqcApp(tk.Tk):
             }})
 
         self.components.update({'dirs_to_set': {
-            'qaqc_dir': ['QAQC Home', None, 
+            'qaqc_dir': ['QAQC Root Dir.', None, 
                          self.configuration['qaqc_dir']],
             'qaqc_gdb': ['QAQC GeoDatabase', None, 
                          self.configuration['qaqc_gdb']],
