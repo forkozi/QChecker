@@ -11,11 +11,11 @@ config_data = {
   'check_keys': {
     'gps_time': 'Satellite GPS Time',
     'pdrf': '6',
-    'version': '1.4',
+    'version': '1.2',
     'hdatum': 'NAD_1983_2011_UTM_Zone_19N',
     'naming': 'yyyy_[easting]e_[northing]n_las',
-    'exp_cls': '02,40',
-    'vdatum': 'Ellipoid (Meters)',
+    'exp_cls': '07,28,27,26,25,01',
+    'vdatum': 'Ellipsoid (Meters)',
     'pt_src_ids': 'Verify Unique Flight Line IDs'
   },
   'surfaces_to_make': {

@@ -912,7 +912,6 @@ class QaqcTileCollection:
             'exp_cls_passed': 'Expected Classes'}
 
         # class count maps
-        print(df)
         min_count = df[class_counts.index].min().min()
         max_count = df[class_counts.index].max().max()
 
@@ -962,7 +961,7 @@ class QaqcTileCollection:
             class_count_plots.append(p)
 
         add_empty_plots_to_reshape(class_count_plots)
-        class_count_grid_plot = gridplot(class_count_plots, ncols=3, plot_height=300)
+        class_count_grid_plot = gridplot(class_count_plots, ncols=3, plot_height=300, toolbar_location='right')
         tab2 = Panel(child=class_count_grid_plot, title="Class Counts")
 
         # pass/fail maps
@@ -1012,7 +1011,7 @@ class QaqcTileCollection:
                 check_pass_fail_plots.append(p)
 
         add_empty_plots_to_reshape(check_pass_fail_plots)
-        pass_fail_grid_plot = gridplot(check_pass_fail_plots, ncols=3, plot_height=300)
+        pass_fail_grid_plot = gridplot(check_pass_fail_plots, ncols=3, plot_height=300, toolbar_location='right')
         tab1 = Panel(child=pass_fail_grid_plot, title="Checks Pass/Fail")
 
         # TEST RESULTS PASS/FAIL
@@ -1029,8 +1028,10 @@ class QaqcTileCollection:
             p1 = figure(y_range=source.data['labels'], 
                         title="Check PASS/FAIL Results", 
                         plot_width=400, 
-                        plot_height=300)
-
+                        plot_height=400)
+            
+            p1.min_border_top = 100
+            p1.min_border_bottom = 50
             p1.toolbar.logo = None
             p1.toolbar_location = None
 
@@ -1074,25 +1075,42 @@ class QaqcTileCollection:
                         plot_height=300) 
 
         # CLASS COUNTS
-        source = ColumnDataSource(class_counts)       
+        class_counts['Expected'] = np.zeros(class_counts.index.size)
+        class_counts['Unexpected'] = np.zeros(class_counts.index.size)
+        for i, class_name in enumerate(class_counts.index):
+            class_num = int(class_name.replace('class', ''))
+            if class_num in self.config.exp_cls_key:
+                class_counts['Expected'][i] = class_counts['counts'][i]
+            else:
+                class_counts['Unexpected'][i] = class_counts['counts'][i]
+
+        source = ColumnDataSource(class_counts)
         source.data.update({'labels': ['{} (Class {})'.format(las_classes[c.replace('class', '').zfill(2)], c.replace('class', '').zfill(2)) for c in source.data['index']]})
 
         p2 = figure(y_range=source.data['labels'], 
                     plot_width=400, 
-                    plot_height=300, 
+                    plot_height=400, 
                     title="Class Counts", 
                     tools="")
+        p2.min_border_top = 100
 
         p2.toolbar.logo = None
         p2.toolbar_location = None
         p2.xaxis[0].formatter = PrintfTickFormatter(format='%4.1e')
 
-        p2.hbar(y='labels', right='counts', height=0.9, color='gray', legend=None, source=source)
+        p2_expected = p2.hbar(y='labels', right='Expected', height=0.9, color='dodgerblue', source=source)
+        p2_unexpected = p2.hbar(y='labels', right='Unexpected', height=0.9, color='orange', source=source)
+
         max_count = max(source.data['counts'])
+        class_counts = class_counts.drop(['counts'], axis=1)
         p2.x_range = Range1d(0, max_count + 0.1 * max_count)
         p2.xgrid.grid_line_color = None
         p2.xaxis.major_label_orientation = "vertical"
         p2.xaxis.minor_tick_line_color = None
+
+        legend = Legend(items=[("EXPECTED", [p2_expected]), ("UNEXPECTED", [p2_unexpected])], location=(0, 10))
+        p2.add_layout(legend, 'above')
+        
 
         ## save plots
         #img = os.path.join(self.config.qaqc_dir, 'QAQC_Results_Dashboard_1.png')
