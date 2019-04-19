@@ -734,7 +734,7 @@ class MainGuiPage(ttk.Frame):
 
         def bind_file_command(s):
             def func():
-                file_str = filedialog.askopenfilename()
+                file_str = filedialog.askdirectory()
                 display_str = self.build_display_str(file_str)
                 self.gui['mosaics_to_make'][s][2].configure(text=display_str)
                 self.gui['mosaics_to_make'][s][3] = file_str 
@@ -754,7 +754,7 @@ class MainGuiPage(ttk.Frame):
             chk.grid(column=0, row=0, sticky=tk.EW)
 
             # Directory
-            surface_label = tk.Label(subframe, text='Diretory'.format(s))
+            surface_label = tk.Label(subframe, text='Directory'.format(s))
             surface_label.grid(column=1, row=0, sticky=tk.EW, padx=(20, 0))
 
             btn = tk.Button(subframe, text='...', command=bind_dirs_command(s))
@@ -778,7 +778,7 @@ class MainGuiPage(ttk.Frame):
             chk.grid(column=0, row=1, sticky=tk.EW)
 
             # Path
-            surface_label = tk.Label(subframe, text='Path'.format(s))
+            surface_label = tk.Label(subframe, text='Directory'.format(s))
             surface_label.grid(column=1, row=1, sticky=tk.EW, padx=(20, 0))
 
             btn = tk.Button(subframe, text='...', command=bind_file_command(s))

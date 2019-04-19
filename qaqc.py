@@ -67,6 +67,7 @@ class Configuration:
         self.dz_aprx = data['dz_aprx']
         self.dz_export_settings = data['dz_export_settings']
         self.dz_classes_template = data['dz_classes_template']
+        self.lp360_ldexport_exe = data['lp360_ldexport_exe']
 
         self.contractor_shp = data['contractor_shp']
         self.checks_to_do = data['checks_to_do']
@@ -342,35 +343,38 @@ class Mosaic:
     def __init__(self, mtype, config):
         self.mtype = mtype
         self.config = config
-        self.raster_catalog_base_name = r'{}_{}_raster_catalog'.format(self.config.project_name, self.mtype)
+        self.raster_catalog_base_name = r'{}_{}_mosaic'.format(self.config.project_name, self.mtype)
         self.raster_catalog_path = r'{}\{}'.format(self.config.qaqc_gdb, self.raster_catalog_base_name)
         self.mosaic_raster_basename = '{}_{}_mosaic'.format(self.config.project_name, self.mtype)
         self.mosaic_raster_path = '{}\{}'.format(self.config.qaqc_gdb, self.mosaic_raster_basename)
 
     def create_raster_catalog(self):
-        logging.info('creating raster catalog {}'.format(self.raster_catalog_base_name))
+        logging.info('creating raster catalog {}...'.format(self.raster_catalog_base_name))
+        print(self.config.hdatum_key)
+        sr = arcpy.SpatialReference(6348)
         try:
-            arcpy.CreateRasterCatalog_management(
-                self.config.qaqc_gdb, self.raster_catalog_base_name,
-                raster_management_type='UNMANAGED')
+            arcpy.CreateMosaicDataset_management(
+                self.config.qaqc_gdb, self.raster_catalog_base_name, coordinate_system=sr)
         except Exception as e:
             logging.info(e)
 
     def add_dir_to_raster_catalog(self):
         logging.info('adding {}_rasters to {}...'.format(self.mtype, self.raster_catalog_path))
-        arcpy.WorkspaceToRasterCatalog_management(self.config.qaqc_gdb, self.raster_catalog_path)
+        #arcpy.WorkspaceToRasterCatalog_management(self.config.qaqc_gdb, self.raster_catalog_path)
+        arcpy.AddRastersToMosaicDataset_management(self.raster_catalog_path, 'Raster Dataset',
+                                                   self.config.qaqc_gdb)
 
-    def mosaic_raster_catalog(self):
-        logging.info('mosaicing {} rasters in {}...'.format(self.mtype, self.raster_catalog_path))
-        try:
-            arcpy.Delete_management(self.mosaic_raster_path)
-        except Exception as e:
-            pass
-        try:
-            arcpy.RasterCatalogToRasterDataset_management(self.raster_catalog_path, 
-                                                          self.mosaic_raster_path)
-        except Exception as e:            
-            logging.info(e)
+    #def mosaic_raster_catalog(self):
+    #    logging.info('mosaicing {} rasters in {}...'.format(self.mtype, self.raster_catalog_path))
+    #    try:
+    #        arcpy.Delete_management(self.mosaic_raster_path)
+    #    except Exception as e:
+    #        pass
+    #    try:
+    #        arcpy.RasterCatalogToRasterDataset_management(self.raster_catalog_path, 
+    #                                                      self.mosaic_raster_path)
+    #    except Exception as e:            
+    #        logging.info(e)
 
     def add_mosaic_to_aprx(self):
         try:
@@ -435,9 +439,9 @@ class Surface:
         myfile.write(new_dz_settings)
 
     def gen_dz_surface(self):
-        exe = r'C:\Program Files\Common Files\LP360\LDExport.exe'
+        exe = self.config.lp360_ldexport_exe
         las = self.las_path.replace('CLASSIFIED_LAS\\', 'CLASSIFIED_LAS\\\\')
-        dz = r'C:\QAQC_contract\nantucket\dz\{}'.format(self.las_name)
+        dz = r'{}\{}'.format(self.config.surfaces_to_make[self.stype][1], self.las_name)
         cmd_str = '{} -s {} -f {} -o {}'.format(exe, self.config.dz_export_settings, las, dz)
         logging.info('generating dz ortho for {}...'.format(las))
         logging.info(cmd_str)
@@ -993,8 +997,8 @@ class QaqcTileCollection:
                 #p.toolbar_location = None
 
                 cmap = {
-                    'PASSED': '#599d7A',
-                    'FAILED': '#d93b43',
+                    'PASSED': '#3cb371',
+                    'FAILED': '#FF0000',
                     }
 
                 color_mapper = factor_cmap(field_name=check_field, 
@@ -1039,7 +1043,7 @@ class QaqcTileCollection:
                              right='PASSED',
                              y='labels', 
                              height=0.9, 
-                             color='green', 
+                             color='#3cb371', 
                              source=source, 
                              name='PASSED',
                              line_color=None)
@@ -1048,7 +1052,7 @@ class QaqcTileCollection:
                              right='FAILED_stack', 
                              y='labels', 
                              height=0.9, 
-                             color='red',
+                             color='#FF0000',
                              source=source, 
                              name='FAILED',
                              line_color=None)
@@ -1093,13 +1097,13 @@ class QaqcTileCollection:
                     title="Class Counts", 
                     tools="")
         p2.min_border_top = 100
-
+        p2.outline_line_color = None
         p2.toolbar.logo = None
         p2.toolbar_location = None
         p2.xaxis[0].formatter = PrintfTickFormatter(format='%4.1e')
 
-        p2_expected = p2.hbar(y='labels', right='Expected', height=0.9, color='dodgerblue', source=source)
-        p2_unexpected = p2.hbar(y='labels', right='Unexpected', height=0.9, color='orange', source=source)
+        p2_expected = p2.hbar(y='labels', right='Expected', height=0.9, color='#0074D9', source=source)
+        p2_unexpected = p2.hbar(y='labels', right='Unexpected', height=0.9, color='#FF851B', source=source)
 
         max_count = max(source.data['counts'])
         class_counts = class_counts.drop(['counts'], axis=1)
@@ -1206,8 +1210,8 @@ def run_qaqc(config_json):
     config = Configuration(config_json)
     logging.info(config)
     
-    nantucket = LasTileCollection(config.las_tile_dir)
-    qaqc = QaqcTileCollection(nantucket.get_las_tile_paths()[0:10], config)
+    qaqc_tile_collection = LasTileCollection(config.las_tile_dir)
+    qaqc = QaqcTileCollection(qaqc_tile_collection.get_las_tile_paths()[0:10], config)
     
     qaqc.run_qaqc_tile_collection_checks(multiprocess=False)
     qaqc.set_qaqc_results_df()

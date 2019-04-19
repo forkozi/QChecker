@@ -4,8 +4,8 @@ import json
 config_data = {
   'dz_aprx': r'C:/QAQC_contract/nantucket/nantucket_qaqc_arcpro_project/nantucket_qaqc_arcpro_project.aprx',
   'mosaics_to_make': {
-    'Hillshade': [ False, 'C:/QAQC_contract/nantucket/qaqc_nantucket.gdb/FL1608_TB_N_DogIsland_p_hillshade_mosaic' ],
-    'Dz': [ False, 'C:/QAQC_contract/nantucket/qaqc_nantucket.gdb/FL1608_TB_N_DogIsland_p_dz_mosaic' ]
+    'Hillshade': [ False, 'C:/QAQC_contract/nantucket/qaqc_nantucket.gdb' ],
+    'Dz': [ False, 'C:/QAQC_contract/nantucket/qaqc_nantucket.gdb' ]
   },
   'project_name': 'FL1608-TB-N_DogIsland_p',
   'check_keys': {
@@ -43,6 +43,7 @@ config_data = {
   'contractor_shp': 'C:\\QAQC_contract\\nantucket\\EXTENTS\\final\\Nantucket_TileGrid.shp',
   'supp_las_domain': 'Topo-Bathy Lidar Domain Profile',
   'epsg_json': 'Z:\QChecker\QChecker_GITHUB\epsg_lut.json',
+  'lp360_ldexport_exe': r'C:\Program Files\Common Files\LP360\LDExport.exe',
 }
 
 with open('Z:\QChecker\QChecker_GITHUB\qaqc_config.json', 'w') as f:
