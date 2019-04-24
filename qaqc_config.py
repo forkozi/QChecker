@@ -23,7 +23,7 @@ config_data = {
     'Dz': [ False, 'C:/QAQC_contract/nantucket/dz' ]
   },
   'qaqc_dir': 'C:\\QAQC_contract',
-  'dz_export_settings': 'C:\\QAQC_contract\\dz_export_settings.xml',
+  'dz_export_settings': 'Z:\\QChecker\\QChecker_GITHUB\\dz_export_settings_04_22_19.xml',
   'make_contact_centroids': False,
   'checks_to_do': {
     'gps_time': True,

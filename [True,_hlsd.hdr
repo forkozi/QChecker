@@ -1,7 +1,0 @@
-ncols 250
-nrows 250
-xllcorner 381000.000
-yllcorner 4572500.000
-cellsize 2.0000
-nodata_value -9999
-byteorder lsbfirst

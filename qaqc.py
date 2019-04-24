@@ -343,57 +343,54 @@ class Mosaic:
     def __init__(self, mtype, config):
         self.mtype = mtype
         self.config = config
-        self.raster_catalog_base_name = r'{}_{}_mosaic'.format(self.config.project_name, self.mtype)
-        self.raster_catalog_path = r'{}\{}'.format(self.config.qaqc_gdb, self.raster_catalog_base_name)
-        self.mosaic_raster_basename = '{}_{}_mosaic'.format(self.config.project_name, self.mtype)
-        self.mosaic_raster_path = '{}\{}'.format(self.config.qaqc_gdb, self.mosaic_raster_basename)
+        self.mosaic_dataset_base_name = r'{}_{}_mosaic'.format(self.config.project_name, self.mtype)
+        self.mosaic_dataset_path = os.path.join(self.config.mosaics_to_make[self.mtype][1], 
+                                                self.mosaic_dataset_base_name)
 
     def create_raster_catalog(self):
-        logging.info('creating raster catalog {}...'.format(self.raster_catalog_base_name))
-        print(self.config.hdatum_key)
+        logging.info('creating mosaic dataset {}...'.format(self.mosaic_dataset_base_name))
         sr = arcpy.SpatialReference(6348)
         try:
-            arcpy.CreateMosaicDataset_management(
-                self.config.qaqc_gdb, self.raster_catalog_base_name, coordinate_system=sr)
+            arcpy.CreateMosaicDataset_management(self.config.qaqc_gdb, 
+                                                 self.mosaic_dataset_base_name, 
+                                                 coordinate_system=sr)
         except Exception as e:
             logging.info(e)
 
-    def add_dir_to_raster_catalog(self):
-        logging.info('adding {}_rasters to {}...'.format(self.mtype, self.raster_catalog_path))
-        #arcpy.WorkspaceToRasterCatalog_management(self.config.qaqc_gdb, self.raster_catalog_path)
-        arcpy.AddRastersToMosaicDataset_management(self.raster_catalog_path, 'Raster Dataset',
-                                                   self.config.qaqc_gdb)
+    def add_raster_to_mosaic_dataset(self):
+        logging.info('adding {}_rasters to {}...'.format(self.mtype, self.mosaic_dataset_path))
+        arcpy.AddRastersToMosaicDataset_management(self.mosaic_dataset_path, 'Raster Dataset',
+                                                   self.config.surfaces_to_make[self.mtype][1],
+                                                   update_overviews='UPDATE_OVERVIEWS',
+                                                   build_pyramids='BUILD_PYRAMIDS',
+                                                   calculate_statistics='CALCULATE_STATISTICS',
+                                                   duplicate_items_action='OVERWRITE_DUPLICATES')
 
-    #def mosaic_raster_catalog(self):
-    #    logging.info('mosaicing {} rasters in {}...'.format(self.mtype, self.raster_catalog_path))
-    #    try:
-    #        arcpy.Delete_management(self.mosaic_raster_path)
-    #    except Exception as e:
-    #        pass
-    #    try:
-    #        arcpy.RasterCatalogToRasterDataset_management(self.raster_catalog_path, 
-    #                                                      self.mosaic_raster_path)
-    #    except Exception as e:            
-    #        logging.info(e)
-
-    def add_mosaic_to_aprx(self):
+    def add_mosaic_dataset_to_aprx(self):
         try:
+            logging.info('adding {} to aprx...'.format(self.mosaic_dataset_base_name))
             aprx = arcpy.mp.ArcGISProject(self.config.dz_aprx)
             m = aprx.listMaps()[0]
-            arcpy.MakeRasterLayer_management(self.mosaic_raster_path, self.mosaic_raster_basename)
-            lyr = arcpy.mp.LayerFile(self.mosaic_raster_basename)
-            m.addLayer(lyr, 'TOP')
+            arcpy.MakeMosaicLayer_management(self.mosaic_dataset_path, self.mosaic_dataset_base_name)
+
+            mds_lyr = r'C:\QAQC_contract\FL1608_TB_N_DogIsland_p\{}.lyrx'.format(self.mosaic_dataset_base_name)
+
+            if not os.path.exists(mds_lyr):
+                arcpy.SaveToLayerFile_management(self.mosaic_dataset_base_name, mds_lyr)
+
+            m.addDataFromPath(mds_lyr)
             aprx.save()
         except Exception as e:
             logging.info(e)
 
     def update_raster_symbology(self):
         try:
+            logging.info('applying dz classification to {}...'.format(self.mosaic_dataset_base_name))
+            arcpy.CalculateStatistics_management(self.mosaic_dataset_path)
             aprx = arcpy.mp.ArcGISProject(self.config.dz_aprx)
             m = aprx.listMaps()[0]
-            raster_to_update = m.listLayers(self.mosaic_raster_basename)[0]
-            dz_classes_lyr = arcpy.mp.LayerFile(self.config.dz_classes_template)
-            arcpy.mp.UpdateLayer(df, raster_to_update, dz_classes_lyr, True)
+            raster_to_update = m.listLayers('Image')[0]
+            arcpy.ApplySymbologyFromLayer_management(raster_to_update, self.config.dz_classes_template)
             aprx.save()
         except Exception as e:
             logging.info(e)
@@ -596,7 +593,7 @@ class QaqcTile:
             tile_dz = Surface(tile, 'Dz', self.config)
             tile_dz.update_dz_export_settings_extents()
             tile_dz.gen_dz_surface()
-            tile_dz.binary_to_raster()
+            #tile_dz.binary_to_raster()
         else:
             logging.info('{} has no bathy or ground points; no dz ortho generated'.format(tile.name))
 
@@ -1147,9 +1144,8 @@ class QaqcTileCollection:
     def gen_mosaic(self, mtype):
         mosaic = Mosaic(mtype, self.config)
         mosaic.create_raster_catalog()
-        mosaic.add_dir_to_raster_catalog()
-        mosaic.mosaic_raster_catalog()
-        mosaic.add_mosaic_to_aprx()
+        mosaic.add_raster_to_mosaic_dataset()
+        mosaic.add_mosaic_dataset_to_aprx()
         mosaic.update_raster_symbology()
 
     def gen_tile_geojson_WGS84(shp, geojson):
@@ -1211,12 +1207,12 @@ def run_qaqc(config_json):
     logging.info(config)
     
     qaqc_tile_collection = LasTileCollection(config.las_tile_dir)
-    qaqc = QaqcTileCollection(qaqc_tile_collection.get_las_tile_paths()[0:10], config)
+    qaqc = QaqcTileCollection(qaqc_tile_collection.get_las_tile_paths()[0:50], config)
     
     qaqc.run_qaqc_tile_collection_checks(multiprocess=False)
     qaqc.set_qaqc_results_df()
     qaqc.gen_qaqc_shp_NAD83_UTM(config.qaqc_shp_NAD83_UTM_POLYGONS)
-    qaqc.gen_summary_graphic()
+    #qaqc.gen_summary_graphic()
     
     if not os.path.isfile(config.tile_shp_NAD83_UTM_CENTROIDS):
         print('creating shapefile containing centroids of contractor tile polygons...')
