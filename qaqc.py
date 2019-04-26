@@ -32,8 +32,8 @@ from bokeh.transform import log_cmap, factor_cmap
 from bokeh.layouts import layout, gridplot
 
 
-os.environ["GDAL_DATA"] = "C:\Anaconda\envs\env_name\Library\share"
-os.environ["PROJ_LIB"] = "C:\Anaconda\envs\env_name\Library\share"
+os.environ["GDAL_DATA"] = r'C:\\Users\\Nick.Forfinski-Sarko\\AppData\\Local\\Continuum\\anaconda3\\envs\\qchecker\\Library\\share\\gdal'
+os.environ["PROJ_LIB"] = r'C:\\Users\\Nick.Forfinski-Sarko\\AppData\\Local\\Continuum\\anaconda3\\envs\\qchecker\\Library\\share'
 
 class Configuration:
     def __init__(self, config):
@@ -379,32 +379,22 @@ class Mosaic:
         except Exception as e:
             logging.info(e)
 
-    def add_mosaic_dataset_to_aprx(self):
+    def add_mosaic_dataset_tif_to_aprx(self):
         try:
             logging.info('adding {} to aprx...'.format(self.mosaic_dataset_base_name + '.tif'))
             aprx = arcpy.mp.ArcGISProject(self.config.dz_aprx)
-            m = aprx.listMaps()[0]
+            m = aprx.listMaps('dz_surface')[0]
             arcpy.MakeRasterLayer_management(self.config.exported_mosaic_dataset, 
                                              self.mosaic_dataset_base_name)
 
-            mds_lyr = r'C:\QAQC_contract\FL1608_TB_N_DogIsland_p\{}.lyrx'.format(self.mosaic_dataset_base_name)
+            dz_lyr = r'C:\QAQC_contract\FL1608_TB_N_DogIsland_p\{}.lyrx'.format(self.mosaic_dataset_base_name)
 
-            if not os.path.exists(mds_lyr):
-                arcpy.SaveToLayerFile_management(self.mosaic_dataset_base_name, mds_lyr)
+            if not os.path.exists(dz_lyr):
+                arcpy.SaveToLayerFile_management(self.mosaic_dataset_base_name, dz_lyr)
+            
+            arcpy.ApplySymbologyFromLayer_management(dz_lyr, self.config.dz_classes_template)
+            m.addDataFromPath(dz_lyr)
 
-            m.addDataFromPath(mds_lyr)
-            aprx.save()
-        except Exception as e:
-            logging.info(e)
-
-    def update_raster_symbology(self):
-        try:
-            logging.info('applying dz classification to {}...'.format(self.mosaic_dataset_base_name))
-            #arcpy.CalculateStatistics_management(self.mosaic_dataset_path)
-            aprx = arcpy.mp.ArcGISProject(self.config.dz_aprx)
-            m = aprx.listMaps()[0]
-            raster_to_update = m.listLayers(self.mosaic_dataset_base_name)[0]
-            arcpy.ApplySymbologyFromLayer_management(raster_to_update, self.config.dz_classes_template)
             aprx.save()
         except Exception as e:
             logging.info(e)
@@ -623,7 +613,7 @@ class QaqcTile:
         from qaqc import LasTile, LasTileCollection
         import logging
         import xml.etree.ElementTree as ET
-        logging.basicConfig(format='%(asctime)s:%(message)s', level=logging.INFO)
+        logging.basicConfig(format='%(asctime)s:%(message)s', level=logging.DEBUG)
         tile = LasTile(las_path, self.config)
         for c in [k for k, v in self.config.checks_to_do.items() if v]:
             logging.debug('running {}...'.format(c))
@@ -1167,8 +1157,7 @@ class QaqcTileCollection:
         mosaic.create_mosaic_dataset()
         mosaic.add_rasters_to_mosaic_dataset()
         mosaic.export_mosaic_dataset()
-        mosaic.add_mosaic_dataset_to_aprx()
-        mosaic.update_raster_symbology()
+        mosaic.add_mosaic_dataset_tif_to_aprx()
 
     def gen_tile_geojson_WGS84(shp, geojson):
         wgs84 = {'init': 'epsg:4326'}
@@ -1229,12 +1218,12 @@ def run_qaqc(config_json):
     logging.info(config)
     
     qaqc_tile_collection = LasTileCollection(config.las_tile_dir)
-    qaqc = QaqcTileCollection(qaqc_tile_collection.get_las_tile_paths()[0:5], config)
+    qaqc = QaqcTileCollection(qaqc_tile_collection.get_las_tile_paths(), config)
     
     qaqc.run_qaqc_tile_collection_checks(multiprocess=False)
     qaqc.set_qaqc_results_df()
     qaqc.gen_qaqc_shp_NAD83_UTM(config.qaqc_shp_NAD83_UTM_POLYGONS)
-    #qaqc.gen_summary_graphic()
+    qaqc.gen_summary_graphic()
     
     if not os.path.isfile(config.tile_shp_NAD83_UTM_CENTROIDS):
         print('creating shapefile containing centroids of contractor tile polygons...')
