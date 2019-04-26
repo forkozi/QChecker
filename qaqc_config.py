@@ -10,7 +10,7 @@ config_data = {
   'project_name': 'FL1608-TB-N_DogIsland_p',
   'check_keys': {
     'gps_time': 'Satellite GPS Time',
-    'pdrf': '6',
+    'pdrf': '3',
     'version': '1.2',
     'hdatum': 'NAD_1983_2011_UTM_Zone_19N',
     'naming': 'yyyy_[easting]e_[northing]n_las',

@@ -32,7 +32,8 @@ from bokeh.transform import log_cmap, factor_cmap
 from bokeh.layouts import layout, gridplot
 
 
-#os.environ["PROJ_LIB"] = "C:\Anaconda\envs\env_name\Library\share"
+os.environ["GDAL_DATA"] = "C:\Anaconda\envs\env_name\Library\share"
+os.environ["PROJ_LIB"] = "C:\Anaconda\envs\env_name\Library\share"
 
 class Configuration:
     def __init__(self, config):
@@ -56,6 +57,7 @@ class Configuration:
         self.to_pyramid = data['to_pyramid']
 
         # checks "answer key"
+        self.check_keys = data['check_keys']
         self.hdatum_key = data['check_keys']['hdatum']
         self.vdatum_key = data['check_keys']['vdatum']
         self.exp_cls_key = [int(n) for n in data['check_keys']['exp_cls'].split(',')]
@@ -347,7 +349,7 @@ class Mosaic:
         self.mosaic_dataset_path = os.path.join(self.config.mosaics_to_make[self.mtype][1], 
                                                 self.mosaic_dataset_base_name)
 
-    def create_raster_catalog(self):
+    def create_mosaic_dataset(self):
         logging.info('creating mosaic dataset {}...'.format(self.mosaic_dataset_base_name))
         sr = arcpy.SpatialReference(6348)
         try:
@@ -357,21 +359,33 @@ class Mosaic:
         except Exception as e:
             logging.info(e)
 
-    def add_raster_to_mosaic_dataset(self):
+    def add_rasters_to_mosaic_dataset(self):
         logging.info('adding {}_rasters to {}...'.format(self.mtype, self.mosaic_dataset_path))
         arcpy.AddRastersToMosaicDataset_management(self.mosaic_dataset_path, 'Raster Dataset',
                                                    self.config.surfaces_to_make[self.mtype][1],
-                                                   update_overviews='UPDATE_OVERVIEWS',
                                                    build_pyramids='BUILD_PYRAMIDS',
                                                    calculate_statistics='CALCULATE_STATISTICS',
                                                    duplicate_items_action='OVERWRITE_DUPLICATES')
 
+    def export_mosaic_dataset(self):
+        try:
+            self.config.exported_mosaic_dataset = os.path.join(self.config.qaqc_dir, 
+                                                               self.mosaic_dataset_base_name + '.tif')
+
+            logging.info('exporting {} to tif...'.format(self.mosaic_dataset_base_name))
+            arcpy.env.overwriteOutput = True
+            arcpy.CopyRaster_management(self.mosaic_dataset_path, self.config.exported_mosaic_dataset)
+            arcpy.env.overwriteOutput = False
+        except Exception as e:
+            logging.info(e)
+
     def add_mosaic_dataset_to_aprx(self):
         try:
-            logging.info('adding {} to aprx...'.format(self.mosaic_dataset_base_name))
+            logging.info('adding {} to aprx...'.format(self.mosaic_dataset_base_name + '.tif'))
             aprx = arcpy.mp.ArcGISProject(self.config.dz_aprx)
             m = aprx.listMaps()[0]
-            arcpy.MakeMosaicLayer_management(self.mosaic_dataset_path, self.mosaic_dataset_base_name)
+            arcpy.MakeRasterLayer_management(self.config.exported_mosaic_dataset, 
+                                             self.mosaic_dataset_base_name)
 
             mds_lyr = r'C:\QAQC_contract\FL1608_TB_N_DogIsland_p\{}.lyrx'.format(self.mosaic_dataset_base_name)
 
@@ -386,10 +400,10 @@ class Mosaic:
     def update_raster_symbology(self):
         try:
             logging.info('applying dz classification to {}...'.format(self.mosaic_dataset_base_name))
-            arcpy.CalculateStatistics_management(self.mosaic_dataset_path)
+            #arcpy.CalculateStatistics_management(self.mosaic_dataset_path)
             aprx = arcpy.mp.ArcGISProject(self.config.dz_aprx)
             m = aprx.listMaps()[0]
-            raster_to_update = m.listLayers('Image')[0]
+            raster_to_update = m.listLayers(self.mosaic_dataset_base_name)[0]
             arcpy.ApplySymbologyFromLayer_management(raster_to_update, self.config.dz_classes_template)
             aprx.save()
         except Exception as e:
@@ -519,7 +533,6 @@ class QaqcTile:
 
     def check_las_pdrf(self, tile):
         pdrf = tile.get_las_pdrf()
-        las_version = tile.get_las_version()
         if pdrf == self.config.pdrf_key:
             passed = self.passed_text
         else:
@@ -951,6 +964,14 @@ class QaqcTileCollection:
                            match_aspect=True, 
                            tools=TOOLS)
 
+            if int(las_class) in self.config.exp_cls_key:
+                title_color = '#0074D9'
+            else:
+                title_color = '#FF851B'
+            p.title.text_color = title_color
+            #p.outline_line_width = 3
+            #p.outline_line_alpha = 0.6
+            #p.outline_line_color = title_color
             p.toolbar.logo = None
             #p.toolbar_location = None
 
@@ -1018,7 +1039,8 @@ class QaqcTileCollection:
         # TEST RESULTS PASS/FAIL
         source = ColumnDataSource(result_counts)
         if source.data['index'][0] != 'No_Test_Selected':
-            source.data.update({'labels': [check_labels[i] for i in source.data['index']]})
+            #source.data.update({'labels': ['{}\n({})'.format(check_labels[i], self.config.check_keys[i.replace('_passed', '')]) for i in source.data['index']]})
+            source.data.update({'labels': ['{}'.format(check_labels[i]) for i in source.data['index']]})
 
             failed = source.data.get('FAILED')  # None or array([...])
             passed = source.data.get('PASSED')  # None or array([...])
@@ -1033,6 +1055,7 @@ class QaqcTileCollection:
             
             p1.min_border_top = 100
             p1.min_border_bottom = 50
+
             p1.toolbar.logo = None
             p1.toolbar_location = None
 
@@ -1109,7 +1132,8 @@ class QaqcTileCollection:
         p2.xaxis.major_label_orientation = "vertical"
         p2.xaxis.minor_tick_line_color = None
 
-        legend = Legend(items=[("EXPECTED", [p2_expected]), ("UNEXPECTED", [p2_unexpected])], location=(0, 10))
+        #legend = Legend(items=[('EXPECTED ({})'.format(self.config.exp_cls_key), [p2_expected]), ("UNEXPECTED", [p2_unexpected])], location=(0, 10))
+        legend = Legend(items=[('EXPECTED', [p2_expected]), ('UNEXPECTED', [p2_unexpected])], location=(0, 10))
         p2.add_layout(legend, 'above')
         
 
@@ -1138,13 +1162,11 @@ class QaqcTileCollection:
             ])
         show(l)
 
-        # Point Source IDs
-        # unq_pt_crc_ids = self.get_unq_pt_src_ids()
-
     def gen_mosaic(self, mtype):
         mosaic = Mosaic(mtype, self.config)
-        mosaic.create_raster_catalog()
-        mosaic.add_raster_to_mosaic_dataset()
+        mosaic.create_mosaic_dataset()
+        mosaic.add_rasters_to_mosaic_dataset()
+        mosaic.export_mosaic_dataset()
         mosaic.add_mosaic_dataset_to_aprx()
         mosaic.update_raster_symbology()
 
@@ -1207,7 +1229,7 @@ def run_qaqc(config_json):
     logging.info(config)
     
     qaqc_tile_collection = LasTileCollection(config.las_tile_dir)
-    qaqc = QaqcTileCollection(qaqc_tile_collection.get_las_tile_paths()[0:50], config)
+    qaqc = QaqcTileCollection(qaqc_tile_collection.get_las_tile_paths()[0:5], config)
     
     qaqc.run_qaqc_tile_collection_checks(multiprocess=False)
     qaqc.set_qaqc_results_df()
@@ -1219,7 +1241,7 @@ def run_qaqc(config_json):
         tile_centroids = qaqc.gen_tile_centroids_shp_NAD83_UTM()
         qaqc.add_layer_to_aprx(tile_centroids)
     else:
-        logging.info('{} alread exists'.format(config.tile_shp_NAD83_UTM_CENTROIDS))
+        logging.info('{} already exists'.format(config.tile_shp_NAD83_UTM_CENTROIDS))
     
     # build the mosaics the user checked
     mosaic_types = [k for k, v in config.mosaics_to_make.items() if v[0]]

@@ -1,22 +1,40 @@
+import sys, os
 from cx_Freeze import setup, Executable
-import sys
-import matplotlib
 
-sys.argv.append("build")
+os.environ['TCL_LIBRARY'] = r'c:\Users\Nick.Forfinski-Sarko\AppData\Local\Continuum\anaconda3\envs\cblue_py36\tcl\tcl8.6'
+os.environ['TK_LIBRARY'] = r'c:\Users\Nick.Forfinski-Sarko\AppData\Local\Continuum\anaconda3\envs\cblue_py36\tcl\tk8.6'
 
-# Dependencies are automatically detected, but it might need fine tuning.
-build_exe_options = {'packages': ['tkinter', 'matplotlib', 'arcpy'], 
-                      'include_files': ['qaqc.ico']}
-# GUI applications require a different base on Windows (the default is for a
-# console application).
-base = None
+__version__ = 'v2.1.0-rc1'
+
 if sys.platform == "win32":
     base = "Win32GUI"
 
-setup(  name = "QAQC_Checker",
-        version = "1.0.0alpha",
-        description = "SD QAQC tool for contract surveys",
-        options = {"build_exe": build_exe_options},
-        executables = [Executable("qaqc.py", base=base)])
+include_files = ['cBLUE_ASCII.txt',
+                 'cBLUE_ASCII_finished.txt',
+                 'cblue_configuration.json',
+                 'cBLUE_icon.ico',
+                 'cBLUE_readme.gif',
+                 'cBLUE_splash.gif',
+                 'lookup_tables']
 
+dll_dir = r'..\DLLs'
+for dll in os.listdir(dll_dir):
+    include_files.append(os.path.join(dll_dir, dll))
 
+excludes = []
+includes = ['numpy.core._methods']
+packages = []
+
+setup(
+    name = 'cBLUE',
+    description='NOAA RSD TPU Tool',
+    version=__version__,
+    options = {'build_exe': {
+    'packages': packages,
+    'include_files': include_files,
+    'includes': includes,
+    'excludes': excludes,
+    'include_msvcr': True,
+    }},
+    executables = [Executable('cBLUEApp.py')]
+    )

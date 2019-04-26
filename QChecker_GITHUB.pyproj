@@ -37,10 +37,6 @@
     <Compile Include="config_las_json.py" />
     <Compile Include="create_epsg_json.py" />
     <Compile Include="extra_bytes_play.py" />
-    <Compile Include="module1.py" />
-    <Compile Include="module2.py">
-      <SubType>Code</SubType>
-    </Compile>
     <Compile Include="pdal_play.py" />
     <Compile Include="qaqc.py" />
     <Compile Include="qaqc_config.py" />
