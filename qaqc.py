@@ -15,16 +15,12 @@ import re
 from geodaisy import GeoObject
 import ast
 import math
-import tkinter as tk
-from tkinter import ttk
 import time
-import datetime
 import progressbar
-import matplotlib.pyplot as plt
 
 from bokeh.models.widgets import Panel, Tabs
-from bokeh.io import output_file, show, export_png
-from bokeh.models import ColumnDataSource, PrintfTickFormatter, GeoJSONDataSource, ColorBar, HoverTool, LegendItem, Legend, Range1d
+from bokeh.io import output_file, show
+from bokeh.models import ColumnDataSource, PrintfTickFormatter, GeoJSONDataSource, Legend, Range1d
 from bokeh.plotting import figure
 from bokeh.tile_providers import get_provider, Vendors
 from bokeh.palettes import Blues
@@ -382,7 +378,8 @@ class Mosaic:
     def add_mosaic_dataset_tif_to_aprx(self):
         try:
             logging.info('adding {} to aprx...'.format(self.mosaic_dataset_base_name + '.tif'))
-            aprx = arcpy.mp.ArcGISProject(self.config.dz_aprx)
+            #aprx = arcpy.mp.ArcGISProject(self.config.dz_aprx)
+            aprx = arcpy.mp.ArcGISProject('CURRENT')
             m = aprx.listMaps('dz_surface')[0]
             arcpy.MakeRasterLayer_management(self.config.exported_mosaic_dataset, 
                                              self.mosaic_dataset_base_name)
@@ -429,7 +426,7 @@ class Surface:
             logging.info(e)
 
     def update_dz_export_settings_extents(self):
-        logging.info('updating dz export settings xml with las extents...')
+        arcpy.AddMessage('updating dz export settings xml with las extents...')
         tree = ET.parse(self.config.dz_export_settings)
         root = tree.getroot()
         for extent, val in self.las_extents.items():
@@ -799,7 +796,8 @@ class QaqcTileCollection:
 
         try:
             logging.info('adding {} to {}...'.format(output, self.config.dz_aprx))
-            aprx = arcpy.mp.ArcGISProject(self.config.dz_aprx)
+            #aprx = arcpy.mp.ArcGISProject(self.config.dz_aprx)
+            aprx = arcpy.mp.ArcGISProject('CURRENT')
             m = aprx.listMaps()[0]
             m.addDataFromPath(output)
             aprx.save()
@@ -1218,7 +1216,7 @@ def run_qaqc(config_json):
     logging.info(config)
     
     qaqc_tile_collection = LasTileCollection(config.las_tile_dir)
-    qaqc = QaqcTileCollection(qaqc_tile_collection.get_las_tile_paths(), config)
+    qaqc = QaqcTileCollection(qaqc_tile_collection.get_las_tile_paths()[0:10], config)
     
     qaqc.run_qaqc_tile_collection_checks(multiprocess=False)
     qaqc.set_qaqc_results_df()
