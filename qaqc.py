@@ -125,7 +125,7 @@ class LasTileCollection():
             value = c.find('Values')[0].text
             classes[label] = value
         classes_json_str = json.dumps(classes, indent=2)
-        logging.info(classes_json_str)
+        arcpy.AddMessage(classes_json_str)
 
 
 class LasTile:
@@ -306,7 +306,7 @@ class LasTile:
         classes_present = [c for c in class_counts[0]]
         class_counts = dict(zip(['class{}'.format(str(c)) for c in class_counts[0]],
                                 [int(c) for c in class_counts[1]]))
-        logging.info(class_counts)
+        arcpy.AddMessage(class_counts)
         return classes_present, class_counts
 
     def get_gps_time(self):
@@ -328,12 +328,12 @@ class LasTile:
         exe = r'C:\Program Files\Common Files\LP360\LDPyramid.exe'
         thin_factor = 12
         cmd_str = '{} -f {} {}'.format(exe, thin_factor, self.path)
-        logging.info('generating pyramids for {}...'.format(self.path))
-        logging.info(cmd_str)
+        arcpy.AddMessage('generating pyramids for {}...'.format(self.path))
+        arcpy.AddMessage(cmd_str)
         try:
             returncode, output = self.config.run_console_cmd(cmd_str)
         except Exception as e:
-            logging.info(e)
+            arcpy.AddMessage(e)
 
 
 class Mosaic:
@@ -346,17 +346,17 @@ class Mosaic:
                                                 self.mosaic_dataset_base_name)
 
     def create_mosaic_dataset(self):
-        logging.info('creating mosaic dataset {}...'.format(self.mosaic_dataset_base_name))
+        arcpy.AddMessage('creating mosaic dataset {}...'.format(self.mosaic_dataset_base_name))
         sr = arcpy.SpatialReference(6348)
         try:
             arcpy.CreateMosaicDataset_management(self.config.qaqc_gdb, 
                                                  self.mosaic_dataset_base_name, 
                                                  coordinate_system=sr)
         except Exception as e:
-            logging.info(e)
+            arcpy.AddMessage(e)
 
     def add_rasters_to_mosaic_dataset(self):
-        logging.info('adding {}_rasters to {}...'.format(self.mtype, self.mosaic_dataset_path))
+        arcpy.AddMessage('adding {}_rasters to {}...'.format(self.mtype, self.mosaic_dataset_path))
         arcpy.AddRastersToMosaicDataset_management(self.mosaic_dataset_path, 'Raster Dataset',
                                                    self.config.surfaces_to_make[self.mtype][1],
                                                    build_pyramids='BUILD_PYRAMIDS',
@@ -368,33 +368,32 @@ class Mosaic:
             self.config.exported_mosaic_dataset = os.path.join(self.config.qaqc_dir, 
                                                                self.mosaic_dataset_base_name + '.tif')
 
-            logging.info('exporting {} to tif...'.format(self.mosaic_dataset_base_name))
+            arcpy.AddMessage('exporting {} to tif...'.format(self.mosaic_dataset_base_name))
             arcpy.env.overwriteOutput = True
             arcpy.CopyRaster_management(self.mosaic_dataset_path, self.config.exported_mosaic_dataset)
             arcpy.env.overwriteOutput = False
         except Exception as e:
-            logging.info(e)
+            arcpy.AddMessage(e)
 
     def add_mosaic_dataset_tif_to_aprx(self):
         try:
-            logging.info('adding {} to aprx...'.format(self.mosaic_dataset_base_name + '.tif'))
+            arcpy.AddMessage('adding {} to aprx...'.format(self.mosaic_dataset_base_name + '.tif'))
             #aprx = arcpy.mp.ArcGISProject(self.config.dz_aprx)
             aprx = arcpy.mp.ArcGISProject('CURRENT')
             m = aprx.listMaps('dz_surface')[0]
-            arcpy.MakeRasterLayer_management(self.config.exported_mosaic_dataset, 
-                                             self.mosaic_dataset_base_name)
+            arcpy.MakeRasterLayer_management(self.config.exported_mosaic_dataset, 'temp_mosaic_dataset')
 
             dz_lyr = r'C:\QAQC_contract\FL1608_TB_N_DogIsland_p\{}.lyrx'.format(self.mosaic_dataset_base_name)
 
             if not os.path.exists(dz_lyr):
-                arcpy.SaveToLayerFile_management(self.mosaic_dataset_base_name, dz_lyr)
+                arcpy.SaveToLayerFile_management('temp_mosaic_dataset', dz_lyr)
             
             arcpy.ApplySymbologyFromLayer_management(dz_lyr, self.config.dz_classes_template)
             m.addDataFromPath(dz_lyr)
 
             aprx.save()
         except Exception as e:
-            logging.info(e)
+            arcpy.AddMessage(e)
 
 
 class Surface:
@@ -418,12 +417,12 @@ class Surface:
 
     def binary_to_raster(self):
         try:
-            logging.info('converting {} to {}...'.format(self.binary_path[self.stype], 
+            arcpy.AddMessage('converting {} to {}...'.format(self.binary_path[self.stype], 
                                                          self.raster_path[self.stype]))
             arcpy.FloatToRaster_conversion(self.binary_path[self.stype], 
                                            self.raster_path[self.stype])
         except Exception as e:
-            logging.info(e)
+            arcpy.AddMessage(e)
 
     def update_dz_export_settings_extents(self):
         arcpy.AddMessage('updating dz export settings xml with las extents...')
@@ -441,12 +440,12 @@ class Surface:
         las = self.las_path.replace('CLASSIFIED_LAS\\', 'CLASSIFIED_LAS\\\\')
         dz = r'{}\{}'.format(self.config.surfaces_to_make[self.stype][1], self.las_name)
         cmd_str = '{} -s {} -f {} -o {}'.format(exe, self.config.dz_export_settings, las, dz)
-        logging.info('generating dz ortho for {}...'.format(las))
-        logging.info(cmd_str)
+        arcpy.AddMessage('generating dz ortho for {}...'.format(las))
+        arcpy.AddMessage(cmd_str)
         try:
             returncode, output = self.config.run_console_cmd(cmd_str)
         except Exception as e:
-            logging.info(e)
+            arcpy.AddMessage(e)
 
     def gen_hillshade_surface():
         pass
@@ -504,7 +503,7 @@ class QaqcTile:
             passed = self.failed_text
         tile.checks_result['naming'] = tile.name
         tile.checks_result['naming_passed'] = passed
-        logging.info(tile.checks_result['naming'])
+        arcpy.AddMessage(tile.checks_result['naming'])
         return passed
 
     def check_las_version(self, tile):
@@ -515,7 +514,7 @@ class QaqcTile:
             passed = self.failed_text
         tile.checks_result['version'] = version
         tile.checks_result['version_passed'] = passed
-        logging.info(tile.checks_result['version'])
+        arcpy.AddMessage(tile.checks_result['version'])
         return passed
 
     def check_las_pdrf(self, tile):
@@ -526,7 +525,7 @@ class QaqcTile:
             passed = self.failed_text
         tile.checks_result['pdrf'] = pdrf
         tile.checks_result['pdrf_passed'] = passed
-        logging.info(tile.checks_result['pdrf'])
+        arcpy.AddMessage(tile.checks_result['pdrf'])
         return passed
 
     def check_las_gps_time(self, tile):
@@ -537,7 +536,7 @@ class QaqcTile:
             passed = self.failed_text
         tile.checks_result['gps_time'] = gps_time
         tile.checks_result['gps_time_passed'] = passed
-        logging.info(tile.checks_result['gps_time'])
+        arcpy.AddMessage(tile.checks_result['gps_time'])
         return passed
 
     def check_hdatum(self, tile):  # TODO
@@ -548,7 +547,7 @@ class QaqcTile:
             passed = self.failed_text
         tile.checks_result['hdatum'] = hdatum
         tile.checks_result['hdatum_passed'] = passed
-        logging.info(tile.checks_result['hdatum'])
+        arcpy.AddMessage(tile.checks_result['hdatum'])
         return passed
 
     def check_unexp_cls(self, tile):
@@ -559,7 +558,7 @@ class QaqcTile:
             passed = self.failed_text
         tile.checks_result['exp_cls'] = str(list(unexp_cls))
         tile.checks_result['exp_cls_passed'] = passed
-        logging.info(tile.checks_result['exp_cls'])
+        arcpy.AddMessage(tile.checks_result['exp_cls'])
         return passed
 
     def check_vdatum(self, tile):
@@ -570,7 +569,7 @@ class QaqcTile:
             passed = self.failed_text
         tile.checks_result['vdatum'] = vdatum
         tile.checks_result['vdatum_passed'] = passed
-        logging.info(tile.checks_result['vdatum'])
+        arcpy.AddMessage(tile.checks_result['vdatum'])
         return passed
 
     def check_pt_src_ids(self, tile):
@@ -581,7 +580,7 @@ class QaqcTile:
             passed = self.failed_text
         tile.checks_result['pt_src_ids'] = str(list(unq_pt_src_ids))
         tile.checks_result['pt_src_ids_passed'] = passed
-        logging.info(tile.checks_result['pt_src_ids'])
+        arcpy.AddMessage(tile.checks_result['pt_src_ids'])
         return passed
 
     def calc_pt_cloud_stats(self):
@@ -595,13 +594,13 @@ class QaqcTile:
             tile_dz.gen_dz_surface()
             #tile_dz.binary_to_raster()
         else:
-            logging.info('{} has no bathy or ground points; no dz ortho generated'.format(tile.name))
+            arcpy.AddMessage('{} has no bathy or ground points; no dz ortho generated'.format(tile.name))
 
     def create_hillshade(self):
         pass
 
     def add_tile_check_results(self, tile_check_results):
-        logging.info(tile_check_results)
+        arcpy.AddMessage(tile_check_results)
 
     def update_qaqc_results_table(self):
         pass
@@ -625,7 +624,7 @@ class QaqcTile:
 
         print('performing tile qaqc processes (details logged in log file)...')
         for las_path in progressbar.progressbar(las_paths, redirect_stdout=True):
-            logging.info('starting {}...'.format(las_path))
+            arcpy.AddMessage('starting {}...'.format(las_path))
             tile = LasTile(las_path, self.config)
 
             for c in [k for k, v in self.config.checks_to_do.items() if v]:
@@ -643,7 +642,7 @@ class QaqcTile:
     def run_qaqc(self, las_paths, multiprocess):
         if multiprocess:
             p = pp.ProcessPool(2)
-            logging.info(p)
+            arcpy.AddMessage(p)
             p.imap(self.run_qaqc_checks_multiprocess, las_paths)
             p.close()
             p.join()
@@ -681,7 +680,7 @@ class QaqcTileCollection:
                     flattened_json_data = {k:v for k,v in flatten_dict(json_data)}
                     flattened_dicts.append(flattened_json_data)
             except Exception as e:
-                logging.info(e)
+                arcpy.AddMessage(e)
         return flattened_dicts
 
     def get_unq_pt_src_ids(self):
@@ -728,7 +727,7 @@ class QaqcTileCollection:
         try:
             os.remove(output)
         except Exception as e:
-            logging.info(e)
+            arcpy.AddMessage(e)
         gdf.to_file(output, driver="GeoJSON")
 
     def gen_qaqc_json_WebMercator_CENTROIDS(self, output):
@@ -736,7 +735,7 @@ class QaqcTileCollection:
         try:
             os.remove(output)
         except Exception as e:
-            logging.info(e)
+            arcpy.AddMessage(e)
         gdf.to_file(output, driver="GeoJSON")
 
     def gen_qaqc_json_WebMercator_POLYGONS(self, output):
@@ -744,7 +743,7 @@ class QaqcTileCollection:
         try:
             os.remove(output)
         except Exception as e:
-            logging.info(e)
+            arcpy.AddMessage(e)
         gdf.to_file(output, driver="GeoJSON")
 
     def gen_qaqc_results_gdf_NAD83_UTM_POLYGONS(self):
@@ -760,7 +759,7 @@ class QaqcTileCollection:
         try:
             os.remove(output)
         except Exception as e:
-            logging.info(e)
+            arcpy.AddMessage(e)
         gdf.to_file(output, driver="GeoJSON")
 
     def gen_qaqc_csv(self, output):
@@ -782,27 +781,29 @@ class QaqcTileCollection:
                                 'ExtentYMin', 'centroid_x', 'centroid_y', 
                                 'created_day', 'created_year', 'tile_polygon', 
                                 'x_max', 'x_min', 'y_max', 'y_min'])
-        logging.info(gdf)
+        arcpy.AddMessage(gdf)
         gdf.to_file(output, driver='ESRI Shapefile')
         sr = arcpy.SpatialReference('NAD 1983 UTM Zone 19N')  # 2011?
 
         try:
-            logging.info('defining {} as {}...'.format(output, sr.name))
+            arcpy.AddMessage('defining {} as {}...'.format(output, sr.name))
             arcpy.DefineProjection_management(output, sr)
         except Exception as e:
-            logging.info(e)
+            arcpy.AddMessage(e)
 
-        logging.info(self.config.dz_aprx)
+        arcpy.AddMessage(self.config.dz_aprx)
 
         try:
-            logging.info('adding {} to {}...'.format(output, self.config.dz_aprx))
-            #aprx = arcpy.mp.ArcGISProject(self.config.dz_aprx)
+            arcpy.AddMessage('adding {} to {}...'.format(output, self.config.dz_aprx))
             aprx = arcpy.mp.ArcGISProject('CURRENT')
-            m = aprx.listMaps()[0]
-            m.addDataFromPath(output)
+
+            #for c in classes:
+            #    m = aprx.listMaps(c)[0]
+            #    m.addDataFromPath(output)
+
             aprx.save()
         except Exception as e:
-            logging.info(e)
+            arcpy.AddMessage(e)
 
     def gen_summary_graphic(self):
 
@@ -1163,7 +1164,7 @@ class QaqcTileCollection:
         try:
             os.remove(geojson)
         except Exception as e:
-            logging.info(e)
+            arcpy.AddMessage(e)
         gdf.to_file(geojson, driver="GeoJSON")
 
     @staticmethod
@@ -1182,7 +1183,7 @@ class QaqcTileCollection:
         gdf.to_csv(out_csv)
 
     def gen_tile_centroids_shp_NAD83_UTM(self):
-        logging.info('generating shapefile containing centroids of contractor tile polygons...')
+        arcpy.AddMessage('generating shapefile containing centroids of contractor tile polygons...')
         gdf = gpd.read_file(self.config.contractor_shp)
         gdf['geometry'] = gdf['geometry'].centroid
         gdf.to_file(self.config.tile_shp_NAD83_UTM_CENTROIDS, driver='ESRI Shapefile')
@@ -1195,7 +1196,7 @@ class QaqcTileCollection:
         try:
             os.remove(geojson)
         except Exception as e:
-            logging.info(e)
+            arcpy.AddMessage(e)
         WebMercator = {'init': 'epsg:3857'}
         gdf = gdf.to_crs(WebMercator)
         gdf.to_file(geojson, driver="GeoJSON")
@@ -1208,12 +1209,12 @@ class QaqcTileCollection:
             m.addLayer(lyr, 'TOP')
             aprx.save()
         except Exception as e:
-            logging.info(e)
+            arcpy.AddMessage(e)
 
 
 def run_qaqc(config_json):
     config = Configuration(config_json)
-    logging.info(config)
+    arcpy.AddMessage(config)
     
     qaqc_tile_collection = LasTileCollection(config.las_tile_dir)
     qaqc = QaqcTileCollection(qaqc_tile_collection.get_las_tile_paths()[0:10], config)
@@ -1228,7 +1229,7 @@ def run_qaqc(config_json):
         tile_centroids = qaqc.gen_tile_centroids_shp_NAD83_UTM()
         qaqc.add_layer_to_aprx(tile_centroids)
     else:
-        logging.info('{} already exists'.format(config.tile_shp_NAD83_UTM_CENTROIDS))
+        arcpy.AddMessage('{} already exists'.format(config.tile_shp_NAD83_UTM_CENTROIDS))
     
     # build the mosaics the user checked
     mosaic_types = [k for k, v in config.mosaics_to_make.items() if v[0]]
@@ -1239,7 +1240,8 @@ def run_qaqc(config_json):
     else:
         print('\nno mosaics to build...')
 
-    print('\nYAY, you just QAQC\'d project {}!!!\n'.format(config.project_name))
+
+    arcpy.AddMessage('\nYAY, you just QAQC\'d project {}!!!\n'.format(config.project_name))
 
     #with open('finish_message.txt', 'r') as f:
     #    message = f.readlines()
@@ -1249,4 +1251,8 @@ def run_qaqc(config_json):
 if __name__ == '__main__':
     arcpy.env.overwriteOutput = True
     
-    run_qaqc(config)
+    try:
+        run_qaqc(config)
+        sys.exit(0)
+    except SystemExit:
+        pass
