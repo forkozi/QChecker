@@ -5,8 +5,6 @@ import os
 import time
 import json
 import pandas as pd
-import matplotlib
-import threading
 import logging
 
 

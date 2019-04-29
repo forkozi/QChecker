@@ -1217,7 +1217,7 @@ def run_qaqc(config_json):
     arcpy.AddMessage(config)
     
     qaqc_tile_collection = LasTileCollection(config.las_tile_dir)
-    qaqc = QaqcTileCollection(qaqc_tile_collection.get_las_tile_paths()[0:10], config)
+    qaqc = QaqcTileCollection(qaqc_tile_collection.get_las_tile_paths(), config)
     
     qaqc.run_qaqc_tile_collection_checks(multiprocess=False)
     qaqc.set_qaqc_results_df()

@@ -36,12 +36,9 @@
   <ItemGroup>
     <Compile Include="config_las_json.py" />
     <Compile Include="create_epsg_json.py" />
-    <Compile Include="extra_bytes_play.py" />
-    <Compile Include="pdal_play.py" />
     <Compile Include="qaqc.py" />
     <Compile Include="qaqc_config.py" />
     <Compile Include="qaqc_gui.py" />
-    <Compile Include="setup.py" />
   </ItemGroup>
   <ItemGroup>
     <InterpreterReference Include="CondaEnv|CondaEnv|qchecker" />
