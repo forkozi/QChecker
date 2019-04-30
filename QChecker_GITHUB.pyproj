@@ -5,7 +5,8 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>{f6ec5861-b585-4fc8-91fb-ea1f234f9381}</ProjectGuid>
     <ProjectHome />
-    <StartupFile>qaqc_gui.py</StartupFile>
+    <StartupFile>
+    </StartupFile>
     <SearchPath>C:\Program Files\ArcGIS\Pro\Resources\ArcPy;C:\Program Files\ArcGIS\Pro\Resources\ArcToolBox\Scripts;C:\Program Files\ArcGIS\Pro\Resources\ArcPy;C:\Program Files\ArcGIS\Pro\Resources\ArcToolBox\Scripts;C:\Program Files\ArcGIS\Pro\Resources\ArcPy;C:\Program Files\ArcGIS\Pro\Resources\ArcToolBox\Scripts;C:\Program Files\ArcGIS\Pro\Resources\ArcPy;C:\Program Files\ArcGIS\Pro\Resources\ArcToolBox\Scripts;C:\Program Files\ArcGIS\Pro\bin;C:\Program Files\ArcGIS\Pro\Resources\ArcPy;C:\Program Files\ArcGIS\Pro\Resources\ArcToolBox\Scripts;C:\Program Files\ArcGIS\Pro\bin</SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
     <OutputPath>.</OutputPath>
@@ -20,28 +21,11 @@
     <VisualStudioVersion Condition=" '$(VisualStudioVersion)' == '' ">10.0</VisualStudioVersion>
   </PropertyGroup>
   <ItemGroup>
-    <Content Include="checked-checkbox.png" />
-    <Content Include="finish_message.txt" />
-    <Content Include="geojson.html" />
-    <Content Include="las_classes.txt" />
-    <Content Include="LAS_no_ver_cs.txt" />
-    <Content Include="LAS_v14.txt" />
-    <Content Include="project_list.txt" />
-    <Content Include="qaqc.gif" />
-    <Content Include="qaqc.ico" />
-    <Content Include="QAQC_Summary_FL1608_TB_N_DogIsland_p.html" />
-    <Content Include="SplashScreen.gif" />
-    <Content Include="SplashScreen.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <Compile Include="config_las_json.py" />
-    <Compile Include="create_epsg_json.py" />
-    <Compile Include="qaqc.py" />
-    <Compile Include="qaqc_config.py" />
-    <Compile Include="qaqc_gui.py" />
-  </ItemGroup>
-  <ItemGroup>
     <InterpreterReference Include="CondaEnv|CondaEnv|qchecker" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="qchecker.py" />
+    <Compile Include="qchecker_gui.py" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets" />
 </Project>
