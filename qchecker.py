@@ -414,8 +414,7 @@ class Configuration:
 
     @staticmethod
     def run_console_cmd(cmd):
-        process = subprocess.Popen(cmd.split(' '), shell=False, 
-                                   stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+        process = subprocess.Popen(cmd.split(' '), shell=False)#, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
         output, error = process.communicate()
         returncode = process.poll()
         return returncode, output
