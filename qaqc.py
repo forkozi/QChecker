@@ -31,6 +31,314 @@ from bokeh.layouts import layout, gridplot
 os.environ["GDAL_DATA"] = r'C:\\Users\\Nick.Forfinski-Sarko\\AppData\\Local\\Continuum\\anaconda3\\envs\\qchecker\\Library\\share\\gdal'
 os.environ["PROJ_LIB"] = r'C:\\Users\\Nick.Forfinski-Sarko\\AppData\\Local\\Continuum\\anaconda3\\envs\\qchecker\\Library\\share'
 
+
+class SummaryPlots:
+
+    def __init__(self, config, qaqc_results_df):
+        self.config = config
+        self.qaqc_results_df = qaqc_results_df
+
+        with open(self.config.qaqc_geojson_WebMercator_CENTROIDS) as f:
+            geojson_qaqc_centroids = f.read()
+
+        self.qaqc_centroids = GeoJSONDataSource(geojson=geojson_qaqc_centroids)
+
+        self.check_labels = {
+            'naming_passed': 'Naming Convention',
+            'version_passed': 'Version',
+            'pdrf_passed': 'Point Data Record Format',
+            'gps_time_passed': 'GPS Time Type',
+            'hdatum_passed': 'Horizontal Datum',
+            'vdatum_passed': 'Vertical Datum',
+            'pt_src_ids_passed': 'Point Source IDs',
+            'exp_cls_passed': 'Expected Classes'}
+
+        def get_classes_present(fields):
+            present_classes = []
+            for f in fields:
+                if 'class' in f:
+                    present_classes.append(f)
+            return present_classes
+
+        def get_test_results():
+            fields = self.qaqc_results_df.columns
+            test_result_fields = []
+            for f in fields:
+                if '_passed' in f:
+                    test_result_fields.append(f)
+            return self.qaqc_results_df[test_result_fields]
+
+        def get_las_classes():
+            las_classes_json = r'las_classes.json'
+            with open(las_classes_json) as lcf:
+                las_classes = json.load(lcf)
+            
+            def find(key, dictionary):
+                for k, v in dictionary.items():
+                    if k == key:
+                        yield v
+                    elif isinstance(v, dict):
+                        for result in find(key, v):
+                            yield result
+                    elif isinstance(v, list):
+                        for d in v:
+                            if isinstance(d, dict):
+                                for result in find(key, d):
+                                    yield result
+
+            return find('classes', las_classes)
+
+        self.las_classes = {}
+        for class_list in get_las_classes():
+            self.las_classes.update(class_list)
+
+        test_results = get_test_results()
+        test_result_fields = test_results.columns
+
+        # add column for PASSED or FAILED if it's not there (to make PASS/FAIL plotting easy)
+        self.result_counts = self.qaqc_results_df[test_result_fields].apply(pd.Series.value_counts).fillna(0).transpose()
+        if 'FAILED' not in self.result_counts.columns and 'PASSED' in self.result_counts.columns:
+            self.result_counts['FAILED'] = 0
+        if 'PASSED' not in self.result_counts.columns and 'FAILED' in self.result_counts.columns:
+            self.result_counts['PASSED'] = 0
+        if 'FAILED' not in self.result_counts.columns and 'PASSED' not in self.result_counts.columns:
+            self.result_counts = pd.DataFrame({'FAILED': 0, 'PASSED': 0}, index=['No_Test_Selected'])
+
+        present_classes = get_classes_present(self.qaqc_results_df.columns)
+        self.class_counts = self.qaqc_results_df[present_classes].sum().to_frame()
+        self.class_counts.columns = ['counts']
+        self.TOOLS = 'box_zoom,box_select,crosshair,reset,wheel_zoom'
+
+    @staticmethod
+    def add_empty_plots_to_reshape(plot_list):
+        len_check_pass_fail_plots = len(plot_list)
+        while len_check_pass_fail_plots % 3 != 0:
+            p = figure(plot_width=300, plot_height=300)
+            p.outline_line_color = None
+            p.toolbar.logo = None
+            p.toolbar_location = None
+            p.xaxis.major_tick_line_color = None
+            p.xaxis.minor_tick_line_color = None
+            p.yaxis.major_tick_line_color = None
+            p.yaxis.minor_tick_line_color = None
+            p.xgrid.grid_line_color = None
+            p.ygrid.grid_line_color = None
+            p.xaxis.major_label_text_font_size = '0pt'
+            p.yaxis.major_label_text_font_size = '0pt'
+            p.xaxis.axis_line_color = None
+            p.yaxis.axis_line_color = None
+            p.circle(0, 0, alpha=0.0)
+            plot_list.append(p)
+            len_check_pass_fail_plots += 1
+        return plot_list
+
+    def draw_pass_fail_bar_chart(self):
+        # TEST RESULTS PASS/FAIL
+        source = ColumnDataSource(self.result_counts)
+        if source.data['index'][0] != 'No_Test_Selected':
+            source.data.update({'labels': ['{}'.format(self.check_labels[i]) for i in source.data['index']]})
+
+            failed = source.data.get('FAILED')
+            passed = source.data.get('PASSED')
+
+            source.data.update({'FAILED_stack': failed + passed})
+
+            cats = ['PASSED', 'FAILED']
+            p1 = figure(y_range=source.data['labels'], title="Check PASS/FAIL Results", 
+                        plot_width=400, plot_height=400)
+            
+            p1.min_border_top = 100
+            p1.min_border_bottom = 50
+
+            p1.toolbar.logo = None
+            p1.toolbar_location = None
+
+            r_pass = p1.hbar(left=0, right='PASSED', y='labels',  height=0.9, color='#3cb371', 
+                                source=source, name='PASSED', line_color=None)
+
+            r_fail = p1.hbar(left='PASSED', right='FAILED_stack', y='labels', height=0.9, 
+                                color='#FF0000', source=source, name='FAILED', line_color=None)
+
+            p1.xgrid.grid_line_color = None
+
+            max_passed = max(passed)
+            max_failed = max(failed)
+            max_val = max(max_passed, max_failed)
+
+            p1.x_range = Range1d(0, max_val + 0.1 * max_val)
+            p1.axis.minor_tick_line_color = None
+            p1.outline_line_color = None
+
+            legend = Legend(items=[
+                ("PASSED", [r_pass]),
+                ("FAILED", [r_fail]),
+                ], location=(1, 15))
+            p1.add_layout(legend, 'above')
+            p1.legend.orientation = "horizontal"
+        else:
+            p1 = figure(title="No Tests Selected", 
+                        plot_width=400, 
+                        plot_height=300) 
+
+        return p1
+
+    def draw_class_count_bar_chart(self):
+        # CLASS COUNTS
+        self.class_counts['Expected'] = np.zeros(self.class_counts.index.size)
+        self.class_counts['Unexpected'] = np.zeros(self.class_counts.index.size)
+        for i, class_name in enumerate(self.class_counts.index):
+            class_num = int(class_name.replace('class', ''))
+            if class_num in self.config.exp_cls_key:
+                self.class_counts['Expected'][i] = self.class_counts['counts'][i]
+            else:
+                self.class_counts['Unexpected'][i] = self.class_counts['counts'][i]
+
+        source = ColumnDataSource(self.class_counts)
+        source.data.update({'labels': ['{} (Class {})'.format(
+            self.las_classes[c.replace('class', '').zfill(2)], 
+            c.replace('class', '').zfill(2)) for c in source.data['index']]})
+
+        p2 = figure(y_range=source.data['labels'], plot_width=400, plot_height=400, 
+                    title="Class Counts", tools="")
+        p2.min_border_top = 100
+        p2.outline_line_color = None
+        p2.toolbar.logo = None
+        p2.toolbar_location = None
+        p2.xaxis[0].formatter = PrintfTickFormatter(format='%4.1e')
+
+        p2_expected = p2.hbar(y='labels', right='Expected', 
+                                height=0.9, color='#0074D9', source=source)
+
+        p2_unexpected = p2.hbar(y='labels', right='Unexpected', 
+                                height=0.9, color='#FF851B', source=source)
+
+        max_count = max(source.data['counts'])
+        self.class_counts = self.class_counts.drop(['counts'], axis=1)
+        p2.x_range = Range1d(0, max_count + 0.1 * max_count)
+        p2.xgrid.grid_line_color = None
+        p2.xaxis.major_label_orientation = "vertical"
+        p2.xaxis.minor_tick_line_color = None
+
+        legend = Legend(items=[('EXPECTED', [p2_expected]), ('UNEXPECTED', [p2_unexpected])], location=(0, 10))
+        p2.add_layout(legend, 'above')
+
+        return p2
+
+    def draw_pass_fail_maps(self):
+        check_pass_fail_plots = []
+        if self.result_counts.index[0] != 'No_Test_Selected':
+            for i, check_field in enumerate(self.result_counts.index):
+                title = self.check_labels[check_field]
+
+                if i > 0:
+                    p = figure(title=title, x_axis_type="mercator", y_axis_type="mercator", 
+                                x_range=check_pass_fail_plots[0].x_range,
+                                y_range=check_pass_fail_plots[0].y_range,
+                                plot_width=300, plot_height=300, match_aspect=True, 
+                                tools=self.TOOLS)
+                else:
+                    p = figure(title=title, x_axis_type="mercator", y_axis_type="mercator", 
+                                plot_width=300, plot_height=300, match_aspect=True, 
+                                tools=self.TOOLS)
+
+                p.toolbar.logo = None
+                #p.toolbar_location = None
+
+                cmap = {
+                    'PASSED': '#3cb371',
+                    'FAILED': '#FF0000',
+                    }
+
+                color_mapper = factor_cmap(field_name=check_field, 
+                                            palette=list(cmap.values()), 
+                                            factors=list(cmap.keys()))
+
+                p.add_tile(get_provider(Vendors.CARTODBPOSITRON))
+                #p.patches(xs='xs', ys='ys', source=tile_polygons, fill_color=None, color='lightgray')
+                p.circle(x='x', y='y', size=3, alpha=0.5, 
+                            source=self.qaqc_centroids, color=color_mapper)
+                
+                check_pass_fail_plots.append(p)
+
+        check_pass_fail_plots = self.add_empty_plots_to_reshape(check_pass_fail_plots)
+        pass_fail_grid_plot = gridplot(check_pass_fail_plots, ncols=3, plot_height=300, 
+                                        toolbar_location='right')
+
+        tab1 = Panel(child=pass_fail_grid_plot, title="Checks Pass/Fail")
+
+        return tab1
+
+    def draw_class_count_maps(self):
+        min_count = self.qaqc_results_df[self.class_counts.index].min().min()
+        max_count = self.qaqc_results_df[self.class_counts.index].max().max()
+
+        class_count_plots = []
+        for i, class_field in enumerate(self.class_counts.index):
+            palette = Blues[9]
+            palette.reverse()
+
+            color_mapper = log_cmap(field_name=class_field, palette=palette, 
+                                    low=min_count, high=max_count, nan_color='white')
+
+            las_class = class_field.replace('class', '').zfill(2)
+            title = 'Class {} ({})'.format(las_class, self.las_classes[las_class])
+
+            if i > 0:
+                p = figure(title=title,
+                            x_axis_type="mercator", y_axis_type="mercator", 
+                            x_range=class_count_plots[0].x_range,
+                            y_range=class_count_plots[0].y_range,
+                            plot_width=300, plot_height=300,
+                            match_aspect=True, tools=self.TOOLS)
+            else:
+                p = figure(title=title,
+                            x_axis_type="mercator", y_axis_type="mercator", 
+                            plot_width=300, plot_height=300,
+                            match_aspect=True, tools=self.TOOLS)
+
+            if int(las_class) in self.config.exp_cls_key:
+                title_color = '#0074D9'
+            else:
+                title_color = '#FF851B'
+
+            p.title.text_color = title_color
+            #p.outline_line_width = 3
+            #p.outline_line_alpha = 0.6
+            #p.outline_line_color = title_color
+            p.toolbar.logo = None
+            #p.toolbar_location = None
+
+            p.add_tile(get_provider(Vendors.CARTODBPOSITRON))
+            p.circle(x='x', y='y', size=3, alpha=0.5, 
+                        source=self.qaqc_centroids, color=color_mapper)
+
+            class_count_plots.append(p)
+
+        class_count_plots = self.add_empty_plots_to_reshape(class_count_plots)
+        class_count_grid_plot = gridplot(class_count_plots, ncols=3, plot_height=300, 
+                                            toolbar_location='right')
+
+        tab2 = Panel(child=class_count_grid_plot, title="Class Counts")
+
+        return tab2
+
+    def gen_dashboard(self):
+
+        pass_fail_bar = self.draw_pass_fail_bar_chart()
+        class_count_bar = self.draw_class_count_bar_chart()
+        pass_fail_tab = self.draw_pass_fail_maps()
+        class_count_tab = self.draw_class_count_maps()
+
+        output_file('{}\QAQC_Summary_{}.html'.format(self.config.qaqc_dir, self.config.project_name))
+
+        tabs = Tabs(tabs=[pass_fail_tab, class_count_tab])
+
+        l = layout([
+            [[pass_fail_bar, class_count_bar], tabs],
+            ])
+        show(l)
+
+
 class Configuration:
     def __init__(self, config):
 
@@ -94,7 +402,8 @@ class Configuration:
 
     @staticmethod
     def run_console_cmd(cmd):
-        process = subprocess.Popen(cmd.split(' '))
+        process = subprocess.Popen(cmd.split(' '), shell=False, 
+                                   stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
         output, error = process.communicate()
         returncode = process.poll()
         return returncode, output
@@ -335,6 +644,8 @@ class LasTile:
         except Exception as e:
             arcpy.AddMessage(e)
 
+        pass
+
 
 class Mosaic:
 
@@ -395,6 +706,8 @@ class Mosaic:
         except Exception as e:
             arcpy.AddMessage(e)
 
+        pass
+
 
 class Surface:
 
@@ -449,6 +762,8 @@ class Surface:
 
     def gen_hillshade_surface():
         pass
+
+    pass
 
 
 class QaqcTile:
@@ -730,13 +1045,15 @@ class QaqcTileCollection:
             arcpy.AddMessage(e)
         gdf.to_file(output, driver="GeoJSON")
 
-    def gen_qaqc_json_WebMercator_CENTROIDS(self, output):
+    def gen_qaqc_json_WebMercator_CENTROIDS(self):
+        output = self.config.qaqc_geojson_WebMercator_CENTROIDS
         gdf = self.gen_qaqc_results_gdf_WebMercator_CENTROIDS()
         try:
             os.remove(output)
         except Exception as e:
             arcpy.AddMessage(e)
         gdf.to_file(output, driver="GeoJSON")
+        return output
 
     def gen_qaqc_json_WebMercator_POLYGONS(self, output):
         gdf = self.gen_qaqc_results_gdf_WebMercator_POLYGONS()
@@ -796,360 +1113,9 @@ class QaqcTileCollection:
         try:
             arcpy.AddMessage('adding {} to {}...'.format(output, self.config.dz_aprx))
             aprx = arcpy.mp.ArcGISProject('CURRENT')
-
-            #for c in classes:
-            #    m = aprx.listMaps(c)[0]
-            #    m.addDataFromPath(output)
-
             aprx.save()
         except Exception as e:
             arcpy.AddMessage(e)
-
-    def gen_summary_graphic(self):
-
-        def get_classes_present(fields):
-            present_classes = []
-            for f in fields:
-                if 'class' in f:
-                    present_classes.append(f)
-            return present_classes
-
-        def get_test_results():
-            fields = df.columns
-            test_result_fields = []
-            for f in fields:
-                if '_passed' in f:
-                    test_result_fields.append(f)
-            return df[test_result_fields]
-
-        def get_las_classes():
-            las_classes_json = r'las_classes.json'
-            with open(las_classes_json) as lcf:
-                las_classes = json.load(lcf)
-            
-            def find(key, dictionary):
-                for k, v in dictionary.items():
-                    if k == key:
-                        yield v
-                    elif isinstance(v, dict):
-                        for result in find(key, v):
-                            yield result
-                    elif isinstance(v, list):
-                        for d in v:
-                            if isinstance(d, dict):
-                                for result in find(key, d):
-                                    yield result
-
-            return find('classes', las_classes)
-
-        def add_empty_plots_to_reshape(plot_list):
-            len_check_pass_fail_plots = len(plot_list)
-            while len_check_pass_fail_plots % 3 != 0:
-                p = figure(plot_width=300, 
-                           plot_height=300)
-                p.outline_line_color = None
-                p.toolbar.logo = None
-                p.toolbar_location = None
-                p.xaxis.major_tick_line_color = None
-                p.xaxis.minor_tick_line_color = None
-                p.yaxis.major_tick_line_color = None
-                p.yaxis.minor_tick_line_color = None
-                p.xgrid.grid_line_color = None
-                p.ygrid.grid_line_color = None
-                p.xaxis.major_label_text_font_size = '0pt'
-                p.yaxis.major_label_text_font_size = '0pt'
-                p.xaxis.axis_line_color = None
-                p.yaxis.axis_line_color = None
-                p.circle(0, 0, alpha=0.0)
-                plot_list.append(p)
-                len_check_pass_fail_plots += 1
-
-        las_classes = {}
-        for class_list in get_las_classes():
-            las_classes.update(class_list)
-
-        df = self.qaqc_results_df
-
-        
-        test_results = get_test_results()
-        #test_result_fields = [r.encode('utf-8') for r in list(test_results.columns)]
-        test_result_fields = test_results.columns
-
-        # add column for PASSED or FAILED if it's not there (to make PASS/FAIL plotting easy)
-        result_counts = df[test_result_fields].apply(pd.Series.value_counts).fillna(0).transpose()
-        if 'FAILED' not in result_counts.columns and 'PASSED' in result_counts.columns:
-            result_counts['FAILED'] = 0
-        if 'PASSED' not in result_counts.columns and 'FAILED' in result_counts.columns:
-            result_counts['PASSED'] = 0
-        if 'FAILED' not in result_counts.columns and 'PASSED' not in result_counts.columns:
-            result_counts = pd.DataFrame({'FAILED': 0, 'PASSED': 0}, index=['No_Test_Selected'])
-
-        present_classes = get_classes_present(df.columns)
-        class_counts = df[present_classes].sum().to_frame()#.astype(np.int64)
-        class_counts.columns = ['counts']
-
-        print(result_counts)
-        print(class_counts)
-
-        # qaqc CENTROIDS
-        output_file('{}\QAQC_Summary_{}.html'.format(self.config.qaqc_dir, self.config.project_name))
-
-        self.gen_qaqc_json_WebMercator_CENTROIDS(self.config.qaqc_geojson_WebMercator_CENTROIDS)
-        with open(self.config.qaqc_geojson_WebMercator_CENTROIDS) as f:
-            geojson_qaqc_centroids = f.read()
-        qaqc_centroids = GeoJSONDataSource(geojson=geojson_qaqc_centroids)
-
-        self.gen_tile_geojson_WebMercator_POLYGONS(self.config.tile_geojson_WebMercator_POLYGONS)
-        with open(self.config.tile_geojson_WebMercator_POLYGONS) as f:
-            geojson_tile_polygons = f.read()
-        tile_polygons = GeoJSONDataSource(geojson=geojson_tile_polygons)
-
-        check_labels = {
-            'naming_passed': 'Naming Convention',
-            'version_passed': 'Version',
-            'pdrf_passed': 'Point Data Record Format',
-            'gps_time_passed': 'GPS Time Type',
-            'hdatum_passed': 'Horizontal Datum',
-            'vdatum_passed': 'Vertical Datum',
-            'pt_src_ids_passed': 'Point Source IDs',
-            'exp_cls_passed': 'Expected Classes'}
-
-        # class count maps
-        min_count = df[class_counts.index].min().min()
-        max_count = df[class_counts.index].max().max()
-
-        class_count_plots = []
-        for i, class_field in enumerate(class_counts.index):
-            palette = Blues[9]
-            palette.reverse()
-
-            TOOLS = 'box_zoom,box_select,crosshair,reset,wheel_zoom'
-
-            color_mapper = log_cmap(field_name=class_field, 
-                                    palette=palette, 
-                                    low=min_count,  # np.nanmin(df[class_field]), 
-                                    high=max_count,  # np.nanmax(df[class_field]), 
-                                    nan_color='white')
-
-            las_class = class_field.replace('class', '').zfill(2)
-            title = 'Class {} ({})'.format(las_class, las_classes[las_class])
-
-            if i > 0:
-                p = figure(title=title,
-                           x_axis_type="mercator", 
-                           y_axis_type="mercator", 
-                           x_range=class_count_plots[0].x_range,
-                           y_range=class_count_plots[0].y_range,
-                           plot_width=300, 
-                           plot_height=300,
-                           match_aspect=True, 
-                           tools=TOOLS)
-            else:
-                p = figure(title=title,
-                           x_axis_type="mercator", 
-                           y_axis_type="mercator", 
-                           plot_width=300, 
-                           plot_height=300,
-                           match_aspect=True, 
-                           tools=TOOLS)
-
-            if int(las_class) in self.config.exp_cls_key:
-                title_color = '#0074D9'
-            else:
-                title_color = '#FF851B'
-            p.title.text_color = title_color
-            #p.outline_line_width = 3
-            #p.outline_line_alpha = 0.6
-            #p.outline_line_color = title_color
-            p.toolbar.logo = None
-            #p.toolbar_location = None
-
-            p.add_tile(get_provider(Vendors.CARTODBPOSITRON))
-            p.circle(x='x', y='y', size=3, alpha=0.5, 
-                     source=qaqc_centroids, 
-                     color=color_mapper)
-
-            class_count_plots.append(p)
-
-        add_empty_plots_to_reshape(class_count_plots)
-        class_count_grid_plot = gridplot(class_count_plots, ncols=3, plot_height=300, toolbar_location='right')
-        tab2 = Panel(child=class_count_grid_plot, title="Class Counts")
-
-        # pass/fail maps
-        check_pass_fail_plots = []
-        if result_counts.index[0] != 'No_Test_Selected':
-            for i, check_field in enumerate(result_counts.index):
-                title = check_labels[check_field]
-
-                if i > 0:
-                    p = figure(title=title,
-                               x_axis_type="mercator", 
-                               y_axis_type="mercator", 
-                               x_range=check_pass_fail_plots[0].x_range,
-                               y_range=check_pass_fail_plots[0].y_range,
-                               plot_width=300, 
-                               plot_height=300,
-                               match_aspect=True, 
-                               tools=TOOLS)
-                else:
-                    p = figure(title=title,
-                               x_axis_type="mercator", 
-                               y_axis_type="mercator", 
-                               plot_width=300, 
-                               plot_height=300,
-                               match_aspect=True, 
-                               tools=TOOLS)
-
-                p.toolbar.logo = None
-                #p.toolbar_location = None
-
-                cmap = {
-                    'PASSED': '#3cb371',
-                    'FAILED': '#FF0000',
-                    }
-
-                color_mapper = factor_cmap(field_name=check_field, 
-                                           palette=list(cmap.values()), 
-                                           factors=list(cmap.keys()))
-
-                p.add_tile(get_provider(Vendors.CARTODBPOSITRON))
-                #p.patches(xs='xs', ys='ys', source=tile_polygons, fill_color=None, color='lightgray')
-                p.circle(x='x', y='y', size=3, alpha=0.5, 
-                         source=qaqc_centroids,
-                         color=color_mapper)
-
-                
-                check_pass_fail_plots.append(p)
-
-        add_empty_plots_to_reshape(check_pass_fail_plots)
-        pass_fail_grid_plot = gridplot(check_pass_fail_plots, ncols=3, plot_height=300, toolbar_location='right')
-        tab1 = Panel(child=pass_fail_grid_plot, title="Checks Pass/Fail")
-
-        # TEST RESULTS PASS/FAIL
-        source = ColumnDataSource(result_counts)
-        if source.data['index'][0] != 'No_Test_Selected':
-            #source.data.update({'labels': ['{}\n({})'.format(check_labels[i], self.config.check_keys[i.replace('_passed', '')]) for i in source.data['index']]})
-            source.data.update({'labels': ['{}'.format(check_labels[i]) for i in source.data['index']]})
-
-            failed = source.data.get('FAILED')  # None or array([...])
-            passed = source.data.get('PASSED')  # None or array([...])
-
-            source.data.update({'FAILED_stack': failed + passed})
-
-            cats = ['PASSED', 'FAILED']
-            p1 = figure(y_range=source.data['labels'], 
-                        title="Check PASS/FAIL Results", 
-                        plot_width=400, 
-                        plot_height=400)
-            
-            p1.min_border_top = 100
-            p1.min_border_bottom = 50
-
-            p1.toolbar.logo = None
-            p1.toolbar_location = None
-
-            r_pass = p1.hbar(left=0,
-                             right='PASSED',
-                             y='labels', 
-                             height=0.9, 
-                             color='#3cb371', 
-                             source=source, 
-                             name='PASSED',
-                             line_color=None)
-
-            r_fail = p1.hbar(left='PASSED', 
-                             right='FAILED_stack', 
-                             y='labels', 
-                             height=0.9, 
-                             color='#FF0000',
-                             source=source, 
-                             name='FAILED',
-                             line_color=None)
-
-            p1.xgrid.grid_line_color = None
-
-            max_passed = max(passed)
-            max_failed = max(failed)
-            max_val = max(max_passed, max_failed)
-
-            p1.x_range = Range1d(0, max_val + 0.1 * max_val)
-            p1.axis.minor_tick_line_color = None
-            p1.outline_line_color = None
-
-            legend = Legend(items=[
-                ("PASSED", [r_pass]),
-                ("FAILED", [r_fail]),
-                ], location=(1, 15))
-            p1.add_layout(legend, 'above')
-            p1.legend.orientation = "horizontal"
-        else:
-            p1 = figure(title="No Tests Selected", 
-                        plot_width=400, 
-                        plot_height=300) 
-
-        # CLASS COUNTS
-        class_counts['Expected'] = np.zeros(class_counts.index.size)
-        class_counts['Unexpected'] = np.zeros(class_counts.index.size)
-        for i, class_name in enumerate(class_counts.index):
-            class_num = int(class_name.replace('class', ''))
-            if class_num in self.config.exp_cls_key:
-                class_counts['Expected'][i] = class_counts['counts'][i]
-            else:
-                class_counts['Unexpected'][i] = class_counts['counts'][i]
-
-        source = ColumnDataSource(class_counts)
-        source.data.update({'labels': ['{} (Class {})'.format(las_classes[c.replace('class', '').zfill(2)], c.replace('class', '').zfill(2)) for c in source.data['index']]})
-
-        p2 = figure(y_range=source.data['labels'], 
-                    plot_width=400, 
-                    plot_height=400, 
-                    title="Class Counts", 
-                    tools="")
-        p2.min_border_top = 100
-        p2.outline_line_color = None
-        p2.toolbar.logo = None
-        p2.toolbar_location = None
-        p2.xaxis[0].formatter = PrintfTickFormatter(format='%4.1e')
-
-        p2_expected = p2.hbar(y='labels', right='Expected', height=0.9, color='#0074D9', source=source)
-        p2_unexpected = p2.hbar(y='labels', right='Unexpected', height=0.9, color='#FF851B', source=source)
-
-        max_count = max(source.data['counts'])
-        class_counts = class_counts.drop(['counts'], axis=1)
-        p2.x_range = Range1d(0, max_count + 0.1 * max_count)
-        p2.xgrid.grid_line_color = None
-        p2.xaxis.major_label_orientation = "vertical"
-        p2.xaxis.minor_tick_line_color = None
-
-        #legend = Legend(items=[('EXPECTED ({})'.format(self.config.exp_cls_key), [p2_expected]), ("UNEXPECTED", [p2_unexpected])], location=(0, 10))
-        legend = Legend(items=[('EXPECTED', [p2_expected]), ('UNEXPECTED', [p2_unexpected])], location=(0, 10))
-        p2.add_layout(legend, 'above')
-        
-
-        ## save plots
-        #img = os.path.join(self.config.qaqc_dir, 'QAQC_Results_Dashboard_1.png')
-        #print('saving {}...'.format(img))
-        #l = layout([[[p1, p2]]], sizing_mode='fixed')
-        #export_png(l, filename=img)
-
-        ## save check result maps
-        #img = os.path.join(self.config.qaqc_dir, 'QAQC_Results_Dashboard_2.png')
-        #print('saving {}...'.format(img))
-        #l = layout([[np.reshape(check_pass_fail_plots, (-1, 3)).tolist()]], sizing_mode='fixed')
-        #export_png(l, filename=img)
-
-        ## save class count maps
-        #img = os.path.join(self.config.qaqc_dir, 'QAQC_Results_Dashboard_3.png')
-        #print('saving {}...'.format(img))
-        #l = layout([[np.reshape(class_count_plots, (-1, 3)).tolist()]], sizing_mode='fixed')
-        #export_png(l, filename=img)
-
-        tabs = Tabs(tabs=[tab1, tab2])
-
-        l = layout([
-            [[p1, p2], tabs],
-            ])
-        show(l)
 
     def gen_mosaic(self, mtype):
         mosaic = Mosaic(mtype, self.config)
@@ -1188,8 +1154,6 @@ class QaqcTileCollection:
         gdf['geometry'] = gdf['geometry'].centroid
         gdf.to_file(self.config.tile_shp_NAD83_UTM_CENTROIDS, driver='ESRI Shapefile')
         return self.config.tile_shp_NAD83_UTM_CENTROIDS
-        #sr = arcpy.SpatialReference('NAD 1983 UTM Zone 19N')  # 2011?
-        #arcpy.DefineProjection_management(output, sr)
 
     def gen_tile_geojson_WebMercator_POLYGONS(self, geojson):
         gdf = gpd.read_file(self.config.contractor_shp)
@@ -1211,18 +1175,23 @@ class QaqcTileCollection:
         except Exception as e:
             arcpy.AddMessage(e)
 
+    pass
+
 
 def run_qaqc(config_json):
     config = Configuration(config_json)
     arcpy.AddMessage(config)
     
     qaqc_tile_collection = LasTileCollection(config.las_tile_dir)
-    qaqc = QaqcTileCollection(qaqc_tile_collection.get_las_tile_paths(), config)
+    qaqc = QaqcTileCollection(qaqc_tile_collection.get_las_tile_paths()[0:10], config)
     
     qaqc.run_qaqc_tile_collection_checks(multiprocess=False)
     qaqc.set_qaqc_results_df()
     qaqc.gen_qaqc_shp_NAD83_UTM(config.qaqc_shp_NAD83_UTM_POLYGONS)
-    qaqc.gen_summary_graphic()
+    qaqc.gen_qaqc_json_WebMercator_CENTROIDS()
+
+    dashboard = SummaryPlots(config, qaqc.qaqc_results_df)
+    dashboard.gen_dashboard()
     
     if not os.path.isfile(config.tile_shp_NAD83_UTM_CENTROIDS):
         print('creating shapefile containing centroids of contractor tile polygons...')
@@ -1240,12 +1209,9 @@ def run_qaqc(config_json):
     else:
         print('\nno mosaics to build...')
 
-
     arcpy.AddMessage('\nYAY, you just QAQC\'d project {}!!!\n'.format(config.project_name))
 
-    #with open('finish_message.txt', 'r') as f:
-    #    message = f.readlines()
-    #print(''.join(message))
+    pass
 
     
 if __name__ == '__main__':
