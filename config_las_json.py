@@ -86,6 +86,6 @@ las_classes = {
 
 
 
-with open('Z:\QChecker\QChecker_GITHUB', 'w') as f:
+with open('Z:\QChecker\QChecker_GITHUB\las_classes.json', 'w') as f:
     json.dump(las_classes, f)
 
