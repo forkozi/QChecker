@@ -23,7 +23,7 @@ config_data = {
     'Dz': [ False, 'C:/QAQC_contract/nantucket/dz' ]
   },
   'qaqc_dir': 'C:\\QAQC_contract',
-  'dz_export_settings': 'Z:\\QChecker\\QChecker_GITHUB\\dz_export_settings.xml',
+  'dz_export_settings': 'Z:\\QChecker\\QChecker_GITHUB\\assets\\config_files\\dz_export_settings.xml',
   'make_contact_centroids': False,
   'checks_to_do': {
     'gps_time': True,
@@ -44,7 +44,12 @@ config_data = {
   'supp_las_domain': 'Topo-Bathy Lidar Domain Profile',
   'epsg_json': 'Z:\QChecker\QChecker_GITHUB\epsg_lut.json',
   'lp360_ldexport_exe': r'C:\Program Files\Common Files\LP360\LDExport.exe',
+  'las_classes_json': r'.\assets\config_files\las_classes.json',
+  'qchecker_icon':  r'.\assets\images\qaqc.ico',
+  'qchecker_splash_image': r'.\assets\images\SplashScreen.gif',
+  'project_list': r'.\assets\project_list.txt',
+  'srs_wkts': r'.\assets\wkts_NAD83_2011_UTM.csv',  
 }
 
-with open('Z:\QChecker\QChecker_GITHUB\qaqc_config.json', 'w') as f:
+with open(r'Z:\QChecker\QChecker_GITHUB\assets\config_files\qaqc_config.json', 'w') as f:
     json.dump(config_data, f)

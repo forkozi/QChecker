@@ -5,8 +5,7 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>{f6ec5861-b585-4fc8-91fb-ea1f234f9381}</ProjectGuid>
     <ProjectHome />
-    <StartupFile>
-    </StartupFile>
+    <StartupFile>qchecker_gui.py</StartupFile>
     <SearchPath>C:\Program Files\ArcGIS\Pro\Resources\ArcPy;C:\Program Files\ArcGIS\Pro\Resources\ArcToolBox\Scripts;C:\Program Files\ArcGIS\Pro\Resources\ArcPy;C:\Program Files\ArcGIS\Pro\Resources\ArcToolBox\Scripts;C:\Program Files\ArcGIS\Pro\Resources\ArcPy;C:\Program Files\ArcGIS\Pro\Resources\ArcToolBox\Scripts;C:\Program Files\ArcGIS\Pro\Resources\ArcPy;C:\Program Files\ArcGIS\Pro\Resources\ArcToolBox\Scripts;C:\Program Files\ArcGIS\Pro\bin;C:\Program Files\ArcGIS\Pro\Resources\ArcPy;C:\Program Files\ArcGIS\Pro\Resources\ArcToolBox\Scripts;C:\Program Files\ArcGIS\Pro\bin</SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
     <OutputPath>.</OutputPath>

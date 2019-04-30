@@ -1,4 +1,4 @@
-from qaqc import run_qaqc
+from qchecker import run_qaqc
 import tkinter as tk
 from tkinter import ttk, filedialog
 import os
@@ -22,7 +22,7 @@ class QaqcApp(tk.Tk):
     def __init__(self, *args, **kwargs):
         tk.Tk.__init__(self, *args, **kwargs)
 
-        self.config_file = 'qaqc_config.json'
+        self.config_file = r'.\assets\config_files\qaqc_config.json'
         self.load_config()
         self.set_gui_components()
 
@@ -32,7 +32,7 @@ class QaqcApp(tk.Tk):
 
         version = 'v1.0.0 alpha'
         tk.Tk.wm_title(self, 'Q-Checker {}'.format(version))
-        tk.Tk.iconbitmap(self, 'qaqc.ico')
+        tk.Tk.iconbitmap(self, r'.\assets\images\qaqc.ico')
 
         container = tk.Frame(self)
         container.pack(side='top', fill='both', expand=True)
@@ -183,7 +183,7 @@ class QaqcApp(tk.Tk):
         about = tk.Toplevel()
         tk.Toplevel.iconbitmap(about, 'qaqc.ico')
         about.wm_title('About Q-Checker')
-        splash_img = tk.PhotoImage(file='SplashScreen.gif')
+        splash_img = tk.PhotoImage(file=r'.\assets\images\SplashScreen.gif')
         label = tk.Label(about, image=splash_img)
         label.pack()
         b1 = ttk.Button(about, text='Ok', command=about.destroy)
@@ -208,7 +208,7 @@ class QaqcApp(tk.Tk):
 class Splash(tk.Toplevel):
     def __init__(self, parent):
         tk.Toplevel.__init__(self, parent)
-        splash_img = tk.PhotoImage(file='SplashScreen.gif', master=self)
+        splash_img = tk.PhotoImage(file=r'.\assets\images\SplashScreen.gif', master=self)
         label = tk.Label(self, image=splash_img)
         label.pack()
         self.update()
@@ -223,7 +223,7 @@ class MainGuiPage(ttk.Frame):
         self.controller = controller
         self.config = controller.configuration  # from QaqcApp
         self.gui = controller.components  # from QaqcApp
-        self.las_classes_file = 'las_classes.json'
+        self.las_classes_file = self.config['las_classes_json']
 
        
         self.section_rows = {
@@ -377,7 +377,7 @@ class MainGuiPage(ttk.Frame):
         label.grid(row=0, columnspan=3, pady=(10, 0), sticky=tk.W)
 
         def get_proj_names():
-            with open('project_list.txt', 'r') as f:
+            with open(self.config['project_list'], 'r') as f:
                project_ids = [s.strip() for s in f.readlines()]
             return tuple(project_ids)
 
@@ -525,9 +525,8 @@ class MainGuiPage(ttk.Frame):
             btn = tk.Button(dirs_frame, text='...', command=bind_dirs_command(d))
             btn.grid(column=1, row=i, sticky=tk.W)
 
-    @staticmethod
-    def get_wkt_ids():
-        wkts_file = 'wkts_NAD83_2011_UTM.csv'
+    def get_wkt_ids(self):
+        wkts_file = self.config['srs_wkts']
         wkts_df = pd.read_csv(wkts_file)
         wkt_ids = wkts_df.iloc[:, 1]
         return tuple(wkt_ids)
@@ -580,7 +579,6 @@ class MainGuiPage(ttk.Frame):
         self.gui['supp_las_domain'].set(supp_las_domain)
 
     def add_checks(self):
-
         check = 'naming'
         get_key_options_def = self.get_naming_types()
         state = 'disabled'
@@ -830,7 +828,7 @@ if __name__ == '__main__':
                                                str(now.minute).zfill(2),
                                                str(now.second).zfill(2))
 
-    log_file = os.path.join(qchecker_path, 'cBLUE_{}.log'.format(date_time_now_str))
+    log_file = os.path.join(qchecker_path, 'QChecker_{}.log'.format(date_time_now_str))
     logging.basicConfig(#filename=log_file,
                         format='%(asctime)s:%(message)s',
                         level=logging.INFO)

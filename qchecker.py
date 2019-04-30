@@ -74,8 +74,7 @@ class SummaryPlots:
             return self.qaqc_results_df[test_result_fields]
 
         def get_las_classes():
-            las_classes_json = r'las_classes.json'
-            with open(las_classes_json) as lcf:
+            with open(self.config.las_classes_json) as lcf:
                 las_classes = json.load(lcf)
             
             def find(key, dictionary):
@@ -116,6 +115,8 @@ class SummaryPlots:
 
     @staticmethod
     def add_empty_plots_to_reshape(plot_list):
+        """len(plot_list) % 3 needs to = 0
+        """
         len_check_pass_fail_plots = len(plot_list)
         while len_check_pass_fail_plots % 3 != 0:
             p = figure(plot_width=300, plot_height=300)
@@ -375,6 +376,10 @@ class Configuration:
         self.version_key = data['check_keys']['version']
         self.pt_src_ids_key = data['check_keys']['pt_src_ids']
 
+        self.las_classes_json = data['las_classes_json']
+        self.project_list = data['project_list']
+        self.srs_wkts = data['srs_wkts']
+
         self.dz_aprx = data['dz_aprx']
         self.dz_export_settings = data['dz_export_settings']
         self.dz_classes_template = data['dz_classes_template']
@@ -391,6 +396,8 @@ class Configuration:
         self.qaqc_geojson_WebMercator_CENTROIDS = r'{}\qaqc_WebMercator_CENTROIDS.json'.format(self.qaqc_dir)
         self.qaqc_geojson_WebMercator_POLYGONS = r'{}\qaqc_WebMercator_POLYGONS.json'.format(self.qaqc_dir)
         self.qaqc_shp_NAD83_UTM_POLYGONS = r'{}\qaqc_NAD83_UTM.shp'.format(self.qaqc_dir)
+
+
 
         self.json_dir = r'{}\qaqc_check_results'.format(self.qaqc_dir)
         if not os.path.exists(self.json_dir):
@@ -907,7 +914,7 @@ class QaqcTile:
         pass
 
     def create_dz(self, tile):
-        from qaqc import Surface
+        from qchecker import Surface
         if tile.has_bathy or tile.has_ground:
             tile_dz = Surface(tile, 'Dz', self.config)
             tile_dz.update_dz_export_settings_extents()
@@ -926,7 +933,7 @@ class QaqcTile:
         pass
 
     def run_qaqc_checks_multiprocess(self, las_path):
-        from qaqc import LasTile, LasTileCollection
+        from qchecker import LasTile, LasTileCollection
         import logging
         import xml.etree.ElementTree as ET
         logging.basicConfig(format='%(asctime)s:%(message)s', level=logging.DEBUG)

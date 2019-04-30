@@ -1,7 +1,7 @@
-qaqc module
-===========
+qchecker module
+===============
 
-.. automodule:: qaqc
+.. automodule:: qchecker
     :members:
     :undoc-members:
     :show-inheritance:
