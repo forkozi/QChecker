@@ -493,6 +493,15 @@ class LasTile:
             else:
                 return None
 
+        def get_srs(las_path):
+            cmd_str = 'conda run -n pdal_env pdal info {} --metadata'.format(las_path)
+            try:
+                process = subprocess.Popen(cmd_str.split(' '), shell=True)#, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+                output, error = process.communicate()
+                returncode = process.poll()
+            except Exception as e:
+                arcpy.AddMessage(e)
+
         def get_hor_srs():
             hor_srs = None
             v14_hcs_key = 2112  # 2112 = Las 1.4 spec for hor. coord. sys. info
@@ -601,6 +610,7 @@ class LasTile:
         self.geotiff_keys = get_geotiff_keys()
         self.hor_srs = get_hor_srs()
         self.ver_srs = get_ver_srs()
+        print(get_srs(self.path))
 
         if self.to_pyramid and not self.is_pyramided:
             self.create_las_pyramids()
@@ -1185,7 +1195,7 @@ def run_qaqc(config_json):
     config = Configuration(config_json)
     
     qaqc_tile_collection = LasTileCollection(config.las_tile_dir)
-    qaqc = QaqcTileCollection(qaqc_tile_collection.get_las_tile_paths(), config)
+    qaqc = QaqcTileCollection(qaqc_tile_collection.get_las_tile_paths()[0:3], config)
     
     qaqc.run_qaqc_tile_collection_checks(multiprocess=False)
     qaqc.set_qaqc_results_df()
