@@ -14,9 +14,9 @@ import pathos.pools as pp
 import re
 from geodaisy import GeoObject
 import ast
-import math
 import time
 import progressbar
+from osgeo import osr
 
 from bokeh.models.widgets import Panel, Tabs
 from bokeh.io import output_file, show
@@ -27,9 +27,17 @@ from bokeh.palettes import Blues
 from bokeh.transform import log_cmap, factor_cmap
 from bokeh.layouts import layout, gridplot
 
+user_dir = os.path.expanduser('~')
 
-os.environ["GDAL_DATA"] = r'C:\\Users\\Nick.Forfinski-Sarko\\AppData\\Local\\Continuum\\anaconda3\\envs\\qchecker\\Library\\share\\gdal'
-os.environ["PROJ_LIB"] = r'C:\\Users\\Nick.Forfinski-Sarko\\AppData\\Local\\Continuum\\anaconda3\\envs\\qchecker\\Library\\share'
+script_path = r'{}\\AppData\\Local\\Continuum\\anaconda3\\Scripts'.format(user_dir)
+if script_path not in os.environ["PATH"]:
+    os.environ["PATH"] += os.pathsep + script_path
+
+gdal_data = r'{}\AppData\Local\ESRI\conda\envs\qchecker\Library\share\gdal'.format(user_dir)
+os.environ["GDAL_DATA"] = gdal_data
+
+proj_lib = r'{}\AppData\Local\ESRI\conda\envs\qchecker\Library\share'.format(user_dir)
+os.environ["PROJ_LIB"] = proj_lib
 
 # may also have to add the following paths
 # C:\Program Files\ArcGIS\Pro\bin
@@ -472,81 +480,88 @@ class LasTile:
                 vlrs.update({vlr.record_id: vlr.parsed_body})
             return vlrs
 
-        def get_geotiff_keys():
-            geotiff_key_tag = 34735  # GeoKeyDirectoryTag
+        #def get_geotiff_keys():
+        #    geotiff_key_tag = 34735  # GeoKeyDirectoryTag
 
-            if geotiff_key_tag in self.vlrs:
-                key_entries = list(self.vlrs[geotiff_key_tag])  
-                nth = 4
-                keys = [key_entries[nth*i:nth*i+nth] for i in range(0, int(math.ceil(len(key_entries)/nth)))]
-                # KeyEntry = {KeyID, TIFFTagLocation, Count, Value_Offset}
-                geotiff_keys = {}
-                for key in keys:
-                    geotiff_keys.update({
-                        key[0]: {
-                            'TIFFTagLocation': key[1],
-                            'Count': key[2],
-                            'Value_Offset': key[3],
-                            }
-                        })
-                return geotiff_keys
-            else:
-                return None
+        #    if geotiff_key_tag in self.vlrs:
+        #        key_entries = list(self.vlrs[geotiff_key_tag])  
+        #        nth = 4
+        #        keys = [key_entries[nth*i:nth*i+nth] for i in range(0, int(math.ceil(len(key_entries)/nth)))]
+        #        # KeyEntry = {KeyID, TIFFTagLocation, Count, Value_Offset}
+        #        geotiff_keys = {}
+        #        for key in keys:
+        #            geotiff_keys.update({
+        #                key[0]: {
+        #                    'TIFFTagLocation': key[1],
+        #                    'Count': key[2],
+        #                    'Value_Offset': key[3],#                    }
+        #                })
+        #        return geotiff_keys
+        #    else:
+        #        return None
 
         def get_srs(las_path):
             cmd_str = 'conda run -n pdal_env pdal info {} --metadata'.format(las_path)
+
             try:
-                process = subprocess.Popen(cmd_str.split(' '), shell=True)#, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
-                output, error = process.communicate()
-                returncode = process.poll()
+                process = subprocess.Popen(cmd_str.split(' '), shell=True, stdout=subprocess.PIPE)
+                output = process.stdout.read()
+                wkt = json.loads(output.decode('utf-8'))['metadata']['comp_spatialreference']
+                srs = osr.SpatialReference(wkt=wkt)
+                hor_srs = srs.GetAttrValue('PROJCS')
+                ver_srs = srs.GetAttrValue('VERT_CS')
             except Exception as e:
-                arcpy.AddMessage(e)
+                print(e)
+                hor_srs = ver_srs = None
 
-        def get_hor_srs():
-            hor_srs = None
-            v14_hcs_key = 2112  # 2112 = Las 1.4 spec for hor. coord. sys. info
-            hor_key_id = 3072  # ProjectedCSTypeGeoKey
-            if self.version == '1.2' and self.geotiff_keys:
-                try:
-                    with open(self.config.epsg_json) as f:  # TODO: doesn't have to happen for every tile
-                        epsgs = json.load(f)
-                    hor_srs_epsg = str(self.geotiff_keys[hor_key_id]['Value_Offset'])
-                    hor_srs = epsgs[hor_srs_epsg]
-                except Exception as e:
-                    print(e)
-                    hor_srs = None
-            elif self.version == '1.4' and v14_hcs_key in self.vlrs:
-                hor_cs_wkt = self.vlrs[v14_hcs_key][0].decode('utf-8')
-                hor_srs = hor_cs_wkt
-            else:
-                hor_srs = None
+            return hor_srs, ver_srs
 
-            return hor_srs
 
-        def get_ver_srs():
-            geo_ascii_params_tag = 34737  # GeoAsciiParamsTag (optional in v1.4)
-            ver_srs = None
-            if self.version == '1.2':  # ver srs specified in geotiff keys
-                v12_vcs_keys = [4097, 4096]  # in prefered ordered
-                # 4097 = VerticalCitationGeoKey
-                # 4096 = VerticalCSTypeGeoKey
-                if any(key in self.geotiff_keys.keys() for key in v12_vcs_keys):
-                    for key in v12_vcs_keys:
-                        start_i = self.geotiff_keys[key]['Value_Offset']
-                        end_i = start_i + self.geotiff_keys[key]['Count']
-                        ver_srs = self.vlrs[geo_ascii_params_tag][0].decode('utf-8')[start_i:end_i-1]
-                        if ver_srs:
-                            break
-                else:
-                    ver_srs = 'no vertical coordinate system specified in GeoTiff keys'
-            elif self.version == '1.4':  # ver srs specified in ogc wkt
-                if self.inFile.header.get_wkt():  # i.e., if wkt bit is set to 1
-                    v14_wkt_key = 2112  # 2112 = Las 1.4 spec for hor. coord. sys. info
-                    ver_srs = self.vlrs[v14_wkt_key][0].decode('utf-8')
-                else:
-                    ver_srs = 'WKT vertical coordinate '
+        #def get_hor_srs():
+        #    hor_srs = None
+        #    v14_hcs_key = 2112  # 2112 = Las 1.4 spec for hor. coord. sys. info
+        #    hor_key_id = 3072  # ProjectedCSTypeGeoKey
+        #    if self.version == '1.2' and self.geotiff_keys:
+        #        try:
+        #            with open(self.config.epsg_json) as f:  # TODO: doesn't have to happen for every tile
+        #                epsgs = json.load(f)
+        #            hor_srs_epsg = str(self.geotiff_keys[hor_key_id]['Value_Offset'])
+        #            hor_srs = epsgs[hor_srs_epsg]
+        #        except Exception as e:
+        #            print(e)
+        #            hor_srs = None
+        #    elif self.version == '1.4' and v14_hcs_key in self.vlrs:
+        #        hor_cs_wkt = self.vlrs[v14_hcs_key][0].decode('utf-8')
+        #        hor_srs = hor_cs_wkt
+        #    else:
+        #        hor_srs = None
 
-            return ver_srs
+        #    return hor_srs
+
+        #def get_ver_srs():
+        #    geo_ascii_params_tag = 34737  # GeoAsciiParamsTag (optional in v1.4)
+        #    ver_srs = None
+        #    if self.version == '1.2':  # ver srs specified in geotiff keys
+        #        v12_vcs_keys = [4097, 4096]  # in prefered ordered
+        #        # 4097 = VerticalCitationGeoKey
+        #        # 4096 = VerticalCSTypeGeoKey
+        #        if any(key in self.geotiff_keys.keys() for key in v12_vcs_keys):
+        #            for key in v12_vcs_keys:
+        #                start_i = self.geotiff_keys[key]['Value_Offset']
+        #                end_i = start_i + self.geotiff_keys[key]['Count']
+        #                ver_srs = self.vlrs[geo_ascii_params_tag][0].decode('utf-8')[start_i:end_i-1]
+        #                if ver_srs:
+        #                    break
+        #        else:
+        #            ver_srs = 'no vertical coordinate system specified in GeoTiff keys'
+        #    elif self.version == '1.4':  # ver srs specified in ogc wkt
+        #        if self.inFile.header.get_wkt():  # i.e., if wkt bit is set to 1
+        #            v14_wkt_key = 2112  # 2112 = Las 1.4 spec for hor. coord. sys. info
+        #            ver_srs = self.vlrs[v14_wkt_key][0].decode('utf-8')
+        #        else:
+        #            ver_srs = 'WKT vertical coordinate '
+
+        #    return ver_srs
 
         def calc_las_centroid():
             data_nw_x = self.las_extents['ExtentXMin']
@@ -607,10 +622,8 @@ class LasTile:
         }
 
         self.vlrs = get_vlrs()
-        self.geotiff_keys = get_geotiff_keys()
-        self.hor_srs = get_hor_srs()
-        self.ver_srs = get_ver_srs()
-        print(get_srs(self.path))
+        #self.geotiff_keys = get_geotiff_keys()
+        self.hor_srs, self.ver_srs = get_srs(self.path)
 
         if self.to_pyramid and not self.is_pyramided:
             self.create_las_pyramids()
@@ -785,7 +798,6 @@ class Surface:
         dz = r'{}\{}'.format(self.config.surfaces_to_make[self.stype][1], self.las_name)
         cmd_str = '{} -s {} -f {} -o {}'.format(exe, self.config.dz_export_settings, las, dz)
         arcpy.AddMessage('generating dz ortho for {}...'.format(las))
-        arcpy.AddMessage(cmd_str)
         try:
             returncode, output = self.config.run_console_cmd(cmd_str)
         except Exception as e:
@@ -1195,7 +1207,7 @@ def run_qaqc(config_json):
     config = Configuration(config_json)
     
     qaqc_tile_collection = LasTileCollection(config.las_tile_dir)
-    qaqc = QaqcTileCollection(qaqc_tile_collection.get_las_tile_paths()[0:3], config)
+    qaqc = QaqcTileCollection(qaqc_tile_collection.get_las_tile_paths()[0:100], config)
     
     qaqc.run_qaqc_tile_collection_checks(multiprocess=False)
     qaqc.set_qaqc_results_df()
