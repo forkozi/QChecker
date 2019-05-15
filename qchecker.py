@@ -14,9 +14,9 @@ import pathos.pools as pp
 import re
 from geodaisy import GeoObject
 import ast
-import math
 import time
 import progressbar
+from osgeo import osr
 
 from bokeh.models.widgets import Panel, Tabs
 from bokeh.io import output_file, show
@@ -27,9 +27,17 @@ from bokeh.palettes import Blues
 from bokeh.transform import log_cmap, factor_cmap
 from bokeh.layouts import layout, gridplot
 
+user_dir = os.path.expanduser('~')
 
-os.environ["GDAL_DATA"] = r'C:\\Users\\Nick.Forfinski-Sarko\\AppData\\Local\\Continuum\\anaconda3\\envs\\qchecker\\Library\\share\\gdal'
-os.environ["PROJ_LIB"] = r'C:\\Users\\Nick.Forfinski-Sarko\\AppData\\Local\\Continuum\\anaconda3\\envs\\qchecker\\Library\\share'
+script_path = r'{}\\AppData\\Local\\Continuum\\anaconda3\\Scripts'.format(user_dir)
+if script_path not in os.environ["PATH"]:
+    os.environ["PATH"] += os.pathsep + script_path
+
+gdal_data = r'{}\AppData\Local\ESRI\conda\envs\qchecker\Library\share\gdal'.format(user_dir)
+os.environ["GDAL_DATA"] = gdal_data
+
+proj_lib = r'{}\AppData\Local\ESRI\conda\envs\qchecker\Library\share'.format(user_dir)
+os.environ["PROJ_LIB"] = proj_lib
 
 # may also have to add the following paths
 # C:\Program Files\ArcGIS\Pro\bin
@@ -365,6 +373,7 @@ class Configuration:
         self.raster_dir = data['qaqc_gdb']
         self.tile_size = float(data['tile_size'])
         self.to_pyramid = data['to_pyramid']
+        self.make_tile_centroids_shp = data['make_tile_centroids_shp']
 
         # checks "answer key"
         self.check_keys = data['check_keys']
@@ -380,6 +389,12 @@ class Configuration:
         self.project_list = data['project_list']
         self.srs_wkts = data['srs_wkts']
 
+        self.wkts_df = pd.read_csv( self.srs_wkts, index_col=1, header=None)
+        self.epsg_code = int(self.wkts_df.loc[self.hdatum_key][0])
+        self.crs = {'init': 'epsg:{}'.format(self.epsg_code)}
+        self.web_mercator_epsg = {'init': 'epsg:3857'}
+        self.wgs84_epsg = {'init': 'epsg:4326'}
+
         self.dz_aprx = data['dz_aprx']
         self.dz_export_settings = data['dz_export_settings']
         self.dz_classes_template = data['dz_classes_template']
@@ -390,14 +405,11 @@ class Configuration:
         self.surfaces_to_make = data['surfaces_to_make']
         self.mosaics_to_make = data['mosaics_to_make']
 
-        self.qaqc_csv = r'{}\qaqc.csv'.format(self.qaqc_dir)
         self.qaqc_geojson_NAD83_UTM_CENTROIDS = r'{}\qaqc_NAD83_UTM_CENTROIDS.json'.format(self.qaqc_dir)
         self.qaqc_geojson_NAD83_UTM_POLYGONS = r'{}\qaqc_NAD83_UTM_POLYGONS.json'.format(self.qaqc_dir)
         self.qaqc_geojson_WebMercator_CENTROIDS = r'{}\qaqc_WebMercator_CENTROIDS.json'.format(self.qaqc_dir)
         self.qaqc_geojson_WebMercator_POLYGONS = r'{}\qaqc_WebMercator_POLYGONS.json'.format(self.qaqc_dir)
         self.qaqc_shp_NAD83_UTM_POLYGONS = r'{}\qaqc_NAD83_UTM.shp'.format(self.qaqc_dir)
-
-
 
         self.json_dir = r'{}\qaqc_check_results'.format(self.qaqc_dir)
         if not os.path.exists(self.json_dir):
@@ -405,7 +417,6 @@ class Configuration:
 
         self.tile_geojson_WebMercator_POLYGONS = os.path.join(self.qaqc_dir, 'tiles_WebMercator_POLYGONS.json')
         self.tile_shp_NAD83_UTM_CENTROIDS = os.path.join(self.qaqc_dir, 'tiles_centroids_NAD83_UTM.shp')
-        self.tile_csv = os.path.join(self.qaqc_dir, 'tiles.csv')
 
         self.epsg_json = data['epsg_json']
 
@@ -469,65 +480,88 @@ class LasTile:
                 vlrs.update({vlr.record_id: vlr.parsed_body})
             return vlrs
 
-        def get_geotif_keys():
-            geotiff_key_tag = 34735  # GeoKeyDirectoryTag
-            key_entries = list(self.vlrs[geotiff_key_tag])  
-            nth = 4
-            keys = [key_entries[nth*i:nth*i+nth] for i in range(0, int(math.ceil(len(key_entries)/nth)))]
-            # KeyEntry = {KeyID, TIFFTagLocation, Count, Value_Offset}
-            geotiff_keys = {}
-            for key in keys:
-                geotiff_keys.update({
-                    key[0]: {
-                        'TIFFTagLocation': key[1],
-                        'Count': key[2],
-                        'Value_Offset': key[3],
-                        }
-                    })
-            return geotiff_keys
+        #def get_geotiff_keys():
+        #    geotiff_key_tag = 34735  # GeoKeyDirectoryTag
 
-        def get_hor_srs():
-            hor_srs = None
-            if self.version == '1.2':
-                try:
-                    with open(self.config.epsg_json) as f:  # TODO: doesn't have to happen for every tile
-                        epsgs = json.load(f)
-                    hor_key_id = 3072  # ProjectedCSTypeGeoKey
-                    hor_srs_epsg = str(self.geotiff_keys[hor_key_id]['Value_Offset'])
-                    hor_srs = epsgs[hor_srs_epsg]
-                except Exception as e:
-                    print(e)
-                    hor_srs = 'no horizontal coordinate system specified in GeoTiff keys'
-            elif self.version == '1.4':
-                v14_hcs_key = 2112  # 2112 = Las 1.4 spec for hor. coord. sys. info
-                hor_cs_wkt = self.vlrs[v14_hcs_key][0].decode('utf-8')
+        #    if geotiff_key_tag in self.vlrs:
+        #        key_entries = list(self.vlrs[geotiff_key_tag])  
+        #        nth = 4
+        #        keys = [key_entries[nth*i:nth*i+nth] for i in range(0, int(math.ceil(len(key_entries)/nth)))]
+        #        # KeyEntry = {KeyID, TIFFTagLocation, Count, Value_Offset}
+        #        geotiff_keys = {}
+        #        for key in keys:
+        #            geotiff_keys.update({
+        #                key[0]: {
+        #                    'TIFFTagLocation': key[1],
+        #                    'Count': key[2],
+        #                    'Value_Offset': key[3],#                    }
+        #                })
+        #        return geotiff_keys
+        #    else:
+        #        return None
 
-            return hor_srs
+        def get_srs(las_path):
+            cmd_str = 'conda run -n pdal_env pdal info {} --metadata'.format(las_path)
 
-        def get_ver_srs():
-            geo_ascii_params_tag = 34737  # GeoAsciiParamsTag (optional in v1.4)
-            ver_srs = None
-            if self.version == '1.2':  # ver srs specified in geotiff keys
-                v12_vcs_keys = [4097, 4096]  # in prefered ordered
-                # 4097 = VerticalCitationGeoKey
-                # 4096 = VerticalCSTypeGeoKey
-                if any(key in self.geotiff_keys.keys() for key in v12_vcs_keys):
-                    for key in v12_vcs_keys:
-                        start_i = self.geotiff_keys[key]['Value_Offset']
-                        end_i = start_i + self.geotiff_keys[key]['Count']
-                        ver_srs = self.vlrs[geo_ascii_params_tag][0].decode('utf-8')[start_i:end_i-1]
-                        if ver_srs:
-                            break
-                else:
-                    ver_srs = 'no vertical coordinate system specified in GeoTiff keys'
-            elif self.version == '1.4':  # ver srs specified in ogc wkt
-                if self.inFile.header.get_wkt():  # i.e., if wkt bit is set to 1
-                    v14_wkt_key = 2112  # 2112 = Las 1.4 spec for hor. coord. sys. info
-                    ver_srs = self.vlrs[v14_wkt_key][0].decode('utf-8')
-                else:
-                    ver_srs = 'WKT vertical coordinate '
+            try:
+                process = subprocess.Popen(cmd_str.split(' '), shell=True, stdout=subprocess.PIPE)
+                output = process.stdout.read()
+                wkt = json.loads(output.decode('utf-8'))['metadata']['comp_spatialreference']
+                srs = osr.SpatialReference(wkt=wkt)
+                hor_srs = srs.GetAttrValue('PROJCS')
+                ver_srs = srs.GetAttrValue('VERT_CS')
+            except Exception as e:
+                print(e)
+                hor_srs = ver_srs = None
 
-            return ver_srs
+            return hor_srs, ver_srs
+
+
+        #def get_hor_srs():
+        #    hor_srs = None
+        #    v14_hcs_key = 2112  # 2112 = Las 1.4 spec for hor. coord. sys. info
+        #    hor_key_id = 3072  # ProjectedCSTypeGeoKey
+        #    if self.version == '1.2' and self.geotiff_keys:
+        #        try:
+        #            with open(self.config.epsg_json) as f:  # TODO: doesn't have to happen for every tile
+        #                epsgs = json.load(f)
+        #            hor_srs_epsg = str(self.geotiff_keys[hor_key_id]['Value_Offset'])
+        #            hor_srs = epsgs[hor_srs_epsg]
+        #        except Exception as e:
+        #            print(e)
+        #            hor_srs = None
+        #    elif self.version == '1.4' and v14_hcs_key in self.vlrs:
+        #        hor_cs_wkt = self.vlrs[v14_hcs_key][0].decode('utf-8')
+        #        hor_srs = hor_cs_wkt
+        #    else:
+        #        hor_srs = None
+
+        #    return hor_srs
+
+        #def get_ver_srs():
+        #    geo_ascii_params_tag = 34737  # GeoAsciiParamsTag (optional in v1.4)
+        #    ver_srs = None
+        #    if self.version == '1.2':  # ver srs specified in geotiff keys
+        #        v12_vcs_keys = [4097, 4096]  # in prefered ordered
+        #        # 4097 = VerticalCitationGeoKey
+        #        # 4096 = VerticalCSTypeGeoKey
+        #        if any(key in self.geotiff_keys.keys() for key in v12_vcs_keys):
+        #            for key in v12_vcs_keys:
+        #                start_i = self.geotiff_keys[key]['Value_Offset']
+        #                end_i = start_i + self.geotiff_keys[key]['Count']
+        #                ver_srs = self.vlrs[geo_ascii_params_tag][0].decode('utf-8')[start_i:end_i-1]
+        #                if ver_srs:
+        #                    break
+        #        else:
+        #            ver_srs = 'no vertical coordinate system specified in GeoTiff keys'
+        #    elif self.version == '1.4':  # ver srs specified in ogc wkt
+        #        if self.inFile.header.get_wkt():  # i.e., if wkt bit is set to 1
+        #            v14_wkt_key = 2112  # 2112 = Las 1.4 spec for hor. coord. sys. info
+        #            ver_srs = self.vlrs[v14_wkt_key][0].decode('utf-8')
+        #        else:
+        #            ver_srs = 'WKT vertical coordinate '
+
+        #    return ver_srs
 
         def calc_las_centroid():
             data_nw_x = self.las_extents['ExtentXMin']
@@ -588,9 +622,8 @@ class LasTile:
         }
 
         self.vlrs = get_vlrs()
-        self.geotiff_keys = get_geotif_keys()
-        self.hor_srs = get_hor_srs()
-        self.ver_srs = get_ver_srs()
+        #self.geotiff_keys = get_geotiff_keys()
+        self.hor_srs, self.ver_srs = get_srs(self.path)
 
         if self.to_pyramid and not self.is_pyramided:
             self.create_las_pyramids()
@@ -669,7 +702,7 @@ class Mosaic:
 
     def create_mosaic_dataset(self):
         arcpy.AddMessage('creating mosaic dataset {}...'.format(self.mosaic_dataset_base_name))
-        sr = arcpy.SpatialReference(6348)
+        sr = arcpy.SpatialReference(self.config.epsg_code)
         try:
             arcpy.CreateMosaicDataset_management(self.config.qaqc_gdb, 
                                                  self.mosaic_dataset_base_name, 
@@ -702,7 +735,7 @@ class Mosaic:
             arcpy.AddMessage('adding {} to aprx...'.format(self.mosaic_dataset_base_name + '.tif'))
             #aprx = arcpy.mp.ArcGISProject(self.config.dz_aprx)
             aprx = arcpy.mp.ArcGISProject('CURRENT')
-            m = aprx.listMaps('dz_surface')[0]
+            m = aprx.listMaps('QAQC_layers')[0]
             arcpy.MakeRasterLayer_management(self.config.exported_mosaic_dataset, 'temp_mosaic_dataset')
 
             dz_lyr = r'C:\QAQC_contract\FL1608_TB_N_DogIsland_p\{}.lyrx'.format(self.mosaic_dataset_base_name)
@@ -710,8 +743,8 @@ class Mosaic:
             if not os.path.exists(dz_lyr):
                 arcpy.SaveToLayerFile_management('temp_mosaic_dataset', dz_lyr)
             
-            arcpy.ApplySymbologyFromLayer_management(dz_lyr, self.config.dz_classes_template)
             m.addDataFromPath(dz_lyr)
+            arcpy.ApplySymbologyFromLayer_management(dz_lyr, self.config.dz_classes_template)
 
             aprx.save()
         except Exception as e:
@@ -765,7 +798,6 @@ class Surface:
         dz = r'{}\{}'.format(self.config.surfaces_to_make[self.stype][1], self.las_name)
         cmd_str = '{} -s {} -f {} -o {}'.format(exe, self.config.dz_export_settings, las, dz)
         arcpy.AddMessage('generating dz ortho for {}...'.format(las))
-        arcpy.AddMessage(cmd_str)
         try:
             returncode, output = self.config.run_console_cmd(cmd_str)
         except Exception as e:
@@ -871,7 +903,7 @@ class QaqcTile:
             passed = self.passed_text
         else:
             passed = self.failed_text
-        tile.checks_result['hdatum'] = hdatum
+        tile.checks_result['hdatum'] = str(hdatum)  # error for arcpy AddMessage if None
         tile.checks_result['hdatum_passed'] = passed
         arcpy.AddMessage(tile.checks_result['hdatum'])
         return passed
@@ -1024,28 +1056,23 @@ class QaqcTileCollection:
         df = self.qaqc_results_df
         df['Coordinates'] = df.tile_centroid
         df['Coordinates'] = df['Coordinates'].apply(wkt.loads)
-        nad83_utm_z19 = {'init': 'epsg:26919'}
-        gdf = gpd.GeoDataFrame(df, crs=nad83_utm_z19, geometry='Coordinates')
+        gdf = gpd.GeoDataFrame(df, crs=self.config.crs, geometry='Coordinates')
         return gdf
 
     def gen_qaqc_results_gdf_WebMercator_CENTROIDS(self):
         df = self.qaqc_results_df
         df['Coordinates'] = df.tile_centroid
         df['Coordinates'] = df['Coordinates'].apply(wkt.loads)
-        nad83_utm_z19 = {'init': 'epsg:26919'}
-        gdf = gpd.GeoDataFrame(df, crs=nad83_utm_z19, geometry='Coordinates')
-        web_mercator = {'init': 'epsg:3857'}
-        gdf = gdf.to_crs(web_mercator)
+        gdf = gpd.GeoDataFrame(df, crs=self.config.crs, geometry='Coordinates')
+        gdf = gdf.to_crs(self.config.web_mercator_epsg)
         return gdf
 
     def gen_qaqc_results_gdf_WebMercator_POLYGONS(self):
         df = self.qaqc_results_df
         df['Coordinates'] = df.tile_polygon
         df['Coordinates'] = df['Coordinates'].apply(wkt.loads)
-        nad83_utm_z19 = {'init': 'epsg:26919'}
-        gdf = gpd.GeoDataFrame(df, crs=nad83_utm_z19, geometry='Coordinates')
-        web_mercator = {'init': 'epsg:3857'}
-        gdf = gdf.to_crs(web_mercator)
+        gdf = gpd.GeoDataFrame(df, crs=self.config.crs, geometry='Coordinates')
+        gdf = gdf.to_crs(self.config.web_mercator_epsg)
         return gdf
 
     def gen_qaqc_json_NAD83_UTM_CENTROIDS(self, output):
@@ -1078,8 +1105,7 @@ class QaqcTileCollection:
         df = self.qaqc_results_df
         df['Coordinates'] = df.tile_polygon
         df['Coordinates'] = df['Coordinates'].apply(wkt.loads)
-        nad83_utm_z19 = {'init': 'epsg:26919'}
-        gdf = gpd.GeoDataFrame(df, crs=nad83_utm_z19, geometry='Coordinates')		
+        gdf = gpd.GeoDataFrame(df, crs=self.config.crs, geometry='Coordinates')		
         return gdf
 
     def gen_qaqc_json_NAD83_UTM_POLYGONS(self, output):
@@ -1103,7 +1129,7 @@ class QaqcTileCollection:
         gdf.to_csv(output, index=False)
 
     def gen_qaqc_shp_NAD83_UTM(self, output):
-        print('outputing tile qaqc results to {}...'.format(self.config.qaqc_shp_NAD83_UTM_POLYGONS))
+        print('creating shp of qaqc results...')
         gdf = self.gen_qaqc_results_gdf_NAD83_UTM_POLYGONS()
         gdf = gdf.drop(columns=['ExtentXMax','ExtentXMin', 'ExtentYMax', 
                                 'ExtentYMin', 'centroid_x', 'centroid_y', 
@@ -1111,20 +1137,19 @@ class QaqcTileCollection:
                                 'x_max', 'x_min', 'y_max', 'y_min'])
         arcpy.AddMessage(gdf)
         gdf.to_file(output, driver='ESRI Shapefile')
-        sr = arcpy.SpatialReference('NAD 1983 UTM Zone 19N')  # 2011?
+        sr = arcpy.SpatialReference(self.config.epsg_code)
 
         try:
+            print('outputing tile qaqc results to {}...'.format(self.config.qaqc_shp_NAD83_UTM_POLYGONS))
             arcpy.AddMessage('defining {} as {}...'.format(output, sr.name))
             arcpy.DefineProjection_management(output, sr)
-        except Exception as e:
-            arcpy.AddMessage(e)
-
-        arcpy.AddMessage(self.config.dz_aprx)
-
-        try:
             arcpy.AddMessage('adding {} to {}...'.format(output, self.config.dz_aprx))
+            
             aprx = arcpy.mp.ArcGISProject('CURRENT')
+            m = aprx.listMaps('QAQC_layers')[0]
+            m.addDataFromPath(output)
             aprx.save()
+
         except Exception as e:
             arcpy.AddMessage(e)
 
@@ -1136,8 +1161,7 @@ class QaqcTileCollection:
         mosaic.add_mosaic_dataset_tif_to_aprx()
 
     def gen_tile_geojson_WGS84(shp, geojson):
-        wgs84 = {'init': 'epsg:4326'}
-        gdf = gpd.read_file(shp).to_crs(wgs84)
+        gdf = gpd.read_file(shp).to_crs(self.config.wgs84_epsg)
         try:
             os.remove(geojson)
         except Exception as e:
@@ -1152,8 +1176,7 @@ class QaqcTileCollection:
         def get_y(pt): return (pt.y)
         gdf['centroid_x'] = map(get_x, gdf['geometry'])
         gdf['centroid_y'] = map(get_y, gdf['geometry'])
-        wgs84 = {'init': 'epsg:4326'}
-        gdf = gdf.to_crs(wgs84)
+        gdf = gdf.to_crs(self.config.wgs84_epsg)
         gdf['geometry'] = gdf['geometry'].centroid
         gdf['centroid_lon'] = map(get_x, gdf['geometry'])
         gdf['centroid_lat'] = map(get_y, gdf['geometry'])
@@ -1164,7 +1187,8 @@ class QaqcTileCollection:
         gdf = gpd.read_file(self.config.contractor_shp)
         gdf['geometry'] = gdf['geometry'].centroid
         gdf.to_file(self.config.tile_shp_NAD83_UTM_CENTROIDS, driver='ESRI Shapefile')
-        return self.config.tile_shp_NAD83_UTM_CENTROIDS
+
+
 
     def gen_tile_geojson_WebMercator_POLYGONS(self, geojson):
         gdf = gpd.read_file(self.config.contractor_shp)
@@ -1172,29 +1196,18 @@ class QaqcTileCollection:
             os.remove(geojson)
         except Exception as e:
             arcpy.AddMessage(e)
-        WebMercator = {'init': 'epsg:3857'}
-        gdf = gdf.to_crs(WebMercator)
-        gdf.to_file(geojson, driver="GeoJSON")
 
-    def add_layer_to_aprx(self, layer):
-        try:
-            aprx = arcpy.mp.ArcGISProject(self.config.dz_aprx)
-            m = aprx.listMaps()[0]
-            lyr = arcpy.mp.LayerFile(layer)
-            m.addLayer(lyr, 'TOP')
-            aprx.save()
-        except Exception as e:
-            arcpy.AddMessage(e)
+        gdf = gdf.to_crs(self.web_mercator_epsg)
+        gdf.to_file(geojson, driver="GeoJSON")
 
     pass
 
 
 def run_qaqc(config_json):
     config = Configuration(config_json)
-    arcpy.AddMessage(config)
     
     qaqc_tile_collection = LasTileCollection(config.las_tile_dir)
-    qaqc = QaqcTileCollection(qaqc_tile_collection.get_las_tile_paths()[0:10], config)
+    qaqc = QaqcTileCollection(qaqc_tile_collection.get_las_tile_paths()[0:100], config)
     
     qaqc.run_qaqc_tile_collection_checks(multiprocess=False)
     qaqc.set_qaqc_results_df()
@@ -1203,13 +1216,9 @@ def run_qaqc(config_json):
 
     dashboard = SummaryPlots(config, qaqc.qaqc_results_df)
     dashboard.gen_dashboard()
-    
-    if not os.path.isfile(config.tile_shp_NAD83_UTM_CENTROIDS):
-        print('creating shapefile containing centroids of contractor tile polygons...')
-        tile_centroids = qaqc.gen_tile_centroids_shp_NAD83_UTM()
-        qaqc.add_layer_to_aprx(tile_centroids)
-    else:
-        arcpy.AddMessage('{} already exists'.format(config.tile_shp_NAD83_UTM_CENTROIDS))
+
+    if config.make_tile_centroids_shp:
+        qaqc.gen_tile_centroids_shp_NAD83_UTM()
     
     # build the mosaics the user checked
     mosaic_types = [k for k, v in config.mosaics_to_make.items() if v[0]]
@@ -1218,9 +1227,9 @@ def run_qaqc(config_json):
         for m in progressbar.progressbar(mosaic_types, redirect_stdout=True):
             qaqc.gen_mosaic(m)
     else:
-        print('\nno mosaics to build...')
+        print('no mosaics to build...')
 
-    arcpy.AddMessage('\nYAY, you just QAQC\'d project {}!!!\n'.format(config.project_name))
+    arcpy.AddMessage('\nYAY, you just QAQC\'d project {}!!!'.format(config.project_name))
 
     pass
 

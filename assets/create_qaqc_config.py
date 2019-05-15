@@ -39,6 +39,7 @@ config_data = {
   'qaqc_gdb': 'C:\\QAQC_contract\\nantucket\\qaqc_nantucket.gdb',
   'dz_classes_template': 'C:\\QAQC_contract\\dz_classes.lyr',
   'to_pyramid': True,
+  'make_tile_centroids_shp': True
   'tile_size': '500',
   'contractor_shp': 'C:\\QAQC_contract\\nantucket\\EXTENTS\\final\\Nantucket_TileGrid.shp',
   'supp_las_domain': 'Topo-Bathy Lidar Domain Profile',
