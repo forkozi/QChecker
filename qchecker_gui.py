@@ -453,10 +453,6 @@ class MainGuiPage(ttk.Frame):
             anchor=tk.W, justify=tk.LEFT)
         chk.grid(column=1, row=row, sticky=tk.W)
 
-        #sep = ttk.Separator(options_frame, orient=tk.HORIZONTAL)
-        #sep.grid(row=row + 1, columnspan=4, padx=(10, 0), pady=(5, 5), sticky=tk.EW)
-
-
     def build_files(self):
         '''Files'''
 
@@ -527,9 +523,8 @@ class MainGuiPage(ttk.Frame):
 
     def get_wkt_ids(self):
         wkts_file = self.config['srs_wkts']
-        wkts_df = pd.read_csv(wkts_file)
-        wkt_ids = wkts_df.iloc[:, 1]
-        return tuple(wkt_ids)
+        wkts_df = pd.read_csv(wkts_file, index_col=1, header=None)
+        return tuple(wkts_df.index)
 
     @staticmethod
     def get_gps_times():
