@@ -27,3 +27,4 @@ conda
 
 In ArcPro's Python Package Manager, click the "Manage Environments" button and specify the qchecker that was generated using the conda environment.yml file.
 
+![ArcPro Python Setup](https://github.com/forkozi/QChecker/assets/images/ArcPro_PyEnvManager.PNG?raw=true)
