@@ -13,7 +13,7 @@ Relying on two separate Python environments is perhaps unconventional, but doing
 
 The recommended way to create the necessary Python environments relies on the two environment files (.yml) that are included in this repository. To create each environment, run the following commands at the base Anaconda prompt, where <env_*.yml> are the full paths to the Q-Checker and PDAL environment.yml files:
 
-*Modified arcgispro-py 3 environment*
+*Q-Checker environment*
 ```
 (base) C:\>conda env create --prefix <env_qchecker.yml>
 ```
@@ -25,6 +25,6 @@ The recommended way to create the necessary Python environments relies on the tw
 
 **2. Point ArcPro to Q-Checker Python environment**
 
-In ArcPro's Python Package Manager, click the "Manage Environments" button and specify the qchecker that was generated using the conda environment.yml file.
+In ArcPro's Python Package Manager, click the "Manage Environments" button and specify the qchecker Python environment that was generated using the env_qchecker.yml file.
 
 ![ArcPro Python Setup](https://github.com/forkozi/QChecker/blob/master/assets/images/ArcPro_PyEnvManager.PNG?raw=true)
