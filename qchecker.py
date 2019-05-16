@@ -343,7 +343,7 @@ class SummaryPlots:
         pass_fail_tab = self.draw_pass_fail_maps()
         class_count_tab = self.draw_class_count_maps()
 
-        output_file('{}\QAQC_Summary_{}.html'.format(self.config.qaqc_dir, self.config.project_name))
+        output_file('{}\dashboard_summary\QAQC_DashboardSummary_{}.html'.format(self.config.qaqc_dir, self.config.project_name))
 
         tabs = Tabs(tabs=[pass_fail_tab, class_count_tab])
 
@@ -365,9 +365,7 @@ class Configuration:
         self.project_name = arcpy.ValidateTableName(data['project_name'])
         self.las_tile_dir = data['las_tile_dir']
         
-        self.qaqc_dir = os.path.join(data['qaqc_dir'], self.project_name)
-        if not os.path.exists(self.qaqc_dir):
-            os.makedirs(self.qaqc_dir)
+        self.qaqc_dir = data['qaqc_dir']
 
         self.qaqc_gdb = data['qaqc_gdb']
         self.raster_dir = data['qaqc_gdb']
@@ -395,7 +393,7 @@ class Configuration:
         self.web_mercator_epsg = {'init': 'epsg:3857'}
         self.wgs84_epsg = {'init': 'epsg:4326'}
 
-        self.dz_aprx = data['dz_aprx']
+        self.aprx = data['aprx']
         self.dz_export_settings = data['dz_export_settings']
         self.dz_classes_template = data['dz_classes_template']
         self.lp360_ldexport_exe = data['lp360_ldexport_exe']
@@ -407,11 +405,11 @@ class Configuration:
 
         self.qaqc_geojson_NAD83_UTM_CENTROIDS = r'{}\qaqc_NAD83_UTM_CENTROIDS.json'.format(self.qaqc_dir)
         self.qaqc_geojson_NAD83_UTM_POLYGONS = r'{}\qaqc_NAD83_UTM_POLYGONS.json'.format(self.qaqc_dir)
-        self.qaqc_geojson_WebMercator_CENTROIDS = r'{}\qaqc_WebMercator_CENTROIDS.json'.format(self.qaqc_dir)
+        self.qaqc_geojson_WebMercator_CENTROIDS = r'{}\dashboard_summary\{}_qaqc_WebMercator_CENTROIDS.json'.format(self.qaqc_dir, self.project_name)
         self.qaqc_geojson_WebMercator_POLYGONS = r'{}\qaqc_WebMercator_POLYGONS.json'.format(self.qaqc_dir)
-        self.qaqc_shp_NAD83_UTM_POLYGONS = r'{}\qaqc_NAD83_UTM.shp'.format(self.qaqc_dir)
+        self.qaqc_shp_NAD83_UTM_POLYGONS = r'{}\qaqc_tile_check_results\{}_qaqc_NAD83_UTM.shp'.format(self.qaqc_dir, self.project_name)
 
-        self.json_dir = r'{}\qaqc_check_results'.format(self.qaqc_dir)
+        self.json_dir = r'{}\qaqc_tile_check_results\qaqc_tile_json'.format(self.qaqc_dir)
         if not os.path.exists(self.json_dir):
             os.makedirs(self.json_dir)
 
@@ -480,26 +478,6 @@ class LasTile:
                 vlrs.update({vlr.record_id: vlr.parsed_body})
             return vlrs
 
-        #def get_geotiff_keys():
-        #    geotiff_key_tag = 34735  # GeoKeyDirectoryTag
-
-        #    if geotiff_key_tag in self.vlrs:
-        #        key_entries = list(self.vlrs[geotiff_key_tag])  
-        #        nth = 4
-        #        keys = [key_entries[nth*i:nth*i+nth] for i in range(0, int(math.ceil(len(key_entries)/nth)))]
-        #        # KeyEntry = {KeyID, TIFFTagLocation, Count, Value_Offset}
-        #        geotiff_keys = {}
-        #        for key in keys:
-        #            geotiff_keys.update({
-        #                key[0]: {
-        #                    'TIFFTagLocation': key[1],
-        #                    'Count': key[2],
-        #                    'Value_Offset': key[3],#                    }
-        #                })
-        #        return geotiff_keys
-        #    else:
-        #        return None
-
         def get_srs(las_path):
             cmd_str = 'conda run -n pdal_env pdal info {} --metadata'.format(las_path)
 
@@ -515,28 +493,6 @@ class LasTile:
                 hor_srs = ver_srs = None
 
             return hor_srs, ver_srs
-
-
-        #def get_hor_srs():
-        #    hor_srs = None
-        #    v14_hcs_key = 2112  # 2112 = Las 1.4 spec for hor. coord. sys. info
-        #    hor_key_id = 3072  # ProjectedCSTypeGeoKey
-        #    if self.version == '1.2' and self.geotiff_keys:
-        #        try:
-        #            with open(self.config.epsg_json) as f:  # TODO: doesn't have to happen for every tile
-        #                epsgs = json.load(f)
-        #            hor_srs_epsg = str(self.geotiff_keys[hor_key_id]['Value_Offset'])
-        #            hor_srs = epsgs[hor_srs_epsg]
-        #        except Exception as e:
-        #            print(e)
-        #            hor_srs = None
-        #    elif self.version == '1.4' and v14_hcs_key in self.vlrs:
-        #        hor_cs_wkt = self.vlrs[v14_hcs_key][0].decode('utf-8')
-        #        hor_srs = hor_cs_wkt
-        #    else:
-        #        hor_srs = None
-
-        #    return hor_srs
 
         #def get_ver_srs():
         #    geo_ascii_params_tag = 34737  # GeoAsciiParamsTag (optional in v1.4)
@@ -622,7 +578,6 @@ class LasTile:
         }
 
         self.vlrs = get_vlrs()
-        #self.geotiff_keys = get_geotiff_keys()
         self.hor_srs, self.ver_srs = get_srs(self.path)
 
         if self.to_pyramid and not self.is_pyramided:
@@ -720,7 +675,7 @@ class Mosaic:
 
     def export_mosaic_dataset(self):
         try:
-            self.config.exported_mosaic_dataset = os.path.join(self.config.qaqc_dir, 
+            self.config.exported_mosaic_dataset = os.path.join(self.config.qaqc_dir, 'dz',
                                                                self.mosaic_dataset_base_name + '.tif')
 
             arcpy.AddMessage('exporting {} to tif...'.format(self.mosaic_dataset_base_name))
@@ -733,18 +688,19 @@ class Mosaic:
     def add_mosaic_dataset_tif_to_aprx(self):
         try:
             arcpy.AddMessage('adding {} to aprx...'.format(self.mosaic_dataset_base_name + '.tif'))
-            #aprx = arcpy.mp.ArcGISProject(self.config.dz_aprx)
-            aprx = arcpy.mp.ArcGISProject('CURRENT')
+            #aprx = arcpy.mp.ArcGISProject('CURRENT')
+            aprx = arcpy.mp.ArcGISProject(self.config.aprx)
             m = aprx.listMaps('QAQC_layers')[0]
             arcpy.MakeRasterLayer_management(self.config.exported_mosaic_dataset, 'temp_mosaic_dataset')
 
-            dz_lyr = r'C:\QAQC_contract\FL1608_TB_N_DogIsland_p\{}.lyrx'.format(self.mosaic_dataset_base_name)
+            mosaic_lyr = r'{}\{}.lyrx'.format(self.config.qaqc_dir, self.mosaic_dataset_base_name)
 
-            if not os.path.exists(dz_lyr):
-                arcpy.SaveToLayerFile_management('temp_mosaic_dataset', dz_lyr)
+            if not os.path.exists(mosaic_lyr):
+                arcpy.AddMessage('saving {}...'.format(mosaic_lyr))
+                arcpy.SaveToLayerFile_management('temp_mosaic_dataset', mosaic_lyr)
             
-            m.addDataFromPath(dz_lyr)
-            arcpy.ApplySymbologyFromLayer_management(dz_lyr, self.config.dz_classes_template)
+            m.addDataFromPath(mosaic_lyr)
+            arcpy.ApplySymbologyFromLayer_management(mosaic_lyr, self.config.dz_classes_template)
 
             aprx.save()
         except Exception as e:
@@ -977,7 +933,6 @@ class QaqcTile:
 
     def run_qaqc_checks(self, las_paths):       
         num_las = len(las_paths)
-        #self.progress[1]['maximum'] = num_las
         tic = time.time()
 
         print('performing tile qaqc processes (details logged in log file)...')
@@ -1129,6 +1084,21 @@ class QaqcTileCollection:
         gdf.to_csv(output, index=False)
 
     def gen_qaqc_shp_NAD83_UTM(self, output):
+        
+        def add_layer_to_aprx(output):
+            arcpy.AddMessage('adding {} to {}...'.format(output, self.config.aprx))
+            arcpy.MakeFeatureLayer_management(output, 'temp_mosaic_dataset')
+            qaqc_shp_lyrx = r'{}\{}_qaqc_tile_results.lyrx'.format(self.config.qaqc_dir, self.config.project_name)
+
+            if not os.path.exists(qaqc_shp_lyrx):
+                arcpy.AddMessage('saving {}...'.format(qaqc_shp_lyrx))
+                arcpy.SaveToLayerFile_management('temp_mosaic_dataset', qaqc_shp_lyrx)
+            
+            aprx = arcpy.mp.ArcGISProject(self.config.aprx)
+            m = aprx.listMaps('QAQC_layers')[0]
+            m.addDataFromPath(r'V:\FL1608\lidar\QAQC\FL1608_qaqc_tile_results.lyrx')
+            aprx.save()
+
         print('creating shp of qaqc results...')
         gdf = self.gen_qaqc_results_gdf_NAD83_UTM_POLYGONS()
         gdf = gdf.drop(columns=['ExtentXMax','ExtentXMin', 'ExtentYMax', 
@@ -1139,19 +1109,13 @@ class QaqcTileCollection:
         gdf.to_file(output, driver='ESRI Shapefile')
         sr = arcpy.SpatialReference(self.config.epsg_code)
 
-        try:
-            print('outputing tile qaqc results to {}...'.format(self.config.qaqc_shp_NAD83_UTM_POLYGONS))
-            arcpy.AddMessage('defining {} as {}...'.format(output, sr.name))
-            arcpy.DefineProjection_management(output, sr)
-            arcpy.AddMessage('adding {} to {}...'.format(output, self.config.dz_aprx))
-            
-            aprx = arcpy.mp.ArcGISProject('CURRENT')
-            m = aprx.listMaps('QAQC_layers')[0]
-            m.addDataFromPath(output)
-            aprx.save()
-
-        except Exception as e:
-            arcpy.AddMessage(e)
+        #try:
+        print('outputing tile qaqc results to {}...'.format(self.config.qaqc_shp_NAD83_UTM_POLYGONS))
+        arcpy.AddMessage('defining {} as {}...'.format(output, sr.name))
+        arcpy.DefineProjection_management(output, sr)
+        add_layer_to_aprx(output)
+        #except Exception as e:
+        #    arcpy.AddMessage(e)
 
     def gen_mosaic(self, mtype):
         mosaic = Mosaic(mtype, self.config)
@@ -1188,8 +1152,6 @@ class QaqcTileCollection:
         gdf['geometry'] = gdf['geometry'].centroid
         gdf.to_file(self.config.tile_shp_NAD83_UTM_CENTROIDS, driver='ESRI Shapefile')
 
-
-
     def gen_tile_geojson_WebMercator_POLYGONS(self, geojson):
         gdf = gpd.read_file(self.config.contractor_shp)
         try:
@@ -1207,7 +1169,7 @@ def run_qaqc(config_json):
     config = Configuration(config_json)
     
     qaqc_tile_collection = LasTileCollection(config.las_tile_dir)
-    qaqc = QaqcTileCollection(qaqc_tile_collection.get_las_tile_paths()[0:100], config)
+    qaqc = QaqcTileCollection(qaqc_tile_collection.get_las_tile_paths()[0:10], config)
     
     qaqc.run_qaqc_tile_collection_checks(multiprocess=False)
     qaqc.set_qaqc_results_df()
@@ -1217,8 +1179,8 @@ def run_qaqc(config_json):
     dashboard = SummaryPlots(config, qaqc.qaqc_results_df)
     dashboard.gen_dashboard()
 
-    if config.make_tile_centroids_shp:
-        qaqc.gen_tile_centroids_shp_NAD83_UTM()
+    #if config.make_tile_centroids_shp:
+    #    qaqc.gen_tile_centroids_shp_NAD83_UTM()
     
     # build the mosaics the user checked
     mosaic_types = [k for k, v in config.mosaics_to_make.items() if v[0]]
