@@ -349,8 +349,7 @@ class SummaryPlots:
         class_count_tab = self.draw_class_count_maps()
 
         #output_file('{}\dashboard_summary\QAQC_DashboardSummary_{}.html'.format(self.config.qaqc_dir, self.config.project_name))
-        output_file = os.path.join(self.config.qaqc_dir, 'dashboard_summary', 
-                                   'QAQC_DashboardSummary_{}.html'.format(self.config.project_name))
+        output_file = str(self.config.qaqc_dir / 'dashboard_summary' / 'QAQC_DashboardSummary_{}.html'.format(self.config.project_name))
 
         tabs = Tabs(tabs=[pass_fail_tab, class_count_tab])
 
@@ -386,7 +385,7 @@ class Configuration:
         self.to_pyramid = data['to_pyramid']
         self.make_tile_centroids_shp = data['make_tile_centroids_shp']
 
-        # checks "answer key"
+        # checks "answer kt
         self.check_keys = data['check_keys']
         self.hdatum_key = data['check_keys']['hdatum']
         self.vdatum_key = data['check_keys']['vdatum']
