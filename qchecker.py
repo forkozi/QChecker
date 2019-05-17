@@ -17,6 +17,7 @@ import ast
 import time
 import progressbar
 from osgeo import osr
+from pathlib import Path
 
 from bokeh.models.widgets import Panel, Tabs
 from bokeh.io import output_file, show
@@ -29,15 +30,19 @@ from bokeh.layouts import layout, gridplot
 
 user_dir = os.path.expanduser('~')
 
-script_path = r'{}\\AppData\\Local\\Continuum\\anaconda3\\Scripts'.format(user_dir)
-if script_path not in os.environ["PATH"]:
-    os.environ["PATH"] += os.pathsep + script_path
+#script_path = r'{}\\AppData\\Local\\Continuum\\anaconda3\\Scripts'.format(user_dir)
+script_path = Path(user_dir).joinpath('AppData', 'Local', 'Continuum', 'anaconda3', 'Scripts')
 
-gdal_data = r'{}\AppData\Local\ESRI\conda\envs\qchecker\Library\share\gdal'.format(user_dir)
-os.environ["GDAL_DATA"] = gdal_data
+if script_path.name not in os.environ["PATH"]:
+    os.environ["PATH"] += os.pathsep + script_path.name
 
-proj_lib = r'{}\AppData\Local\ESRI\conda\envs\qchecker\Library\share'.format(user_dir)
-os.environ["PROJ_LIB"] = proj_lib
+#gdal_data = r'{}\AppData\Local\ESRI\conda\envs\qchecker\Library\share\gdal'.format(user_dir)
+gdal_data = Path(user_dir).joinpath('AppData', 'Local', 'ESRI', 'conda', 'envs', 'qchecker', 'Library', 'share', 'gdal')
+os.environ["GDAL_DATA"] = gdal_data.name
+
+#proj_lib = r'{}\AppData\Local\ESRI\conda\envs\qchecker\Library\share'.format(user_dir)
+proj_lib =Path(user_dir).joinpath('AppData', 'Local', 'ESRI', 'conda', 'envs', 'qchecker', 'Library', 'share')
+os.environ["PROJ_LIB"] = proj_lib.name
 
 # may also have to add the following paths
 # C:\Program Files\ArcGIS\Pro\bin
@@ -343,7 +348,9 @@ class SummaryPlots:
         pass_fail_tab = self.draw_pass_fail_maps()
         class_count_tab = self.draw_class_count_maps()
 
-        output_file('{}\dashboard_summary\QAQC_DashboardSummary_{}.html'.format(self.config.qaqc_dir, self.config.project_name))
+        #output_file('{}\dashboard_summary\QAQC_DashboardSummary_{}.html'.format(self.config.qaqc_dir, self.config.project_name))
+        output_file = os.path.join(self.config.qaqc_dir, 'dashboard_summary', 
+                                   'QAQC_DashboardSummary_{}.html'.format(self.config.project_name))
 
         tabs = Tabs(tabs=[pass_fail_tab, class_count_tab])
 
@@ -363,12 +370,18 @@ class Configuration:
         self.data = data
 
         self.project_name = arcpy.ValidateTableName(data['project_name'])
-        self.las_tile_dir = data['las_tile_dir']
-        
-        self.qaqc_dir = data['qaqc_dir']
 
-        self.qaqc_gdb = data['qaqc_gdb']
-        self.raster_dir = data['qaqc_gdb']
+        self.las_tile_dir = Path(data['las_tile_dir'])
+        self.qaqc_dir = Path(data['qaqc_dir'])
+
+        self.dz_dir = self.qaqc_dir / 'dz'
+        self.hillshade_dir = self.qaqc_dir / 'hillshade'
+
+        self.dz_tiles_dir = self.qaqc_dir / 'dz' / 'dz_tiles'
+        self.hillshade_tiles_dir = self.qaqc_dir / 'hillshade' / 'hillshade_tiles'
+
+        self.qaqc_gdb = Path(data['qaqc_gdb'])
+        self.raster_dir = Path(data['qaqc_gdb'])
         self.tile_size = float(data['tile_size'])
         self.to_pyramid = data['to_pyramid']
         self.make_tile_centroids_shp = data['make_tile_centroids_shp']
@@ -383,9 +396,8 @@ class Configuration:
         self.version_key = data['check_keys']['version']
         self.pt_src_ids_key = data['check_keys']['pt_src_ids']
 
-        self.las_classes_json = data['las_classes_json']
-        self.project_list = data['project_list']
-        self.srs_wkts = data['srs_wkts']
+        self.las_classes_json = Path(data['las_classes_json'])
+        self.srs_wkts = Path(data['srs_wkts'])
 
         self.wkts_df = pd.read_csv( self.srs_wkts, index_col=1, header=None)
         self.epsg_code = int(self.wkts_df.loc[self.hdatum_key][0])
@@ -394,29 +406,39 @@ class Configuration:
         self.wgs84_epsg = {'init': 'epsg:4326'}
 
         self.aprx = data['aprx']
-        self.dz_export_settings = data['dz_export_settings']
-        self.dz_classes_template = data['dz_classes_template']
-        self.lp360_ldexport_exe = data['lp360_ldexport_exe']
+        self.dz_export_settings = Path(data['dz_export_settings'])
+        self.dz_classes_template = Path(data['dz_classes_template'])
+        self.lp360_ldexport_exe = Path(data['lp360_ldexport_exe'])
 
-        self.contractor_shp = data['contractor_shp']
+        self.contractor_shp = Path(data['contractor_shp'])
         self.checks_to_do = data['checks_to_do']
         self.surfaces_to_make = data['surfaces_to_make']
         self.mosaics_to_make = data['mosaics_to_make']
 
-        self.qaqc_geojson_NAD83_UTM_CENTROIDS = r'{}\qaqc_NAD83_UTM_CENTROIDS.json'.format(self.qaqc_dir)
-        self.qaqc_geojson_NAD83_UTM_POLYGONS = r'{}\qaqc_NAD83_UTM_POLYGONS.json'.format(self.qaqc_dir)
-        self.qaqc_geojson_WebMercator_CENTROIDS = r'{}\dashboard_summary\{}_qaqc_WebMercator_CENTROIDS.json'.format(self.qaqc_dir, self.project_name)
-        self.qaqc_geojson_WebMercator_POLYGONS = r'{}\qaqc_WebMercator_POLYGONS.json'.format(self.qaqc_dir)
-        self.qaqc_shp_NAD83_UTM_POLYGONS = r'{}\qaqc_tile_check_results\{}_qaqc_NAD83_UTM.shp'.format(self.qaqc_dir, self.project_name)
+        #self.qaqc_geojson_NAD83_UTM_CENTROIDS = r'{}\qaqc_NAD83_UTM_CENTROIDS.json'.format(self.qaqc_dir)
+        self.qaqc_geojson_NAD83_UTM_CENTROIDS = Path(self.qaqc_dir) /'qaqc_NAD83_UTM_CENTROIDS.json'
 
-        self.json_dir = r'{}\qaqc_tile_check_results\qaqc_tile_json'.format(self.qaqc_dir)
-        if not os.path.exists(self.json_dir):
+        #self.qaqc_geojson_NAD83_UTM_POLYGONS = r'{}\qaqc_NAD83_UTM_POLYGONS.json'.format(self.qaqc_dir)
+        self.qaqc_geojson_NAD83_UTM_POLYGONS = Path(self.qaqc_dir) / 'qaqc_NAD83_UTM_POLYGONS.json'
+
+        #self.qaqc_geojson_WebMercator_CENTROIDS = r'{}\dashboard_summary\{}_qaqc_WebMercator_CENTROIDS.json'.format(self.qaqc_dir, self.project_name)
+        self.qaqc_geojson_WebMercator_CENTROIDS = Path(self.qaqc_dir) / 'dashboard_summary' / '{}_qaqc_WebMercator_CENTROIDS.json'.format(self.project_name)
+
+        #self.qaqc_geojson_WebMercator_POLYGONS = r'{}\qaqc_WebMercator_POLYGONS.json'.format(self.qaqc_dir)
+        self.qaqc_geojson_WebMercator_POLYGONS = Path(self.qaqc_dir) / 'qaqc_WebMercator_POLYGONS.json'
+
+        #self.qaqc_shp_NAD83_UTM_POLYGONS = r'{}\qaqc_tile_check_results\{}_qaqc_NAD83_UTM.shp'.format(self.qaqc_dir, self.project_name)
+        self.qaqc_shp_NAD83_UTM_POLYGONS = Path(self.qaqc_dir) / 'qaqc_tile_check_results' / '{}_qaqc_NAD83_UTM.shp'.format(self.project_name)
+
+        #self.json_dir = r'{}\qaqc_tile_check_results\qaqc_tile_json'.format(self.qaqc_dir)
+        self.json_dir = Path(self.qaqc_dir) / 'qaqc_tile_check_results' / 'qaqc_tile_json'
+
+        if not self.json_dir.exists():
             os.makedirs(self.json_dir)
 
-        self.tile_geojson_WebMercator_POLYGONS = os.path.join(self.qaqc_dir, 'tiles_WebMercator_POLYGONS.json')
-        self.tile_shp_NAD83_UTM_CENTROIDS = os.path.join(self.qaqc_dir, 'tiles_centroids_NAD83_UTM.shp')
-
-        self.epsg_json = data['epsg_json']
+        self.tile_geojson_WebMercator_POLYGONS = Path(self.qaqc_dir) / 'tiles_WebMercator_POLYGONS.json'
+        self.tile_shp_NAD83_UTM_CENTROIDS = Path(self.qaqc_dir) / 'tiles_centroids_NAD83_UTM.shp'
+        self.epsg_json = Path(data['epsg_json'])
 
     def __str__(self):
         return json.dumps(self.data, indent=4, sort_keys=True)
@@ -718,11 +740,11 @@ class Surface:
         self.las_extents = tile.las_extents
         self.config = config
 
-        self.binary_path = {'Dz': r'{}\{}_dz_dzValue.flt'.format(self.config.surfaces_to_make[self.stype][1], 
-                                                                 self.las_name),
+        self.binary_path = {'Dz': os.path.join(self.config.surfaces_to_make[self.stype][1],
+                                               '{}_dz_dzValue.flt'.format(self.las_name)),
                             'Hillshade': ''}
 
-        self.raster_path = {'Dz': r'{}\dz_{}'.format(self.config.raster_dir, self.las_name),
+        self.raster_path = {'Dz': os.path.join(self.config.raster_dir, 'dz_{}'.format(self.las_name)),
                             'Hillshade': ''}
 
     def __str__(self):
@@ -881,7 +903,7 @@ class QaqcTile:
             passed = self.passed_text
         else:
             passed = self.failed_text
-        tile.checks_result['vdatum'] = vdatum
+        tile.checks_result['vdatum'] = str(vdatum)
         tile.checks_result['vdatum_passed'] = passed
         arcpy.AddMessage(tile.checks_result['vdatum'])
         return passed
@@ -896,9 +918,6 @@ class QaqcTile:
         tile.checks_result['pt_src_ids_passed'] = passed
         arcpy.AddMessage(tile.checks_result['pt_src_ids'])
         return passed
-
-    def calc_pt_cloud_stats(self):
-        pass
 
     def create_dz(self, tile):
         from qchecker import Surface
@@ -915,9 +934,6 @@ class QaqcTile:
 
     def add_tile_check_results(self, tile_check_results):
         arcpy.AddMessage(tile_check_results)
-
-    def update_qaqc_results_table(self):
-        pass
 
     def run_qaqc_checks_multiprocess(self, las_path):
         from qchecker import LasTile, LasTileCollection
@@ -1087,16 +1103,17 @@ class QaqcTileCollection:
         
         def add_layer_to_aprx(output):
             arcpy.AddMessage('adding {} to {}...'.format(output, self.config.aprx))
-            arcpy.MakeFeatureLayer_management(output, 'temp_mosaic_dataset')
-            qaqc_shp_lyrx = r'{}\{}_qaqc_tile_results.lyrx'.format(self.config.qaqc_dir, self.config.project_name)
+            lyrx_name = '{}_qaqc_results'.format(self.config.project_name)
+            lyrx_path = os.path.join(self.config.qaqc_dir, '{}.lyrx'.format(lyrx_name))
+            arcpy.MakeFeatureLayer_management(output, lyrx_name)
 
-            if not os.path.exists(qaqc_shp_lyrx):
-                arcpy.AddMessage('saving {}...'.format(qaqc_shp_lyrx))
-                arcpy.SaveToLayerFile_management('temp_mosaic_dataset', qaqc_shp_lyrx)
+            if not os.path.exists(lyrx_path):
+                arcpy.AddMessage('saving {}...'.format(lyrx_path))
+                arcpy.SaveToLayerFile_management(lyrx_name, lyrx_path)
             
             aprx = arcpy.mp.ArcGISProject(self.config.aprx)
             m = aprx.listMaps('QAQC_layers')[0]
-            m.addDataFromPath(r'V:\FL1608\lidar\QAQC\FL1608_qaqc_tile_results.lyrx')
+            m.addDataFromPath(lyrx_path)
             aprx.save()
 
         print('creating shp of qaqc results...')
@@ -1112,8 +1129,8 @@ class QaqcTileCollection:
         #try:
         print('outputing tile qaqc results to {}...'.format(self.config.qaqc_shp_NAD83_UTM_POLYGONS))
         arcpy.AddMessage('defining {} as {}...'.format(output, sr.name))
-        arcpy.DefineProjection_management(output, sr)
-        add_layer_to_aprx(output)
+        arcpy.DefineProjection_management(str(output), sr)
+        add_layer_to_aprx(str(output))
         #except Exception as e:
         #    arcpy.AddMessage(e)
 

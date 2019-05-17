@@ -2,6 +2,7 @@ from qchecker import run_qaqc
 import tkinter as tk
 from tkinter import ttk, filedialog
 import os
+from pathlib import Path
 import time
 import json
 import pandas as pd
@@ -41,8 +42,7 @@ class QaqcApp(tk.Tk):
 
         menubar = tk.Menu(container)
         filemenu = tk.Menu(menubar, tearoff=0)
-        filemenu.add_command(label='Save settings',
-                             command=lambda: self.save_config())
+        filemenu.add_command(label='Save settings', command=lambda: self.save_config())
         filemenu.add_separator()
         filemenu.add_command(label='Exit', command=quit)
         menubar.add_cascade(label='File', menu=filemenu)
@@ -69,7 +69,6 @@ class QaqcApp(tk.Tk):
     def set_gui_components(self):
         # set GUI section options
         self.components = {}
-        
 
         self.components.update({'options': {
             'project_name': ['Project', None],
@@ -79,13 +78,12 @@ class QaqcApp(tk.Tk):
             }})
 
         self.components.update({'files_to_set': {
-            'contractor_shp': ['Contractor Tile Shapefile', None, 
-                               self.configuration['contractor_shp'], '.shp'],
+            'contractor_shp': ['Contractor Tile Shapefile', None, Path(self.configuration['contractor_shp']), '.shp'],
             }})
 
         self.components.update({'dirs_to_set': {
-            'qaqc_dir': ['QAQC Root Dir.', None, self.configuration['qaqc_dir']],
-            'las_tile_dir': ['Las Tiles', None, self.configuration['las_tile_dir']],
+            'qaqc_dir': ['QAQC Root Dir.', None, Path(self.configuration['qaqc_dir'])],
+            'las_tile_dir': ['Las Tiles', None, Path(self.configuration['las_tile_dir'])],
             }})
 
         self.components.update({'checks_to_do': {
@@ -100,13 +98,13 @@ class QaqcApp(tk.Tk):
             }})
 
         self.components.update({'surfaces_to_make': {
-            'Dz': ['Dz', None, None, r'{}\dz\dz_tiles'.format(self.configuration['qaqc_dir'])],
-            'Hillshade': ['Hillshade', None, None, r'{}\hillshade\hillshade_tiles'.format(self.configuration['qaqc_dir'])],
+            'Dz': ['Dz', None, None, Path(self.configuration['surfaces_to_make']['Dz'][1])],
+            'Hillshade': ['Hillshade', None, None, Path(self.configuration['surfaces_to_make']['Hillshade'][1])],
             }})
 
         self.components.update({'mosaics_to_make': {
-            'Dz': ['Dz Mosaic', None, None, self.configuration['qaqc_gdb']],
-            'Hillshade': ['Hillshade Mosaic', None, None, self.configuration['qaqc_gdb']],
+            'Dz': ['Dz Mosaic', None, None, Path(self.configuration['mosaics_to_make']['Dz'][1])],
+            'Hillshade': ['Hillshade Mosaic', None, None, Path(self.configuration['mosaics_to_make']['Dz'][1])],
             }})
 
         self.components.update({'check_keys': {
@@ -137,11 +135,11 @@ class QaqcApp(tk.Tk):
             
         # files_to_set
         for k, v in self.components['files_to_set'].items():
-            self.configuration[k] = v[2]
+            self.configuration[k] = str(v[2])
 
         # dirs_to_set
         for k, v in self.components['dirs_to_set'].items():
-            self.configuration[k] = v[2]
+            self.configuration[k] = str(v[2])
 
         # checks_to_do
         for k, v in self.components['checks_to_do'].items():
@@ -154,12 +152,12 @@ class QaqcApp(tk.Tk):
         # surfaces_to_make
         for k, v in self.components['surfaces_to_make'].items():
             self.configuration['surfaces_to_make'][k][0] = v[1].get()
-            self.configuration['surfaces_to_make'][k][1] = v[3]
+            self.configuration['surfaces_to_make'][k][1] = str(v[3])
 
         # mosaics_to_make
         for k, v in self.components['mosaics_to_make'].items():
             self.configuration['mosaics_to_make'][k][0] = v[1].get()
-            self.configuration['mosaics_to_make'][k][1] = v[3]
+            self.configuration['mosaics_to_make'][k][1] = str(v[3])
 
         # supp_las_domain
         self.configuration['supp_las_domain'] = self.components['supp_las_domain'].get()
@@ -237,8 +235,7 @@ class MainGuiPage(ttk.Frame):
 
     @staticmethod
     def build_display_str(str):
-        str = str.replace('/', '\\')
-        return r'...\{}'.format(os.path.join(*str.split('\\')[-1:]))
+        return r'...\{}'.format(Path(str).parts[-1])
 
     def get_checked_classes(self, popup, vars):
         checked_classes = []
