@@ -30,19 +30,14 @@ from bokeh.layouts import layout, gridplot
 
 user_dir = os.path.expanduser('~')
 
-#script_path = r'{}\\AppData\\Local\\Continuum\\anaconda3\\Scripts'.format(user_dir)
 script_path = Path(user_dir).joinpath('AppData', 'Local', 'Continuum', 'anaconda3', 'Scripts')
+gdal_data = Path(user_dir).joinpath('AppData', 'Local', 'ESRI', 'conda', 'envs', 'qchecker', 'Library', 'share', 'gdal')
+proj_lib =Path(user_dir).joinpath('AppData', 'Local', 'ESRI', 'conda', 'envs', 'qchecker', 'Library', 'share')
 
 if script_path.name not in os.environ["PATH"]:
-    os.environ["PATH"] += os.pathsep + script_path.name
-
-#gdal_data = r'{}\AppData\Local\ESRI\conda\envs\qchecker\Library\share\gdal'.format(user_dir)
-gdal_data = Path(user_dir).joinpath('AppData', 'Local', 'ESRI', 'conda', 'envs', 'qchecker', 'Library', 'share', 'gdal')
-os.environ["GDAL_DATA"] = gdal_data.name
-
-#proj_lib = r'{}\AppData\Local\ESRI\conda\envs\qchecker\Library\share'.format(user_dir)
-proj_lib =Path(user_dir).joinpath('AppData', 'Local', 'ESRI', 'conda', 'envs', 'qchecker', 'Library', 'share')
-os.environ["PROJ_LIB"] = proj_lib.name
+    os.environ["PATH"] += os.pathsep + str(script_path)
+os.environ["GDAL_DATA"] = str(gdal_data)
+os.environ["PROJ_LIB"] = str(proj_lib)
 
 # may also have to add the following paths
 # C:\Program Files\ArcGIS\Pro\bin
@@ -152,7 +147,6 @@ class SummaryPlots:
         return plot_list
 
     def draw_pass_fail_bar_chart(self):
-        # TEST RESULTS PASS/FAIL
         source = ColumnDataSource(self.result_counts)
         if source.data['index'][0] != 'No_Test_Selected':
             source.data.update({'labels': ['{}'.format(self.check_labels[i]) for i in source.data['index']]})
@@ -202,7 +196,6 @@ class SummaryPlots:
         return p1
 
     def draw_class_count_bar_chart(self):
-        # CLASS COUNTS
         self.class_counts['Expected'] = np.zeros(self.class_counts.index.size)
         self.class_counts['Unexpected'] = np.zeros(self.class_counts.index.size)
         for i, class_name in enumerate(self.class_counts.index):
@@ -348,8 +341,7 @@ class SummaryPlots:
         pass_fail_tab = self.draw_pass_fail_maps()
         class_count_tab = self.draw_class_count_maps()
 
-        #output_file('{}\dashboard_summary\QAQC_DashboardSummary_{}.html'.format(self.config.qaqc_dir, self.config.project_name))
-        output_file = str(self.config.qaqc_dir / 'dashboard_summary' / 'QAQC_DashboardSummary_{}.html'.format(self.config.project_name))
+        output_file(str(self.config.qaqc_dir / 'dashboard_summary' / 'QAQC_DashboardSummary_{}.html'.format(self.config.project_name)))
 
         tabs = Tabs(tabs=[pass_fail_tab, class_count_tab])
 
@@ -404,7 +396,7 @@ class Configuration:
         self.web_mercator_epsg = {'init': 'epsg:3857'}
         self.wgs84_epsg = {'init': 'epsg:4326'}
 
-        self.aprx = data['aprx']
+        self.aprx = Path(data['aprx'])
         self.dz_export_settings = Path(data['dz_export_settings'])
         self.dz_classes_template = Path(data['dz_classes_template'])
         self.lp360_ldexport_exe = Path(data['lp360_ldexport_exe'])
@@ -414,29 +406,18 @@ class Configuration:
         self.surfaces_to_make = data['surfaces_to_make']
         self.mosaics_to_make = data['mosaics_to_make']
 
-        #self.qaqc_geojson_NAD83_UTM_CENTROIDS = r'{}\qaqc_NAD83_UTM_CENTROIDS.json'.format(self.qaqc_dir)
-        self.qaqc_geojson_NAD83_UTM_CENTROIDS = Path(self.qaqc_dir) /'qaqc_NAD83_UTM_CENTROIDS.json'
-
-        #self.qaqc_geojson_NAD83_UTM_POLYGONS = r'{}\qaqc_NAD83_UTM_POLYGONS.json'.format(self.qaqc_dir)
-        self.qaqc_geojson_NAD83_UTM_POLYGONS = Path(self.qaqc_dir) / 'qaqc_NAD83_UTM_POLYGONS.json'
-
-        #self.qaqc_geojson_WebMercator_CENTROIDS = r'{}\dashboard_summary\{}_qaqc_WebMercator_CENTROIDS.json'.format(self.qaqc_dir, self.project_name)
-        self.qaqc_geojson_WebMercator_CENTROIDS = Path(self.qaqc_dir) / 'dashboard_summary' / '{}_qaqc_WebMercator_CENTROIDS.json'.format(self.project_name)
-
-        #self.qaqc_geojson_WebMercator_POLYGONS = r'{}\qaqc_WebMercator_POLYGONS.json'.format(self.qaqc_dir)
-        self.qaqc_geojson_WebMercator_POLYGONS = Path(self.qaqc_dir) / 'qaqc_WebMercator_POLYGONS.json'
-
-        #self.qaqc_shp_NAD83_UTM_POLYGONS = r'{}\qaqc_tile_check_results\{}_qaqc_NAD83_UTM.shp'.format(self.qaqc_dir, self.project_name)
-        self.qaqc_shp_NAD83_UTM_POLYGONS = Path(self.qaqc_dir) / 'qaqc_tile_check_results' / '{}_qaqc_NAD83_UTM.shp'.format(self.project_name)
-
-        #self.json_dir = r'{}\qaqc_tile_check_results\qaqc_tile_json'.format(self.qaqc_dir)
-        self.json_dir = Path(self.qaqc_dir) / 'qaqc_tile_check_results' / 'qaqc_tile_json'
+        self.qaqc_geojson_NAD83_UTM_CENTROIDS = self.qaqc_dir /'qaqc_NAD83_UTM_CENTROIDS.json'
+        self.qaqc_geojson_NAD83_UTM_POLYGONS = self.qaqc_dir / 'qaqc_NAD83_UTM_POLYGONS.json'
+        self.qaqc_geojson_WebMercator_CENTROIDS = self.qaqc_dir / 'dashboard_summary' / '{}_qaqc_WebMercator_CENTROIDS.json'.format(self.project_name)
+        self.qaqc_geojson_WebMercator_POLYGONS = self.qaqc_dir / 'qaqc_WebMercator_POLYGONS.json'
+        self.qaqc_shp_NAD83_UTM_POLYGONS = self.qaqc_dir / 'qaqc_tile_check_results' / '{}_qaqc_NAD83_UTM.shp'.format(self.project_name)
+        self.json_dir = self.qaqc_dir / 'qaqc_tile_check_results' / 'qaqc_tile_json'
 
         if not self.json_dir.exists():
             os.makedirs(self.json_dir)
 
-        self.tile_geojson_WebMercator_POLYGONS = Path(self.qaqc_dir) / 'tiles_WebMercator_POLYGONS.json'
-        self.tile_shp_NAD83_UTM_CENTROIDS = Path(self.qaqc_dir) / 'tiles_centroids_NAD83_UTM.shp'
+        self.tile_geojson_WebMercator_POLYGONS = self.qaqc_dir / 'tiles_WebMercator_POLYGONS.json'
+        self.tile_shp_NAD83_UTM_CENTROIDS = self.qaqc_dir / 'tiles_centroids_NAD83_UTM.shp'
         self.epsg_json = Path(data['epsg_json'])
 
     def __str__(self):
@@ -673,22 +654,21 @@ class Mosaic:
         self.mtype = mtype
         self.config = config
         self.mosaic_dataset_base_name = r'{}_{}_mosaic'.format(self.config.project_name, self.mtype)
-        self.mosaic_dataset_path = os.path.join(self.config.mosaics_to_make[self.mtype][1], 
-                                                self.mosaic_dataset_base_name)
+        self.mosaic_dataset_path = Path(self.config.mosaics_to_make[self.mtype][1]) / self.mosaic_dataset_base_name
 
     def create_mosaic_dataset(self):
         arcpy.AddMessage('creating mosaic dataset {}...'.format(self.mosaic_dataset_base_name))
         sr = arcpy.SpatialReference(self.config.epsg_code)
         try:
-            arcpy.CreateMosaicDataset_management(self.config.qaqc_gdb, 
+            arcpy.CreateMosaicDataset_management(str(self.config.qaqc_gdb), 
                                                  self.mosaic_dataset_base_name, 
                                                  coordinate_system=sr)
         except Exception as e:
             arcpy.AddMessage(e)
 
     def add_rasters_to_mosaic_dataset(self):
-        arcpy.AddMessage('adding {}_rasters to {}...'.format(self.mtype, self.mosaic_dataset_path))
-        arcpy.AddRastersToMosaicDataset_management(self.mosaic_dataset_path, 'Raster Dataset',
+        arcpy.AddMessage('adding {} rasters to {}...'.format(self.mtype, self.mosaic_dataset_path))
+        arcpy.AddRastersToMosaicDataset_management(str(self.mosaic_dataset_path), 'Raster Dataset',
                                                    self.config.surfaces_to_make[self.mtype][1],
                                                    build_pyramids='BUILD_PYRAMIDS',
                                                    calculate_statistics='CALCULATE_STATISTICS',
@@ -696,32 +676,30 @@ class Mosaic:
 
     def export_mosaic_dataset(self):
         try:
-            self.config.exported_mosaic_dataset = os.path.join(self.config.qaqc_dir, 'dz',
-                                                               self.mosaic_dataset_base_name + '.tif')
-
+            self.config.exported_mosaic_dataset = self.config.qaqc_dir / 'dz' / (self.mosaic_dataset_base_name + '.tif')
             arcpy.AddMessage('exporting {} to tif...'.format(self.mosaic_dataset_base_name))
             arcpy.env.overwriteOutput = True
-            arcpy.CopyRaster_management(self.mosaic_dataset_path, self.config.exported_mosaic_dataset)
+            arcpy.CopyRaster_management(str(self.mosaic_dataset_path), str(self.config.exported_mosaic_dataset))
             arcpy.env.overwriteOutput = False
         except Exception as e:
             arcpy.AddMessage(e)
 
     def add_mosaic_dataset_tif_to_aprx(self):
         try:
-            arcpy.AddMessage('adding {} to aprx...'.format(self.mosaic_dataset_base_name + '.tif'))
+            mosaic_lyrx = self.config.qaqc_dir / '{}.lyrx'.format(self.mosaic_dataset_base_name)
+            arcpy.AddMessage('adding {} to aprx...'.format(mosaic_lyrx))
             #aprx = arcpy.mp.ArcGISProject('CURRENT')
-            aprx = arcpy.mp.ArcGISProject(self.config.aprx)
+            aprx = arcpy.mp.ArcGISProject(str(self.config.aprx))
             m = aprx.listMaps('QAQC_layers')[0]
-            arcpy.MakeRasterLayer_management(self.config.exported_mosaic_dataset, 'temp_mosaic_dataset')
+            mosaic_name = '{}_Dz_mosaic'.format(self.config.project_name)
+            arcpy.MakeRasterLayer_management(str(self.config.exported_mosaic_dataset), mosaic_name)
 
-            mosaic_lyr = r'{}\{}.lyrx'.format(self.config.qaqc_dir, self.mosaic_dataset_base_name)
-
-            if not os.path.exists(mosaic_lyr):
-                arcpy.AddMessage('saving {}...'.format(mosaic_lyr))
-                arcpy.SaveToLayerFile_management('temp_mosaic_dataset', mosaic_lyr)
+            if not mosaic_lyrx.exists():
+                arcpy.AddMessage('saving {}...'.format(mosaic_lyrx))
+                arcpy.SaveToLayerFile_management(mosaic_name, mosaic_lyrx)
             
-            m.addDataFromPath(mosaic_lyr)
-            arcpy.ApplySymbologyFromLayer_management(mosaic_lyr, self.config.dz_classes_template)
+            m.addDataFromPath(mosaic_lyrx)
+            #arcpy.ApplySymbologyFromLayer_management(mosaic_lyr, self.config.dz_classes_template)
 
             aprx.save()
         except Exception as e:
@@ -1185,7 +1163,7 @@ def run_qaqc(config_json):
     config = Configuration(config_json)
     
     qaqc_tile_collection = LasTileCollection(config.las_tile_dir)
-    qaqc = QaqcTileCollection(qaqc_tile_collection.get_las_tile_paths()[0:10], config)
+    qaqc = QaqcTileCollection(qaqc_tile_collection.get_las_tile_paths()[0:100], config)
     
     qaqc.run_qaqc_tile_collection_checks(multiprocess=False)
     qaqc.set_qaqc_results_df()
