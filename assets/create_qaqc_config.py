@@ -7,7 +7,7 @@ config_data = {
     'Hillshade': [ False, 'C:/QAQC_contract/nantucket/qaqc_nantucket.gdb' ],
     'Dz': [ False, 'C:/QAQC_contract/nantucket/qaqc_nantucket.gdb' ]
   },
-  'project_name': 'FL1608-TB-N_DogIsland_p',
+  'project_name': 'select a project',
   'check_keys': {
     'gps_time': 'Satellite GPS Time',
     'pdrf': '3',

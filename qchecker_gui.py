@@ -2,6 +2,7 @@ from qchecker import run_qaqc
 import tkinter as tk
 from tkinter import ttk, filedialog
 import os
+from pathlib import Path
 import time
 import json
 import pandas as pd
@@ -30,7 +31,7 @@ class QaqcApp(tk.Tk):
         self.withdraw()
         splash = Splash(self)
 
-        version = 'v1.0.0 alpha'
+        version = 'v1.0.1-beta'
         tk.Tk.wm_title(self, 'Q-Checker {}'.format(version))
         tk.Tk.iconbitmap(self, r'.\assets\images\qaqc.ico')
 
@@ -41,8 +42,7 @@ class QaqcApp(tk.Tk):
 
         menubar = tk.Menu(container)
         filemenu = tk.Menu(menubar, tearoff=0)
-        filemenu.add_command(label='Save settings',
-                             command=lambda: self.save_config())
+        filemenu.add_command(label='Save settings', command=lambda: self.save_config())
         filemenu.add_separator()
         filemenu.add_command(label='Exit', command=quit)
         menubar.add_cascade(label='File', menu=filemenu)
@@ -69,33 +69,21 @@ class QaqcApp(tk.Tk):
     def set_gui_components(self):
         # set GUI section options
         self.components = {}
-        
 
         self.components.update({'options': {
-            'project_name': ['Project Name', None],
-            'tile_size': ['Tile Size (m)', None],
+            'project_name': ['Project', None],
+            #'tile_size': ['Tile Size (m)', None],
             'to_pyramid': ['Build LAS Pyramids', None],
-            'make_contact_centroids': ['Make Contr. Tile Centroid shp', None],
+            #'make_contact_centroids': ['Make Contr. Tile Centroid shp', None],
             }})
 
         self.components.update({'files_to_set': {
-            'contractor_shp': ['Contractor Tile Shapefile', None, 
-                               self.configuration['contractor_shp'], '.shp'],
-            'dz_classes_template': ['Dz Classes Template', None, 
-                                    self.configuration['dz_classes_template'], '.lyr'],
-            'dz_export_settings': ['Dz Export Settings', None, 
-                                   self.configuration['dz_export_settings'], '.xml'],
-            'dz_aprx': ['QAQC ArcGIS PRO Project', None, 
-                       self.configuration['dz_aprx'], '.aprx'],
+            'contractor_shp': ['Contractor Tile Shapefile', None, Path(self.configuration['contractor_shp']), '.shp'],
             }})
 
         self.components.update({'dirs_to_set': {
-            'qaqc_dir': ['QAQC Root Dir.', None, 
-                         self.configuration['qaqc_dir']],
-            'qaqc_gdb': ['QAQC GeoDatabase', None, 
-                         self.configuration['qaqc_gdb']],
-            'las_tile_dir': ['Las Tiles', None, 
-                             self.configuration['las_tile_dir']],
+            'qaqc_dir': ['QAQC Root Dir.', None, Path(self.configuration['qaqc_dir'])],
+            'las_tile_dir': ['Las Tiles', None, Path(self.configuration['las_tile_dir'])],
             }})
 
         self.components.update({'checks_to_do': {
@@ -110,13 +98,13 @@ class QaqcApp(tk.Tk):
             }})
 
         self.components.update({'surfaces_to_make': {
-            'Dz': ['Dz', None, None, self.configuration['surfaces_to_make']['Dz'][1]],
-            'Hillshade': ['Hillshade', None, None, self.configuration['surfaces_to_make']['Hillshade'][1]],
+            'Dz': ['Dz', None, None, Path(self.configuration['surfaces_to_make']['Dz'][1])],
+            'Hillshade': ['Hillshade', None, None, Path(self.configuration['surfaces_to_make']['Hillshade'][1])],
             }})
 
         self.components.update({'mosaics_to_make': {
-            'Dz': ['Dz Mosaic', None, None, self.configuration['mosaics_to_make']['Dz'][1]],
-            'Hillshade': ['Hillshade Mosaic', None, None, self.configuration['mosaics_to_make']['Hillshade'][1]],
+            'Dz': ['Dz Mosaic', None, None, Path(self.configuration['mosaics_to_make']['Dz'][1])],
+            'Hillshade': ['Hillshade Mosaic', None, None, Path(self.configuration['mosaics_to_make']['Dz'][1])],
             }})
 
         self.components.update({'check_keys': {
@@ -147,11 +135,11 @@ class QaqcApp(tk.Tk):
             
         # files_to_set
         for k, v in self.components['files_to_set'].items():
-            self.configuration[k] = v[2]
+            self.configuration[k] = str(v[2])
 
         # dirs_to_set
         for k, v in self.components['dirs_to_set'].items():
-            self.configuration[k] = v[2]
+            self.configuration[k] = str(v[2])
 
         # checks_to_do
         for k, v in self.components['checks_to_do'].items():
@@ -164,12 +152,12 @@ class QaqcApp(tk.Tk):
         # surfaces_to_make
         for k, v in self.components['surfaces_to_make'].items():
             self.configuration['surfaces_to_make'][k][0] = v[1].get()
-            self.configuration['surfaces_to_make'][k][1] = v[3]
+            self.configuration['surfaces_to_make'][k][1] = str(v[3])
 
         # mosaics_to_make
         for k, v in self.components['mosaics_to_make'].items():
             self.configuration['mosaics_to_make'][k][0] = v[1].get()
-            self.configuration['mosaics_to_make'][k][1] = v[3]
+            self.configuration['mosaics_to_make'][k][1] = str(v[3])
 
         # supp_las_domain
         self.configuration['supp_las_domain'] = self.components['supp_las_domain'].get()
@@ -225,7 +213,6 @@ class MainGuiPage(ttk.Frame):
         self.gui = controller.components  # from QaqcApp
         self.las_classes_file = self.config['las_classes_json']
 
-       
         self.section_rows = {
             'options': 0,
             'files': 1,
@@ -248,8 +235,7 @@ class MainGuiPage(ttk.Frame):
 
     @staticmethod
     def build_display_str(str):
-        str = str.replace('/', '\\')
-        return r'...\{}'.format(os.path.join(*str.split('\\')[-1:]))
+        return r'...\{}'.format(Path(str).parts[-1])
 
     def get_checked_classes(self, popup, vars):
         checked_classes = []
@@ -377,8 +363,12 @@ class MainGuiPage(ttk.Frame):
         label.grid(row=0, columnspan=3, pady=(10, 0), sticky=tk.W)
 
         def get_proj_names():
-            with open(self.config['project_list'], 'r') as f:
-               project_ids = [s.strip() for s in f.readlines()]
+            #with open(self.config['project_list'], 'r') as f:
+            #   project_ids = [s.strip() for s in f.readlines()]
+
+            project_unc = r'\\ngs-s-rsd\Lidar_Contract00'
+            project_ids = os.listdir(project_unc)
+
             return tuple(project_ids)
 
         item = 'project_name'
@@ -397,45 +387,8 @@ class MainGuiPage(ttk.Frame):
                                        *get_proj_names())
         proj_down_down.grid(column=1, row=row, sticky=tk.EW)
 
-        item = 'tile_size'
-        row = 2
-        option_label = tk.Label(options_frame, 
-                                text=self.gui['options'][item][0], 
-                                width=self.label_width, 
-                                anchor=tk.W, 
-                                justify=tk.LEFT)
-
-        option_label.grid(column=0, row=row, sticky=tk.W)
-        self.gui['options'][item][1] = tk.StringVar(options_frame, 
-                                                    value=self.config[item])
-        self.gui['options'][item][1] = tk.Entry(
-            options_frame, 
-            textvariable=self.gui['options'][item][1], 
-            state='disabled', 
-            width=5)
-        self.gui['options'][item][1].grid(column=1, row=row, sticky=tk.EW)
-
         item = 'to_pyramid'
         row = 3
-        option_label = tk.Label(options_frame, 
-                                text=self.gui['options'][item][0], 
-                                width=self.label_width, 
-                                anchor=tk.W, 
-                                justify=tk.LEFT)
-
-        option_label.grid(column=0, row=row, sticky=tk.W)
-        self.gui['options'][item][1] = tk.BooleanVar()
-        is_checked = self.config[item]
-        self.gui['options'][item][1].set(is_checked)
-        chk = tk.Checkbutton(
-            options_frame, 
-            text='',
-            var=self.gui['options'][item][1], 
-            anchor=tk.W, justify=tk.LEFT)
-        chk.grid(column=1, row=row, sticky=tk.W)
-
-        item = 'make_contact_centroids'
-        row = 4
         option_label = tk.Label(options_frame, 
                                 text=self.gui['options'][item][0], 
                                 width=self.label_width, 
@@ -458,9 +411,6 @@ class MainGuiPage(ttk.Frame):
 
         files_frame = ttk.Frame(self)
         files_frame.grid(row=self.section_rows['files'], sticky=tk.NSEW)
-
-        #label = tk.Label(files_frame, text='Files', font=LARGE_FONT_BOLD)
-        #label.grid(row=0, columnspan=3, pady=(10, 0), sticky=tk.W)
 
         def bind_files_command(f):
             def func():
@@ -492,9 +442,6 @@ class MainGuiPage(ttk.Frame):
 
         dirs_frame = ttk.Frame(self)
         dirs_frame.grid(row=self.section_rows['dirs'], sticky=tk.NSEW)
-
-        #label = tk.Label(dirs_frame, text='Directories', font=LARGE_FONT_BOLD)
-        #label.grid(row=0, columnspan=3, pady=(10, 0), sticky=tk.W)
 
         def bind_dirs_command(d):
             def func():
@@ -744,18 +691,6 @@ class MainGuiPage(ttk.Frame):
                 anchor=tk.W, justify=tk.LEFT, width=13)
             chk.grid(column=0, row=0, sticky=tk.EW)
 
-            # Directory
-            surface_label = tk.Label(subframe, text='Directory'.format(s))
-            surface_label.grid(column=1, row=0, sticky=tk.EW, padx=(20, 0))
-
-            btn = tk.Button(subframe, text='...', command=bind_dirs_command(s))
-            btn.grid(column=2, row=0, sticky=tk.EW)
-
-            display_str = self.build_display_str(self.config['surfaces_to_make'][s][1])
-            self.gui['surfaces_to_make'][s][2] = tk.Label(
-                subframe, text=display_str, width=22, justify=tk.LEFT, anchor=tk.W)
-            self.gui['surfaces_to_make'][s][2].grid(column=3, row=0, sticky=tk.EW)
-
         def add_mosaic_surface():
             # checkbox
             self.gui['mosaics_to_make'][s][1] = tk.BooleanVar()
@@ -766,19 +701,7 @@ class MainGuiPage(ttk.Frame):
                 text=self.gui['mosaics_to_make'][s][0], 
                 var=self.gui['mosaics_to_make'][s][1], 
                 anchor=tk.W, justify=tk.LEFT, width=13)
-            chk.grid(column=0, row=1, sticky=tk.EW)
-
-            # Path
-            surface_label = tk.Label(subframe, text='Directory'.format(s))
-            surface_label.grid(column=1, row=1, sticky=tk.EW, padx=(20, 0))
-
-            btn = tk.Button(subframe, text='...', command=bind_file_command(s))
-            btn.grid(column=2, row=1, sticky=tk.EW)
-
-            display_str = self.build_display_str(self.config['mosaics_to_make'][s][1])
-            self.gui['mosaics_to_make'][s][2] = tk.Label(
-                subframe, text=display_str, width=22, justify=tk.LEFT, anchor=tk.W)
-            self.gui['mosaics_to_make'][s][2].grid(column=3, row=1, sticky=tk.EW)
+            chk.grid(column=1, row=0, sticky=tk.EW)
 
         '''Surfaces'''
         surf_frame = ttk.Frame(self)
@@ -830,5 +753,5 @@ if __name__ == '__main__':
 
     app = QaqcApp()
     app.resizable(0, 0)
-    app.geometry('400x815')
+    app.geometry('400x615')
     app.mainloop()  # tk functionality
