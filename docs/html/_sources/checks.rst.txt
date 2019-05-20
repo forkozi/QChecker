@@ -1,0 +1,34 @@
+Metadata Checks
+===============
+
+The user can run a series of checks to verify that certain expected information is contained in the submitted LAS files.
+
+.. image:: ../../assets/images/checks.PNG
+
+.. csv-table:: Main Dependencies
+	:header: package, comment
+	:widths: 10, 30
+
+    Naming Convention, checks that las files are named according to the *yyyy_[easting]e_[northing]n_las* naming convention
+    Version,
+    Point Data Record Format,
+    GPS Time Type,
+    Horizontal Datum,
+    Vertical Datum,
+    Point Source IDs,
+    Expected Classes,
+
+The Checks portion of Q-Checker generates two outputs:
+
+- QA/QC results shapefile
+- QA/QC results html dashboard
+
+QA/QC results shapefile
+-----------------------
+
+The QA/QC results shapefile contains a polygon for each input LAS tile, along with the associated check results in the shapefile attribute table.  In the image below, the tiles are colored according to whether or not they passed the version test.
+
+QA/QC results html dashboard
+----------------------------
+
+The QA/QC results html dashboard contains project-wide summary visualizations of the QA/QC results (see image below).
