@@ -21,6 +21,7 @@
   },
   "qaqc_dir": "V:\\FL1608\\lidar\\QAQC",
   "dz_export_settings": "./assets/config_files/dz_export_settings.xml",
+  "hillshade_export_settings": "./assets/config_files/hillshade_export_settings.xml",
   "make_contact_centroids": false,
   "checks_to_do": {
     "gps_time": true,

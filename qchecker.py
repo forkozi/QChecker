@@ -399,6 +399,8 @@ class Configuration:
         self.aprx = Path(data['aprx'])
         self.dz_export_settings = Path(data['dz_export_settings'])
         self.dz_classes_template = Path(data['dz_classes_template'])
+        self.hillshade_export_settings = Path(data['hillshade_export_settings'])
+
         self.lp360_ldexport_exe = Path(data['lp360_ldexport_exe'])
 
         self.contractor_shp = Path(data['contractor_shp'])
@@ -758,8 +760,16 @@ class Surface:
         except Exception as e:
             arcpy.AddMessage(e)
 
-    def gen_hillshade_surface():
-        pass
+    def gen_hillshade_surface(self):
+        exe = self.config.lp360_ldexport_exe
+        las = self.las_path.replace('CLASSIFIED_LAS\\', 'CLASSIFIED_LAS\\\\')
+        dz = r'{}\{}'.format(self.config.surfaces_to_make[self.stype][1], self.las_name)
+        cmd_str = '{} -s {} -f {} -o {}'.format(exe, self.config.dz_export_settings, las, dz)
+        arcpy.AddMessage('generating dz ortho for {}...'.format(las))
+        try:
+            returncode, output = self.config.run_console_cmd(cmd_str)
+        except Exception as e:
+            arcpy.AddMessage(e)
 
     pass
 

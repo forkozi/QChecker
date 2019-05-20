@@ -15,7 +15,7 @@ The user can run a series of checks to verify that certain expected information 
     GPS Time Type, checks that 'GPS Time Type' in the Las header is 'Satellite Adjusted Time' (not GPS week seconds)
     Horizontal Datum, checks that Las header contains the specified horizontal spatial reference
     Vertical Datum, checks that Las header contains the specified vertical spatial reference
-    Point Source IDs, checks that Las file contains > 1 unique point source id (i.e., flight line number)
+    Point Source IDs, checks that Las file contains > 1 unique point source id (flight line number)
     Expected Classes, checks that Las file contains classes other than the specified expected classes
 
 The Checks portion of Q-Checker generates two outputs:
@@ -28,7 +28,7 @@ QA/QC results shapefile
 
 The QA/QC results shapefile contains a polygon for each input LAS tile, along with the associated check results in the shapefile attribute table.  In the image below, the tiles are colored according to whether or not they passed the version test.
 
-.. image:: ../../assets/images/checks.PNG
+.. image:: ../../assets/images/qaqc_tiles_eg.PNG
 
 QA/QC results html dashboard
 ----------------------------
