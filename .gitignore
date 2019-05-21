@@ -5,7 +5,6 @@
 *.pyproj
 *.log
 *.sln
-*.html
 *.suo
 *.sqlite
 *.vs

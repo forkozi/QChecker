@@ -1,0 +1,543 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>qchecker module &mdash; QChecker v1.0.0-alpha documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script type="text/javascript" src="_static/jquery.js"></script>
+        <script type="text/javascript" src="_static/underscore.js"></script>
+        <script type="text/javascript" src="_static/doctools.js"></script>
+        <script type="text/javascript" src="_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="index.html" class="icon icon-home"> QChecker
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="install.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="gui.html">Q-Checker User Interface</a></li>
+<li class="toctree-l1"><a class="reference internal" href="workflow.html">Workflow</a></li>
+<li class="toctree-l1"><a class="reference internal" href="output.html">Output</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">QChecker</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html">Docs</a> &raquo;</li>
+        
+      <li>qchecker module</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/qchecker.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="module-qchecker">
+<span id="qchecker-module"></span><h1>qchecker module<a class="headerlink" href="#module-qchecker" title="Permalink to this headline">¶</a></h1>
+<dl class="class">
+<dt id="qchecker.Configuration">
+<em class="property">class </em><code class="descclassname">qchecker.</code><code class="descname">Configuration</code><span class="sig-paren">(</span><em>config</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/qchecker.html#Configuration"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#qchecker.Configuration" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<dl class="staticmethod">
+<dt id="qchecker.Configuration.run_console_cmd">
+<em class="property">static </em><code class="descname">run_console_cmd</code><span class="sig-paren">(</span><em>cmd</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/qchecker.html#Configuration.run_console_cmd"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#qchecker.Configuration.run_console_cmd" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="qchecker.LasTile">
+<em class="property">class </em><code class="descclassname">qchecker.</code><code class="descname">LasTile</code><span class="sig-paren">(</span><em>las_path</em>, <em>config</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/qchecker.html#LasTile"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#qchecker.LasTile" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<dl class="method">
+<dt id="qchecker.LasTile.create_las_pyramids">
+<code class="descname">create_las_pyramids</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/qchecker.html#LasTile.create_las_pyramids"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#qchecker.LasTile.create_las_pyramids" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="qchecker.LasTile.get_class_counts">
+<code class="descname">get_class_counts</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/qchecker.html#LasTile.get_class_counts"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#qchecker.LasTile.get_class_counts" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="qchecker.LasTile.get_gps_time">
+<code class="descname">get_gps_time</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/qchecker.html#LasTile.get_gps_time"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#qchecker.LasTile.get_gps_time" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="qchecker.LasTile.get_las_pdrf">
+<code class="descname">get_las_pdrf</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/qchecker.html#LasTile.get_las_pdrf"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#qchecker.LasTile.get_las_pdrf" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="qchecker.LasTile.get_las_version">
+<code class="descname">get_las_version</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/qchecker.html#LasTile.get_las_version"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#qchecker.LasTile.get_las_version" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="qchecker.LasTile.get_pt_src_ids">
+<code class="descname">get_pt_src_ids</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/qchecker.html#LasTile.get_pt_src_ids"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#qchecker.LasTile.get_pt_src_ids" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="qchecker.LasTile.output_las_qaqc_to_json">
+<code class="descname">output_las_qaqc_to_json</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/qchecker.html#LasTile.output_las_qaqc_to_json"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#qchecker.LasTile.output_las_qaqc_to_json" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="qchecker.LasTileCollection">
+<em class="property">class </em><code class="descclassname">qchecker.</code><code class="descname">LasTileCollection</code><span class="sig-paren">(</span><em>las_tile_dir</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/qchecker.html#LasTileCollection"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#qchecker.LasTileCollection" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<dl class="method">
+<dt id="qchecker.LasTileCollection.get_classification_scheme">
+<code class="descname">get_classification_scheme</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/qchecker.html#LasTileCollection.get_classification_scheme"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#qchecker.LasTileCollection.get_classification_scheme" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="qchecker.LasTileCollection.get_las_base_names">
+<code class="descname">get_las_base_names</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/qchecker.html#LasTileCollection.get_las_base_names"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#qchecker.LasTileCollection.get_las_base_names" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="qchecker.LasTileCollection.get_las_names">
+<code class="descname">get_las_names</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/qchecker.html#LasTileCollection.get_las_names"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#qchecker.LasTileCollection.get_las_names" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="qchecker.LasTileCollection.get_las_tile_paths">
+<code class="descname">get_las_tile_paths</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/qchecker.html#LasTileCollection.get_las_tile_paths"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#qchecker.LasTileCollection.get_las_tile_paths" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="qchecker.Mosaic">
+<em class="property">class </em><code class="descclassname">qchecker.</code><code class="descname">Mosaic</code><span class="sig-paren">(</span><em>mtype</em>, <em>config</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/qchecker.html#Mosaic"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#qchecker.Mosaic" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<dl class="method">
+<dt id="qchecker.Mosaic.add_mosaic_dataset_tif_to_aprx">
+<code class="descname">add_mosaic_dataset_tif_to_aprx</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/qchecker.html#Mosaic.add_mosaic_dataset_tif_to_aprx"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#qchecker.Mosaic.add_mosaic_dataset_tif_to_aprx" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="qchecker.Mosaic.add_rasters_to_mosaic_dataset">
+<code class="descname">add_rasters_to_mosaic_dataset</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/qchecker.html#Mosaic.add_rasters_to_mosaic_dataset"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#qchecker.Mosaic.add_rasters_to_mosaic_dataset" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="qchecker.Mosaic.create_mosaic_dataset">
+<code class="descname">create_mosaic_dataset</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/qchecker.html#Mosaic.create_mosaic_dataset"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#qchecker.Mosaic.create_mosaic_dataset" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="qchecker.Mosaic.export_mosaic_dataset">
+<code class="descname">export_mosaic_dataset</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/qchecker.html#Mosaic.export_mosaic_dataset"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#qchecker.Mosaic.export_mosaic_dataset" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="qchecker.QaqcTile">
+<em class="property">class </em><code class="descclassname">qchecker.</code><code class="descname">QaqcTile</code><span class="sig-paren">(</span><em>config</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/qchecker.html#QaqcTile"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#qchecker.QaqcTile" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<dl class="method">
+<dt id="qchecker.QaqcTile.add_tile_check_results">
+<code class="descname">add_tile_check_results</code><span class="sig-paren">(</span><em>tile_check_results</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/qchecker.html#QaqcTile.add_tile_check_results"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#qchecker.QaqcTile.add_tile_check_results" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="qchecker.QaqcTile.check_hdatum">
+<code class="descname">check_hdatum</code><span class="sig-paren">(</span><em>tile</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/qchecker.html#QaqcTile.check_hdatum"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#qchecker.QaqcTile.check_hdatum" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="qchecker.QaqcTile.check_las_gps_time">
+<code class="descname">check_las_gps_time</code><span class="sig-paren">(</span><em>tile</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/qchecker.html#QaqcTile.check_las_gps_time"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#qchecker.QaqcTile.check_las_gps_time" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="qchecker.QaqcTile.check_las_naming">
+<code class="descname">check_las_naming</code><span class="sig-paren">(</span><em>tile</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/qchecker.html#QaqcTile.check_las_naming"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#qchecker.QaqcTile.check_las_naming" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="qchecker.QaqcTile.check_las_pdrf">
+<code class="descname">check_las_pdrf</code><span class="sig-paren">(</span><em>tile</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/qchecker.html#QaqcTile.check_las_pdrf"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#qchecker.QaqcTile.check_las_pdrf" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="qchecker.QaqcTile.check_las_version">
+<code class="descname">check_las_version</code><span class="sig-paren">(</span><em>tile</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/qchecker.html#QaqcTile.check_las_version"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#qchecker.QaqcTile.check_las_version" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="qchecker.QaqcTile.check_pt_src_ids">
+<code class="descname">check_pt_src_ids</code><span class="sig-paren">(</span><em>tile</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/qchecker.html#QaqcTile.check_pt_src_ids"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#qchecker.QaqcTile.check_pt_src_ids" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="qchecker.QaqcTile.check_unexp_cls">
+<code class="descname">check_unexp_cls</code><span class="sig-paren">(</span><em>tile</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/qchecker.html#QaqcTile.check_unexp_cls"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#qchecker.QaqcTile.check_unexp_cls" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="qchecker.QaqcTile.check_vdatum">
+<code class="descname">check_vdatum</code><span class="sig-paren">(</span><em>tile</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/qchecker.html#QaqcTile.check_vdatum"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#qchecker.QaqcTile.check_vdatum" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="qchecker.QaqcTile.create_dz">
+<code class="descname">create_dz</code><span class="sig-paren">(</span><em>tile</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/qchecker.html#QaqcTile.create_dz"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#qchecker.QaqcTile.create_dz" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="qchecker.QaqcTile.create_hillshade">
+<code class="descname">create_hillshade</code><span class="sig-paren">(</span><em>tile</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/qchecker.html#QaqcTile.create_hillshade"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#qchecker.QaqcTile.create_hillshade" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="qchecker.QaqcTile.failed_text">
+<code class="descname">failed_text</code><em class="property"> = 'FAILED'</em><a class="headerlink" href="#qchecker.QaqcTile.failed_text" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="qchecker.QaqcTile.passed_text">
+<code class="descname">passed_text</code><em class="property"> = 'PASSED'</em><a class="headerlink" href="#qchecker.QaqcTile.passed_text" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="qchecker.QaqcTile.run_qaqc">
+<code class="descname">run_qaqc</code><span class="sig-paren">(</span><em>las_paths</em>, <em>multiprocess</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/qchecker.html#QaqcTile.run_qaqc"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#qchecker.QaqcTile.run_qaqc" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="qchecker.QaqcTile.run_qaqc_checks">
+<code class="descname">run_qaqc_checks</code><span class="sig-paren">(</span><em>las_paths</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/qchecker.html#QaqcTile.run_qaqc_checks"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#qchecker.QaqcTile.run_qaqc_checks" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="qchecker.QaqcTile.run_qaqc_checks_multiprocess">
+<code class="descname">run_qaqc_checks_multiprocess</code><span class="sig-paren">(</span><em>las_path</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/qchecker.html#QaqcTile.run_qaqc_checks_multiprocess"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#qchecker.QaqcTile.run_qaqc_checks_multiprocess" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="qchecker.QaqcTileCollection">
+<em class="property">class </em><code class="descclassname">qchecker.</code><code class="descname">QaqcTileCollection</code><span class="sig-paren">(</span><em>las_paths</em>, <em>config</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/qchecker.html#QaqcTileCollection"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#qchecker.QaqcTileCollection" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<dl class="method">
+<dt id="qchecker.QaqcTileCollection.gen_mosaic">
+<code class="descname">gen_mosaic</code><span class="sig-paren">(</span><em>mtype</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/qchecker.html#QaqcTileCollection.gen_mosaic"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#qchecker.QaqcTileCollection.gen_mosaic" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="qchecker.QaqcTileCollection.gen_qaqc_csv">
+<code class="descname">gen_qaqc_csv</code><span class="sig-paren">(</span><em>output</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/qchecker.html#QaqcTileCollection.gen_qaqc_csv"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#qchecker.QaqcTileCollection.gen_qaqc_csv" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="qchecker.QaqcTileCollection.gen_qaqc_json_NAD83_UTM_CENTROIDS">
+<code class="descname">gen_qaqc_json_NAD83_UTM_CENTROIDS</code><span class="sig-paren">(</span><em>output</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/qchecker.html#QaqcTileCollection.gen_qaqc_json_NAD83_UTM_CENTROIDS"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#qchecker.QaqcTileCollection.gen_qaqc_json_NAD83_UTM_CENTROIDS" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="qchecker.QaqcTileCollection.gen_qaqc_json_NAD83_UTM_POLYGONS">
+<code class="descname">gen_qaqc_json_NAD83_UTM_POLYGONS</code><span class="sig-paren">(</span><em>output</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/qchecker.html#QaqcTileCollection.gen_qaqc_json_NAD83_UTM_POLYGONS"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#qchecker.QaqcTileCollection.gen_qaqc_json_NAD83_UTM_POLYGONS" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="qchecker.QaqcTileCollection.gen_qaqc_json_WebMercator_CENTROIDS">
+<code class="descname">gen_qaqc_json_WebMercator_CENTROIDS</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/qchecker.html#QaqcTileCollection.gen_qaqc_json_WebMercator_CENTROIDS"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#qchecker.QaqcTileCollection.gen_qaqc_json_WebMercator_CENTROIDS" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="qchecker.QaqcTileCollection.gen_qaqc_json_WebMercator_POLYGONS">
+<code class="descname">gen_qaqc_json_WebMercator_POLYGONS</code><span class="sig-paren">(</span><em>output</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/qchecker.html#QaqcTileCollection.gen_qaqc_json_WebMercator_POLYGONS"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#qchecker.QaqcTileCollection.gen_qaqc_json_WebMercator_POLYGONS" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="qchecker.QaqcTileCollection.gen_qaqc_results_dict">
+<code class="descname">gen_qaqc_results_dict</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/qchecker.html#QaqcTileCollection.gen_qaqc_results_dict"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#qchecker.QaqcTileCollection.gen_qaqc_results_dict" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="qchecker.QaqcTileCollection.gen_qaqc_results_gdf_NAD83_UTM_CENTROIDS">
+<code class="descname">gen_qaqc_results_gdf_NAD83_UTM_CENTROIDS</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/qchecker.html#QaqcTileCollection.gen_qaqc_results_gdf_NAD83_UTM_CENTROIDS"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#qchecker.QaqcTileCollection.gen_qaqc_results_gdf_NAD83_UTM_CENTROIDS" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="qchecker.QaqcTileCollection.gen_qaqc_results_gdf_NAD83_UTM_POLYGONS">
+<code class="descname">gen_qaqc_results_gdf_NAD83_UTM_POLYGONS</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/qchecker.html#QaqcTileCollection.gen_qaqc_results_gdf_NAD83_UTM_POLYGONS"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#qchecker.QaqcTileCollection.gen_qaqc_results_gdf_NAD83_UTM_POLYGONS" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="qchecker.QaqcTileCollection.gen_qaqc_results_gdf_WebMercator_CENTROIDS">
+<code class="descname">gen_qaqc_results_gdf_WebMercator_CENTROIDS</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/qchecker.html#QaqcTileCollection.gen_qaqc_results_gdf_WebMercator_CENTROIDS"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#qchecker.QaqcTileCollection.gen_qaqc_results_gdf_WebMercator_CENTROIDS" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="qchecker.QaqcTileCollection.gen_qaqc_results_gdf_WebMercator_POLYGONS">
+<code class="descname">gen_qaqc_results_gdf_WebMercator_POLYGONS</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/qchecker.html#QaqcTileCollection.gen_qaqc_results_gdf_WebMercator_POLYGONS"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#qchecker.QaqcTileCollection.gen_qaqc_results_gdf_WebMercator_POLYGONS" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="qchecker.QaqcTileCollection.gen_qaqc_shp_NAD83_UTM">
+<code class="descname">gen_qaqc_shp_NAD83_UTM</code><span class="sig-paren">(</span><em>output</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/qchecker.html#QaqcTileCollection.gen_qaqc_shp_NAD83_UTM"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#qchecker.QaqcTileCollection.gen_qaqc_shp_NAD83_UTM" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="staticmethod">
+<dt id="qchecker.QaqcTileCollection.gen_tile_centroids_csv">
+<em class="property">static </em><code class="descname">gen_tile_centroids_csv</code><span class="sig-paren">(</span><em>shp</em>, <em>out_csv</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/qchecker.html#QaqcTileCollection.gen_tile_centroids_csv"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#qchecker.QaqcTileCollection.gen_tile_centroids_csv" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="qchecker.QaqcTileCollection.gen_tile_centroids_shp_NAD83_UTM">
+<code class="descname">gen_tile_centroids_shp_NAD83_UTM</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/qchecker.html#QaqcTileCollection.gen_tile_centroids_shp_NAD83_UTM"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#qchecker.QaqcTileCollection.gen_tile_centroids_shp_NAD83_UTM" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="qchecker.QaqcTileCollection.gen_tile_geojson_WGS84">
+<code class="descname">gen_tile_geojson_WGS84</code><span class="sig-paren">(</span><em>geojson</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/qchecker.html#QaqcTileCollection.gen_tile_geojson_WGS84"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#qchecker.QaqcTileCollection.gen_tile_geojson_WGS84" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="qchecker.QaqcTileCollection.gen_tile_geojson_WebMercator_POLYGONS">
+<code class="descname">gen_tile_geojson_WebMercator_POLYGONS</code><span class="sig-paren">(</span><em>geojson</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/qchecker.html#QaqcTileCollection.gen_tile_geojson_WebMercator_POLYGONS"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#qchecker.QaqcTileCollection.gen_tile_geojson_WebMercator_POLYGONS" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="qchecker.QaqcTileCollection.get_unq_pt_src_ids">
+<code class="descname">get_unq_pt_src_ids</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/qchecker.html#QaqcTileCollection.get_unq_pt_src_ids"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#qchecker.QaqcTileCollection.get_unq_pt_src_ids" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="qchecker.QaqcTileCollection.run_qaqc_tile_collection_checks">
+<code class="descname">run_qaqc_tile_collection_checks</code><span class="sig-paren">(</span><em>multiprocess</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/qchecker.html#QaqcTileCollection.run_qaqc_tile_collection_checks"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#qchecker.QaqcTileCollection.run_qaqc_tile_collection_checks" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="qchecker.QaqcTileCollection.set_qaqc_results_df">
+<code class="descname">set_qaqc_results_df</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/qchecker.html#QaqcTileCollection.set_qaqc_results_df"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#qchecker.QaqcTileCollection.set_qaqc_results_df" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="qchecker.SummaryPlots">
+<em class="property">class </em><code class="descclassname">qchecker.</code><code class="descname">SummaryPlots</code><span class="sig-paren">(</span><em>config</em>, <em>qaqc_results_df</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/qchecker.html#SummaryPlots"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#qchecker.SummaryPlots" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<dl class="staticmethod">
+<dt id="qchecker.SummaryPlots.add_empty_plots_to_reshape">
+<em class="property">static </em><code class="descname">add_empty_plots_to_reshape</code><span class="sig-paren">(</span><em>plot_list</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/qchecker.html#SummaryPlots.add_empty_plots_to_reshape"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#qchecker.SummaryPlots.add_empty_plots_to_reshape" title="Permalink to this definition">¶</a></dt>
+<dd><p>len(plot_list) % 3 needs to = 0</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="qchecker.SummaryPlots.draw_class_count_bar_chart">
+<code class="descname">draw_class_count_bar_chart</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/qchecker.html#SummaryPlots.draw_class_count_bar_chart"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#qchecker.SummaryPlots.draw_class_count_bar_chart" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="qchecker.SummaryPlots.draw_class_count_maps">
+<code class="descname">draw_class_count_maps</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/qchecker.html#SummaryPlots.draw_class_count_maps"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#qchecker.SummaryPlots.draw_class_count_maps" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="qchecker.SummaryPlots.draw_pass_fail_bar_chart">
+<code class="descname">draw_pass_fail_bar_chart</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/qchecker.html#SummaryPlots.draw_pass_fail_bar_chart"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#qchecker.SummaryPlots.draw_pass_fail_bar_chart" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="qchecker.SummaryPlots.draw_pass_fail_maps">
+<code class="descname">draw_pass_fail_maps</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/qchecker.html#SummaryPlots.draw_pass_fail_maps"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#qchecker.SummaryPlots.draw_pass_fail_maps" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="qchecker.SummaryPlots.gen_dashboard">
+<code class="descname">gen_dashboard</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/qchecker.html#SummaryPlots.gen_dashboard"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#qchecker.SummaryPlots.gen_dashboard" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="qchecker.Surface">
+<em class="property">class </em><code class="descclassname">qchecker.</code><code class="descname">Surface</code><span class="sig-paren">(</span><em>tile</em>, <em>stype</em>, <em>config</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/qchecker.html#Surface"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#qchecker.Surface" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<dl class="method">
+<dt id="qchecker.Surface.gen_surface">
+<code class="descname">gen_surface</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/qchecker.html#Surface.gen_surface"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#qchecker.Surface.gen_surface" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="qchecker.Surface.update_surface_export_settings_extents">
+<code class="descname">update_surface_export_settings_extents</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/qchecker.html#Surface.update_surface_export_settings_extents"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#qchecker.Surface.update_surface_export_settings_extents" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="qchecker.run_qaqc">
+<code class="descclassname">qchecker.</code><code class="descname">run_qaqc</code><span class="sig-paren">(</span><em>config_json</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/qchecker.html#run_qaqc"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#qchecker.run_qaqc" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2019, Nick Forfinski-Sarkozi
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

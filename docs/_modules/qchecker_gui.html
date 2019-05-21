@@ -1,0 +1,947 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>qchecker_gui &mdash; QChecker v1.0.0-alpha documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="../_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../_static/jquery.js"></script>
+        <script type="text/javascript" src="../_static/underscore.js"></script>
+        <script type="text/javascript" src="../_static/doctools.js"></script>
+        <script type="text/javascript" src="../_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../index.html" class="icon icon-home"> QChecker
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../install.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../gui.html">Q-Checker User Interface</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../workflow.html">Workflow</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../output.html">Output</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">QChecker</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="index.html">Module code</a> &raquo;</li>
+        
+      <li>qchecker_gui</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for qchecker_gui</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span> <span class="nn">qchecker</span> <span class="k">import</span> <span class="n">run_qaqc</span>
+<span class="kn">import</span> <span class="nn">tkinter</span> <span class="k">as</span> <span class="nn">tk</span>
+<span class="kn">from</span> <span class="nn">tkinter</span> <span class="k">import</span> <span class="n">ttk</span><span class="p">,</span> <span class="n">filedialog</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">from</span> <span class="nn">pathlib</span> <span class="k">import</span> <span class="n">Path</span>
+<span class="kn">import</span> <span class="nn">time</span>
+<span class="kn">import</span> <span class="nn">json</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+<span class="kn">import</span> <span class="nn">logging</span>
+
+
+<span class="c1">#matplotlib.use(&#39;Agg&#39;)</span>
+
+<span class="n">LARGE_FONT</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;Verdanna&#39;</span><span class="p">,</span> <span class="mi">12</span><span class="p">)</span>
+<span class="n">LARGE_FONT_BOLD</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;Verdanna&#39;</span><span class="p">,</span> <span class="mi">12</span><span class="p">,</span> <span class="s1">&#39;bold&#39;</span><span class="p">)</span>
+<span class="n">NORM_FONT</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;Verdanna&#39;</span><span class="p">,</span> <span class="mi">10</span><span class="p">)</span>
+<span class="n">NORM_FONT_BOLD</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;Verdanna&#39;</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="s1">&#39;bold&#39;</span><span class="p">)</span>
+<span class="n">NORM_FONT_ITALIC</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;Verdanna&#39;</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="s1">&#39;italic&#39;</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="QaqcApp"><a class="viewcode-back" href="../qchecker_gui.html#qchecker_gui.QaqcApp">[docs]</a><span class="k">class</span> <span class="nc">QaqcApp</span><span class="p">(</span><span class="n">tk</span><span class="o">.</span><span class="n">Tk</span><span class="p">):</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="n">tk</span><span class="o">.</span><span class="n">Tk</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">config_file</span> <span class="o">=</span> <span class="sa">r</span><span class="s1">&#39;.\assets\config_files\qaqc_config.json&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">load_config</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">set_gui_components</span><span class="p">()</span>
+
+        <span class="c1"># show splash screen</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">withdraw</span><span class="p">()</span>
+        <span class="n">splash</span> <span class="o">=</span> <span class="n">Splash</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+
+        <span class="n">version</span> <span class="o">=</span> <span class="s1">&#39;v1.0.1-beta&#39;</span>
+        <span class="n">tk</span><span class="o">.</span><span class="n">Tk</span><span class="o">.</span><span class="n">wm_title</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;Q-Checker </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">version</span><span class="p">))</span>
+        <span class="n">tk</span><span class="o">.</span><span class="n">Tk</span><span class="o">.</span><span class="n">iconbitmap</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="sa">r</span><span class="s1">&#39;.\assets\images\qaqc.ico&#39;</span><span class="p">)</span>
+
+        <span class="n">container</span> <span class="o">=</span> <span class="n">tk</span><span class="o">.</span><span class="n">Frame</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="n">container</span><span class="o">.</span><span class="n">pack</span><span class="p">(</span><span class="n">side</span><span class="o">=</span><span class="s1">&#39;top&#39;</span><span class="p">,</span> <span class="n">fill</span><span class="o">=</span><span class="s1">&#39;both&#39;</span><span class="p">,</span> <span class="n">expand</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">container</span><span class="o">.</span><span class="n">grid_rowconfigure</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">weight</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">container</span><span class="o">.</span><span class="n">grid_columnconfigure</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">weight</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="n">menubar</span> <span class="o">=</span> <span class="n">tk</span><span class="o">.</span><span class="n">Menu</span><span class="p">(</span><span class="n">container</span><span class="p">)</span>
+        <span class="n">filemenu</span> <span class="o">=</span> <span class="n">tk</span><span class="o">.</span><span class="n">Menu</span><span class="p">(</span><span class="n">menubar</span><span class="p">,</span> <span class="n">tearoff</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="n">filemenu</span><span class="o">.</span><span class="n">add_command</span><span class="p">(</span><span class="n">label</span><span class="o">=</span><span class="s1">&#39;Save settings&#39;</span><span class="p">,</span> <span class="n">command</span><span class="o">=</span><span class="k">lambda</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">save_config</span><span class="p">())</span>
+        <span class="n">filemenu</span><span class="o">.</span><span class="n">add_separator</span><span class="p">()</span>
+        <span class="n">filemenu</span><span class="o">.</span><span class="n">add_command</span><span class="p">(</span><span class="n">label</span><span class="o">=</span><span class="s1">&#39;Exit&#39;</span><span class="p">,</span> <span class="n">command</span><span class="o">=</span><span class="n">quit</span><span class="p">)</span>
+        <span class="n">menubar</span><span class="o">.</span><span class="n">add_cascade</span><span class="p">(</span><span class="n">label</span><span class="o">=</span><span class="s1">&#39;File&#39;</span><span class="p">,</span> <span class="n">menu</span><span class="o">=</span><span class="n">filemenu</span><span class="p">)</span>
+
+        <span class="n">exchangeChoice</span> <span class="o">=</span> <span class="n">tk</span><span class="o">.</span><span class="n">Menu</span><span class="p">(</span><span class="n">menubar</span><span class="p">,</span> <span class="n">tearoff</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="n">exchangeChoice</span><span class="o">.</span><span class="n">add_command</span><span class="p">(</span><span class="n">label</span><span class="o">=</span><span class="s1">&#39;About&#39;</span><span class="p">,</span> <span class="n">command</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">show_about</span><span class="p">)</span>
+        <span class="n">menubar</span><span class="o">.</span><span class="n">add_cascade</span><span class="p">(</span><span class="n">label</span><span class="o">=</span><span class="s1">&#39;Help&#39;</span><span class="p">,</span> <span class="n">menu</span><span class="o">=</span><span class="n">exchangeChoice</span><span class="p">)</span>
+
+        <span class="n">tk</span><span class="o">.</span><span class="n">Tk</span><span class="o">.</span><span class="n">config</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">menu</span><span class="o">=</span><span class="n">menubar</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">frames</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">F</span> <span class="ow">in</span> <span class="p">(</span><span class="n">MainGuiPage</span><span class="p">,):</span>  <span class="c1"># makes it easy to add &quot;pages&quot; in future</span>
+            <span class="n">frame</span> <span class="o">=</span> <span class="n">F</span><span class="p">(</span><span class="n">container</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">frames</span><span class="p">[</span><span class="n">F</span><span class="p">]</span> <span class="o">=</span> <span class="n">frame</span>
+            <span class="n">frame</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="n">row</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">column</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">sticky</span><span class="o">=</span><span class="s1">&#39;nsew&#39;</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">show_frame</span><span class="p">(</span><span class="n">MainGuiPage</span><span class="p">)</span>
+
+        <span class="c1"># after splash screen, show main GUI</span>
+        <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">splash</span><span class="o">.</span><span class="n">destroy</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">deiconify</span><span class="p">()</span>
+
+<div class="viewcode-block" id="QaqcApp.set_gui_components"><a class="viewcode-back" href="../qchecker_gui.html#qchecker_gui.QaqcApp.set_gui_components">[docs]</a>    <span class="k">def</span> <span class="nf">set_gui_components</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="c1"># set GUI section options</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">components</span> <span class="o">=</span> <span class="p">{}</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">components</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s1">&#39;options&#39;</span><span class="p">:</span> <span class="p">{</span>
+            <span class="s1">&#39;project_name&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;Project&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">],</span>
+            <span class="c1">#&#39;tile_size&#39;: [&#39;Tile Size (m)&#39;, None],</span>
+            <span class="s1">&#39;to_pyramid&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;Build LAS Pyramids&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">],</span>
+            <span class="c1">#&#39;make_contact_centroids&#39;: [&#39;Make Contr. Tile Centroid shp&#39;, None],</span>
+            <span class="p">}})</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">components</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s1">&#39;files_to_set&#39;</span><span class="p">:</span> <span class="p">{</span>
+            <span class="s1">&#39;contractor_shp&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;Contractor Tile Shapefile&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">Path</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="p">[</span><span class="s1">&#39;contractor_shp&#39;</span><span class="p">]),</span> <span class="s1">&#39;.shp&#39;</span><span class="p">],</span>
+            <span class="p">}})</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">components</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s1">&#39;dirs_to_set&#39;</span><span class="p">:</span> <span class="p">{</span>
+            <span class="s1">&#39;qaqc_dir&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;QAQC Root Dir.&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">Path</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="p">[</span><span class="s1">&#39;qaqc_dir&#39;</span><span class="p">])],</span>
+            <span class="s1">&#39;las_tile_dir&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;Las Tiles&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">Path</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="p">[</span><span class="s1">&#39;las_tile_dir&#39;</span><span class="p">])],</span>
+            <span class="p">}})</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">components</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s1">&#39;checks_to_do&#39;</span><span class="p">:</span> <span class="p">{</span>
+            <span class="s1">&#39;naming&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;Naming Convention&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">],</span>
+            <span class="s1">&#39;version&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;Version&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">],</span>
+            <span class="s1">&#39;pdrf&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;Point Data Record Format&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">],</span>
+            <span class="s1">&#39;gps_time&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;GPS Time Type&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">],</span>
+            <span class="s1">&#39;hdatum&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;Horizontal Datum&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">],</span>
+            <span class="s1">&#39;vdatum&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;Vertical Datum&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">],</span>
+            <span class="s1">&#39;pt_src_ids&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;Point Source IDs&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">],</span>
+            <span class="s1">&#39;exp_cls&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;Expected Classes&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">],</span>
+            <span class="p">}})</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">components</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s1">&#39;surfaces_to_make&#39;</span><span class="p">:</span> <span class="p">{</span>
+            <span class="s1">&#39;Dz&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;Dz&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">Path</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="p">[</span><span class="s1">&#39;surfaces_to_make&#39;</span><span class="p">][</span><span class="s1">&#39;Dz&#39;</span><span class="p">][</span><span class="mi">1</span><span class="p">])],</span>
+            <span class="s1">&#39;Hillshade&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;Hillshade&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">Path</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="p">[</span><span class="s1">&#39;surfaces_to_make&#39;</span><span class="p">][</span><span class="s1">&#39;Hillshade&#39;</span><span class="p">][</span><span class="mi">1</span><span class="p">])],</span>
+            <span class="p">}})</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">components</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s1">&#39;mosaics_to_make&#39;</span><span class="p">:</span> <span class="p">{</span>
+            <span class="s1">&#39;Dz&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;Dz Mosaic&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">Path</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="p">[</span><span class="s1">&#39;mosaics_to_make&#39;</span><span class="p">][</span><span class="s1">&#39;Dz&#39;</span><span class="p">][</span><span class="mi">1</span><span class="p">])],</span>
+            <span class="s1">&#39;Hillshade&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;Hillshade Mosaic&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">Path</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="p">[</span><span class="s1">&#39;mosaics_to_make&#39;</span><span class="p">][</span><span class="s1">&#39;Dz&#39;</span><span class="p">][</span><span class="mi">1</span><span class="p">])],</span>
+            <span class="p">}})</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">components</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s1">&#39;check_keys&#39;</span><span class="p">:</span> <span class="p">{</span>
+            <span class="s1">&#39;naming&#39;</span><span class="p">:</span> <span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">],</span>
+            <span class="s1">&#39;version&#39;</span><span class="p">:</span> <span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">],</span>
+            <span class="s1">&#39;pdrf&#39;</span><span class="p">:</span> <span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">],</span>
+            <span class="s1">&#39;gps_time&#39;</span><span class="p">:</span> <span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">],</span>
+            <span class="s1">&#39;hdatum&#39;</span><span class="p">:</span> <span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">],</span>
+            <span class="s1">&#39;vdatum&#39;</span><span class="p">:</span> <span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">],</span>
+            <span class="s1">&#39;pt_src_ids&#39;</span><span class="p">:</span> <span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">],</span>
+            <span class="s1">&#39;exp_cls&#39;</span><span class="p">:</span> <span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">],</span>        
+            <span class="p">}})</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">components</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s1">&#39;supp_las_domain&#39;</span><span class="p">:</span> <span class="kc">None</span><span class="p">})</span></div>
+
+<div class="viewcode-block" id="QaqcApp.load_config"><a class="viewcode-back" href="../qchecker_gui.html#qchecker_gui.QaqcApp.load_config">[docs]</a>    <span class="k">def</span> <span class="nf">load_config</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">config_file</span><span class="p">):</span>
+            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">config_file</span><span class="p">)</span> <span class="k">as</span> <span class="n">cf</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">cf</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+           <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;configuration file doesn</span><span class="se">\&#39;</span><span class="s1">t exist&#39;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="QaqcApp.save_config"><a class="viewcode-back" href="../qchecker_gui.html#qchecker_gui.QaqcApp.save_config">[docs]</a>    <span class="k">def</span> <span class="nf">save_config</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+
+        <span class="c1"># options</span>
+        <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">components</span><span class="p">[</span><span class="s1">&#39;options&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
+            
+        <span class="c1"># files_to_set</span>
+        <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">components</span><span class="p">[</span><span class="s1">&#39;files_to_set&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">v</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
+
+        <span class="c1"># dirs_to_set</span>
+        <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">components</span><span class="p">[</span><span class="s1">&#39;dirs_to_set&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">v</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
+
+        <span class="c1"># checks_to_do</span>
+        <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">components</span><span class="p">[</span><span class="s1">&#39;checks_to_do&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="p">[</span><span class="s1">&#39;checks_to_do&#39;</span><span class="p">][</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
+
+        <span class="c1"># check_keys</span>
+        <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">components</span><span class="p">[</span><span class="s1">&#39;check_keys&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="p">[</span><span class="s1">&#39;check_keys&#39;</span><span class="p">][</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
+
+        <span class="c1"># surfaces_to_make</span>
+        <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">components</span><span class="p">[</span><span class="s1">&#39;surfaces_to_make&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="p">[</span><span class="s1">&#39;surfaces_to_make&#39;</span><span class="p">][</span><span class="n">k</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="p">[</span><span class="s1">&#39;surfaces_to_make&#39;</span><span class="p">][</span><span class="n">k</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">v</span><span class="p">[</span><span class="mi">3</span><span class="p">])</span>
+
+        <span class="c1"># mosaics_to_make</span>
+        <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">components</span><span class="p">[</span><span class="s1">&#39;mosaics_to_make&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="p">[</span><span class="s1">&#39;mosaics_to_make&#39;</span><span class="p">][</span><span class="n">k</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="p">[</span><span class="s1">&#39;mosaics_to_make&#39;</span><span class="p">][</span><span class="n">k</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">v</span><span class="p">[</span><span class="mi">3</span><span class="p">])</span>
+
+        <span class="c1"># supp_las_domain</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="p">[</span><span class="s1">&#39;supp_las_domain&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">components</span><span class="p">[</span><span class="s1">&#39;supp_las_domain&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
+
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;saving </span><span class="si">{}</span><span class="s1">...&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">config_file</span><span class="p">))</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">config_file</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="n">json</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="p">,</span> <span class="n">f</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="QaqcApp.show_about"><a class="viewcode-back" href="../qchecker_gui.html#qchecker_gui.QaqcApp.show_about">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">show_about</span><span class="p">():</span>
+        <span class="n">about</span> <span class="o">=</span> <span class="n">tk</span><span class="o">.</span><span class="n">Toplevel</span><span class="p">()</span>
+        <span class="n">tk</span><span class="o">.</span><span class="n">Toplevel</span><span class="o">.</span><span class="n">iconbitmap</span><span class="p">(</span><span class="n">about</span><span class="p">,</span> <span class="s1">&#39;qaqc.ico&#39;</span><span class="p">)</span>
+        <span class="n">about</span><span class="o">.</span><span class="n">wm_title</span><span class="p">(</span><span class="s1">&#39;About Q-Checker&#39;</span><span class="p">)</span>
+        <span class="n">splash_img</span> <span class="o">=</span> <span class="n">tk</span><span class="o">.</span><span class="n">PhotoImage</span><span class="p">(</span><span class="n">file</span><span class="o">=</span><span class="sa">r</span><span class="s1">&#39;.\assets\images\SplashScreen.gif&#39;</span><span class="p">)</span>
+        <span class="n">label</span> <span class="o">=</span> <span class="n">tk</span><span class="o">.</span><span class="n">Label</span><span class="p">(</span><span class="n">about</span><span class="p">,</span> <span class="n">image</span><span class="o">=</span><span class="n">splash_img</span><span class="p">)</span>
+        <span class="n">label</span><span class="o">.</span><span class="n">pack</span><span class="p">()</span>
+        <span class="n">b1</span> <span class="o">=</span> <span class="n">ttk</span><span class="o">.</span><span class="n">Button</span><span class="p">(</span><span class="n">about</span><span class="p">,</span> <span class="n">text</span><span class="o">=</span><span class="s1">&#39;Ok&#39;</span><span class="p">,</span> <span class="n">command</span><span class="o">=</span><span class="n">about</span><span class="o">.</span><span class="n">destroy</span><span class="p">)</span>
+        <span class="n">b1</span><span class="o">.</span><span class="n">pack</span><span class="p">()</span>
+        <span class="n">about</span><span class="o">.</span><span class="n">mainloop</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="QaqcApp.popupmsg"><a class="viewcode-back" href="../qchecker_gui.html#qchecker_gui.QaqcApp.popupmsg">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">popupmsg</span><span class="p">(</span><span class="n">msg</span><span class="p">):</span>
+        <span class="n">popup</span> <span class="o">=</span> <span class="n">tk</span><span class="o">.</span><span class="n">Tk</span><span class="p">()</span>
+        <span class="n">popup</span><span class="o">.</span><span class="n">wm_title</span><span class="p">(</span><span class="s1">&#39;!&#39;</span><span class="p">)</span>
+        <span class="n">label</span> <span class="o">=</span> <span class="n">ttk</span><span class="o">.</span><span class="n">Label</span><span class="p">(</span><span class="n">popup</span><span class="p">,</span> <span class="n">text</span><span class="o">=</span><span class="n">msg</span><span class="p">,</span> <span class="n">font</span><span class="o">=</span><span class="n">NORM_FONT</span><span class="p">)</span>
+        <span class="n">label</span><span class="o">.</span><span class="n">pack</span><span class="p">(</span><span class="n">side</span><span class="o">=</span><span class="s1">&#39;top&#39;</span><span class="p">,</span> <span class="n">fill</span><span class="o">=</span><span class="s1">&#39;x&#39;</span><span class="p">,</span> <span class="n">pady</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+        <span class="n">b1</span> <span class="o">=</span> <span class="n">ttk</span><span class="o">.</span><span class="n">Button</span><span class="p">(</span><span class="n">popup</span><span class="p">,</span> <span class="n">text</span><span class="o">=</span><span class="s1">&#39;Ok&#39;</span><span class="p">,</span> <span class="n">command</span><span class="o">=</span><span class="n">popup</span><span class="o">.</span><span class="n">destroy</span><span class="p">)</span>
+        <span class="n">b1</span><span class="o">.</span><span class="n">pack</span><span class="p">()</span>
+        <span class="n">popup</span><span class="o">.</span><span class="n">mainloop</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="QaqcApp.show_frame"><a class="viewcode-back" href="../qchecker_gui.html#qchecker_gui.QaqcApp.show_frame">[docs]</a>    <span class="k">def</span> <span class="nf">show_frame</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cont</span><span class="p">):</span>
+        <span class="n">frame</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">frames</span><span class="p">[</span><span class="n">cont</span><span class="p">]</span>
+        <span class="n">frame</span><span class="o">.</span><span class="n">tkraise</span><span class="p">()</span></div></div>
+
+
+<div class="viewcode-block" id="Splash"><a class="viewcode-back" href="../qchecker_gui.html#qchecker_gui.Splash">[docs]</a><span class="k">class</span> <span class="nc">Splash</span><span class="p">(</span><span class="n">tk</span><span class="o">.</span><span class="n">Toplevel</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">parent</span><span class="p">):</span>
+        <span class="n">tk</span><span class="o">.</span><span class="n">Toplevel</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">parent</span><span class="p">)</span>
+        <span class="n">splash_img</span> <span class="o">=</span> <span class="n">tk</span><span class="o">.</span><span class="n">PhotoImage</span><span class="p">(</span><span class="n">file</span><span class="o">=</span><span class="sa">r</span><span class="s1">&#39;.\assets\images\SplashScreen.gif&#39;</span><span class="p">,</span> <span class="n">master</span><span class="o">=</span><span class="bp">self</span><span class="p">)</span>
+        <span class="n">label</span> <span class="o">=</span> <span class="n">tk</span><span class="o">.</span><span class="n">Label</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">image</span><span class="o">=</span><span class="n">splash_img</span><span class="p">)</span>
+        <span class="n">label</span><span class="o">.</span><span class="n">pack</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">update</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="MainGuiPage"><a class="viewcode-back" href="../qchecker_gui.html#qchecker_gui.MainGuiPage">[docs]</a><span class="k">class</span> <span class="nc">MainGuiPage</span><span class="p">(</span><span class="n">ttk</span><span class="o">.</span><span class="n">Frame</span><span class="p">):</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">parent</span><span class="p">,</span> <span class="n">controller</span><span class="p">):</span>
+        <span class="n">ttk</span><span class="o">.</span><span class="n">Frame</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">parent</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">parent</span> <span class="o">=</span> <span class="n">parent</span>  <span class="c1"># container made in QaqcApp</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">controller</span> <span class="o">=</span> <span class="n">controller</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">config</span> <span class="o">=</span> <span class="n">controller</span><span class="o">.</span><span class="n">configuration</span>  <span class="c1"># from QaqcApp</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">gui</span> <span class="o">=</span> <span class="n">controller</span><span class="o">.</span><span class="n">components</span>  <span class="c1"># from QaqcApp</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">las_classes_file</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s1">&#39;las_classes_json&#39;</span><span class="p">]</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">section_rows</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s1">&#39;options&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+            <span class="s1">&#39;files&#39;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+            <span class="s1">&#39;dirs&#39;</span><span class="p">:</span> <span class="mi">2</span><span class="p">,</span>
+            <span class="s1">&#39;checks&#39;</span><span class="p">:</span> <span class="mi">3</span><span class="p">,</span>
+            <span class="s1">&#39;surfaces&#39;</span><span class="p">:</span> <span class="mi">4</span><span class="p">,</span>
+            <span class="s1">&#39;run_button&#39;</span><span class="p">:</span> <span class="mi">5</span><span class="p">,</span>
+            <span class="p">}</span>
+
+        <span class="c1">#  Build the GUI</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">control_panel_width</span> <span class="o">=</span> <span class="mi">50</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">label_width</span> <span class="o">=</span> <span class="mi">23</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">build_options</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">build_files</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">build_dirs</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">add_checks</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">add_surfaces</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">add_run_panel</span><span class="p">()</span>  
+
+<div class="viewcode-block" id="MainGuiPage.build_display_str"><a class="viewcode-back" href="../qchecker_gui.html#qchecker_gui.MainGuiPage.build_display_str">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">build_display_str</span><span class="p">(</span><span class="nb">str</span><span class="p">):</span>
+        <span class="k">return</span> <span class="sa">r</span><span class="s1">&#39;...\</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">Path</span><span class="p">(</span><span class="nb">str</span><span class="p">)</span><span class="o">.</span><span class="n">parts</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span></div>
+
+<div class="viewcode-block" id="MainGuiPage.get_checked_classes"><a class="viewcode-back" href="../qchecker_gui.html#qchecker_gui.MainGuiPage.get_checked_classes">[docs]</a>    <span class="k">def</span> <span class="nf">get_checked_classes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">popup</span><span class="p">,</span> <span class="nb">vars</span><span class="p">):</span>
+        <span class="n">checked_classes</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="nb">vars</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">v</span><span class="o">.</span><span class="n">get</span><span class="p">():</span>
+                <span class="n">checked_classes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">gui</span><span class="p">[</span><span class="s1">&#39;check_keys&#39;</span><span class="p">][</span><span class="s1">&#39;exp_cls&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">checked_classes</span><span class="p">))</span>
+        <span class="n">popup</span><span class="o">.</span><span class="n">destroy</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="MainGuiPage.get_class_status"><a class="viewcode-back" href="../qchecker_gui.html#qchecker_gui.MainGuiPage.get_class_status">[docs]</a>    <span class="k">def</span> <span class="nf">get_class_status</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">c</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">c</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">gui</span><span class="p">[</span><span class="s1">&#39;check_keys&#39;</span><span class="p">][</span><span class="s1">&#39;exp_cls&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="p">):</span>
+            <span class="k">return</span> <span class="kc">True</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span></div>
+
+<div class="viewcode-block" id="MainGuiPage.pick_classes"><a class="viewcode-back" href="../qchecker_gui.html#qchecker_gui.MainGuiPage.pick_classes">[docs]</a>    <span class="k">def</span> <span class="nf">pick_classes</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">def</span> <span class="nf">get_domains</span><span class="p">():</span>
+            <span class="n">domains</span> <span class="o">=</span> <span class="n">las_classes</span><span class="p">[</span><span class="n">las_version</span><span class="p">][</span><span class="s1">&#39;supplemental&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span>
+            <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">domains</span><span class="p">)</span>
+
+        <span class="k">def</span> <span class="nf">add_core_classes</span><span class="p">():</span>
+            <span class="n">label</span> <span class="o">=</span> <span class="n">tk</span><span class="o">.</span><span class="n">Label</span><span class="p">(</span><span class="n">core_classes_frame</span><span class="p">,</span> 
+                             <span class="n">text</span><span class="o">=</span><span class="s1">&#39;LAS </span><span class="si">{}</span><span class="s1"> Classes&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">las_version</span><span class="p">),</span> 
+                             <span class="n">font</span><span class="o">=</span><span class="n">NORM_FONT_BOLD</span><span class="p">)</span>
+            <span class="n">label</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="n">row</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">sticky</span><span class="o">=</span><span class="n">tk</span><span class="o">.</span><span class="n">EW</span><span class="p">)</span>
+            <span class="n">core_classes</span> <span class="o">=</span> <span class="n">las_classes</span><span class="p">[</span><span class="n">las_version</span><span class="p">][</span><span class="s1">&#39;classes&#39;</span><span class="p">]</span>
+            <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="n">core_classes</span><span class="o">.</span><span class="n">items</span><span class="p">()),</span> <span class="mi">1</span><span class="p">):</span>
+                <span class="nb">vars</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="n">k</span><span class="p">:</span> <span class="n">tk</span><span class="o">.</span><span class="n">BooleanVar</span><span class="p">()})</span>
+                <span class="nb">vars</span><span class="p">[</span><span class="n">k</span><span class="p">]</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_class_status</span><span class="p">(</span><span class="n">k</span><span class="p">))</span>
+                <span class="n">class_check</span> <span class="o">=</span> <span class="n">tk</span><span class="o">.</span><span class="n">Checkbutton</span><span class="p">(</span><span class="n">core_classes_frame</span><span class="p">,</span> <span class="n">text</span><span class="o">=</span><span class="s1">&#39;</span><span class="si">{}</span><span class="s1">: </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">),</span> 
+                                             <span class="n">var</span><span class="o">=</span><span class="nb">vars</span><span class="p">[</span><span class="n">k</span><span class="p">],</span> <span class="n">anchor</span><span class="o">=</span><span class="n">tk</span><span class="o">.</span><span class="n">W</span><span class="p">,</span> 
+                                             <span class="n">justify</span><span class="o">=</span><span class="n">tk</span><span class="o">.</span><span class="n">LEFT</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="mi">40</span><span class="p">)</span>
+                <span class="n">class_check</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="n">row</span><span class="o">=</span><span class="n">i</span><span class="p">,</span> <span class="n">sticky</span><span class="o">=</span><span class="n">tk</span><span class="o">.</span><span class="n">EW</span><span class="p">)</span>
+
+        <span class="k">def</span> <span class="nf">add_domain_profile_selector</span><span class="p">():</span>
+            <span class="n">label</span> <span class="o">=</span> <span class="n">tk</span><span class="o">.</span><span class="n">Label</span><span class="p">(</span><span class="n">supp_classes_frame</span><span class="p">,</span> 
+                             <span class="n">text</span><span class="o">=</span><span class="s1">&#39;Supplemental LAS </span><span class="si">{}</span><span class="s1"> Classes&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">las_version</span><span class="p">),</span> 
+                             <span class="n">font</span><span class="o">=</span><span class="n">NORM_FONT_BOLD</span><span class="p">)</span>
+            <span class="n">label</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="n">row</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">sticky</span><span class="o">=</span><span class="n">tk</span><span class="o">.</span><span class="n">EW</span><span class="p">)</span>
+            <span class="n">supp_classes_domain</span> <span class="o">=</span> <span class="n">tk</span><span class="o">.</span><span class="n">OptionMenu</span><span class="p">(</span><span class="n">supp_classes_frame</span><span class="p">,</span> 
+                                                <span class="bp">self</span><span class="o">.</span><span class="n">gui</span><span class="p">[</span><span class="s1">&#39;supp_las_domain&#39;</span><span class="p">],</span> 
+                                                <span class="o">*</span><span class="n">get_domains</span><span class="p">(),</span>
+                                                <span class="n">command</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">add_supp_classes</span><span class="p">())</span>
+            <span class="n">supp_classes_domain</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="n">row</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">sticky</span><span class="o">=</span><span class="n">tk</span><span class="o">.</span><span class="n">EW</span><span class="p">)</span>
+
+        <span class="k">def</span> <span class="nf">add_supp_classes</span><span class="p">():</span>
+            <span class="n">avail_domains</span> <span class="o">=</span> <span class="n">las_classes</span><span class="p">[</span><span class="n">las_version</span><span class="p">][</span><span class="s1">&#39;supplemental&#39;</span><span class="p">]</span>
+            <span class="n">curr_domain_classes</span> <span class="o">=</span> <span class="n">avail_domains</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">gui</span><span class="p">[</span><span class="s1">&#39;supp_las_domain&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">()][</span><span class="s1">&#39;classes&#39;</span><span class="p">]</span>
+            <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="n">curr_domain_classes</span><span class="o">.</span><span class="n">items</span><span class="p">()),</span> <span class="mi">2</span><span class="p">):</span>
+                <span class="nb">vars</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="n">k</span><span class="p">:</span> <span class="n">tk</span><span class="o">.</span><span class="n">BooleanVar</span><span class="p">()})</span>
+                <span class="nb">vars</span><span class="p">[</span><span class="n">k</span><span class="p">]</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_class_status</span><span class="p">(</span><span class="n">k</span><span class="p">))</span>
+                <span class="n">class_check</span> <span class="o">=</span> <span class="n">tk</span><span class="o">.</span><span class="n">Checkbutton</span><span class="p">(</span><span class="n">supp_classes_frame</span><span class="p">,</span> 
+                                             <span class="n">text</span><span class="o">=</span><span class="s1">&#39;</span><span class="si">{}</span><span class="s1">: </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">),</span> 
+                                             <span class="n">var</span><span class="o">=</span><span class="nb">vars</span><span class="p">[</span><span class="n">k</span><span class="p">],</span> <span class="n">anchor</span><span class="o">=</span><span class="n">tk</span><span class="o">.</span><span class="n">W</span><span class="p">,</span> 
+                                             <span class="n">justify</span><span class="o">=</span><span class="n">tk</span><span class="o">.</span><span class="n">LEFT</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="mi">40</span><span class="p">)</span>
+                <span class="n">class_check</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="n">row</span><span class="o">=</span><span class="n">i</span><span class="p">,</span> <span class="n">sticky</span><span class="o">=</span><span class="n">tk</span><span class="o">.</span><span class="n">EW</span><span class="p">)</span>
+
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">las_classes_file</span><span class="p">)</span> <span class="k">as</span> <span class="n">cf</span><span class="p">:</span>
+            <span class="n">las_classes</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">cf</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">gui</span><span class="p">[</span><span class="s1">&#39;check_keys&#39;</span><span class="p">][</span><span class="s1">&#39;exp_cls&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="s1">&#39;picking classes...&#39;</span><span class="p">)</span>
+
+        <span class="n">las_version</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">gui</span><span class="p">[</span><span class="s1">&#39;check_keys&#39;</span><span class="p">][</span><span class="s1">&#39;version&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
+
+        <span class="n">popup</span> <span class="o">=</span> <span class="n">tk</span><span class="o">.</span><span class="n">Toplevel</span><span class="p">()</span>
+        <span class="n">popup</span><span class="o">.</span><span class="n">wm_title</span><span class="p">(</span><span class="s1">&#39;Pick Expected Classes&#39;</span><span class="p">)</span>
+        <span class="nb">vars</span> <span class="o">=</span> <span class="p">{}</span>
+
+        <span class="n">core_classes_frame</span> <span class="o">=</span> <span class="n">ttk</span><span class="o">.</span><span class="n">Frame</span><span class="p">(</span><span class="n">popup</span><span class="p">)</span>
+        <span class="n">core_classes_frame</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="n">row</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">sticky</span><span class="o">=</span><span class="n">tk</span><span class="o">.</span><span class="n">EW</span><span class="p">)</span>
+        <span class="n">supp_classes_frame</span> <span class="o">=</span> <span class="n">ttk</span><span class="o">.</span><span class="n">Frame</span><span class="p">(</span><span class="n">popup</span><span class="p">)</span>
+        <span class="n">supp_classes_frame</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="n">row</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">sticky</span><span class="o">=</span><span class="n">tk</span><span class="o">.</span><span class="n">EW</span><span class="p">)</span>
+
+        <span class="n">add_core_classes</span><span class="p">()</span>
+        <span class="n">add_domain_profile_selector</span><span class="p">()</span>
+        <span class="n">add_supp_classes</span><span class="p">()</span>
+
+        <span class="n">b1</span> <span class="o">=</span> <span class="n">tk</span><span class="o">.</span><span class="n">Button</span><span class="p">(</span><span class="n">popup</span><span class="p">,</span> <span class="n">text</span><span class="o">=</span><span class="s1">&#39;Ok&#39;</span><span class="p">,</span> <span class="n">command</span><span class="o">=</span><span class="k">lambda</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_checked_classes</span><span class="p">(</span><span class="n">popup</span><span class="p">,</span> <span class="nb">vars</span><span class="p">))</span>
+        <span class="n">b1</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="n">row</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">sticky</span><span class="o">=</span><span class="n">tk</span><span class="o">.</span><span class="n">EW</span><span class="p">)</span>
+        
+        <span class="c1"># prevent user form opening multiple class-picker windows</span>
+        <span class="n">popup</span><span class="o">.</span><span class="n">transient</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="n">popup</span><span class="o">.</span><span class="n">grab_set</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">wait_window</span><span class="p">(</span><span class="n">popup</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="MainGuiPage.add_progress_bar"><a class="viewcode-back" href="../qchecker_gui.html#qchecker_gui.MainGuiPage.add_progress_bar">[docs]</a>    <span class="k">def</span> <span class="nf">add_progress_bar</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">popup</span> <span class="o">=</span> <span class="n">tk</span><span class="o">.</span><span class="n">Toplevel</span><span class="p">()</span>
+        <span class="n">popup</span><span class="o">.</span><span class="n">wm_title</span><span class="p">(</span><span class="s1">&#39;QAQC Progress&#39;</span><span class="p">)</span>
+
+        <span class="n">progress_frame</span> <span class="o">=</span> <span class="n">ttk</span><span class="o">.</span><span class="n">Frame</span><span class="p">(</span><span class="n">popup</span><span class="p">)</span>
+        <span class="n">progress_frame</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="n">row</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">sticky</span><span class="o">=</span><span class="n">tk</span><span class="o">.</span><span class="n">EW</span><span class="p">)</span>
+        
+        <span class="c1"># checks progress</span>
+        <span class="n">progress_label1a</span> <span class="o">=</span> <span class="n">tk</span><span class="o">.</span><span class="n">Label</span><span class="p">(</span><span class="n">progress_frame</span><span class="p">,</span> <span class="n">text</span><span class="o">=</span><span class="s1">&#39;Tiles&#39;</span><span class="p">,</span> <span class="n">justify</span><span class="o">=</span><span class="n">tk</span><span class="o">.</span><span class="n">LEFT</span><span class="p">,</span> <span class="n">anchor</span><span class="o">=</span><span class="n">tk</span><span class="o">.</span><span class="n">W</span><span class="p">)</span>
+        <span class="n">progress_label1a</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="n">column</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">row</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">sticky</span><span class="o">=</span><span class="n">tk</span><span class="o">.</span><span class="n">EW</span><span class="p">)</span>
+        <span class="n">progress_bar1</span> <span class="o">=</span> <span class="n">ttk</span><span class="o">.</span><span class="n">Progressbar</span><span class="p">(</span><span class="n">progress_frame</span><span class="p">,</span> <span class="n">orient</span><span class="o">=</span><span class="n">tk</span><span class="o">.</span><span class="n">HORIZONTAL</span><span class="p">,</span> <span class="n">length</span><span class="o">=</span><span class="mi">500</span><span class="p">,</span> 
+                                        <span class="n">value</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">maximum</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;indeterminate&#39;</span><span class="p">)</span> 
+        <span class="n">progress_bar1</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="n">column</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">row</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">sticky</span><span class="o">=</span><span class="n">tk</span><span class="o">.</span><span class="n">EW</span><span class="p">)</span>
+        <span class="n">progress_label1b</span> <span class="o">=</span> <span class="n">tk</span><span class="o">.</span><span class="n">Label</span><span class="p">(</span><span class="n">progress_frame</span><span class="p">,</span> <span class="n">justify</span><span class="o">=</span><span class="n">tk</span><span class="o">.</span><span class="n">LEFT</span><span class="p">,</span> <span class="n">anchor</span><span class="o">=</span><span class="n">tk</span><span class="o">.</span><span class="n">W</span><span class="p">)</span>
+        <span class="n">progress_label1b</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="n">column</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">row</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">sticky</span><span class="o">=</span><span class="n">tk</span><span class="o">.</span><span class="n">EW</span><span class="p">)</span>
+
+        <span class="c1"># surfaces progress</span>
+        <span class="n">progress_label2a</span> <span class="o">=</span> <span class="n">tk</span><span class="o">.</span><span class="n">Label</span><span class="p">(</span><span class="n">progress_frame</span><span class="p">,</span> <span class="n">text</span><span class="o">=</span><span class="s1">&#39;Mosaics&#39;</span><span class="p">,</span> <span class="n">justify</span><span class="o">=</span><span class="n">tk</span><span class="o">.</span><span class="n">LEFT</span><span class="p">,</span> <span class="n">anchor</span><span class="o">=</span><span class="n">tk</span><span class="o">.</span><span class="n">W</span><span class="p">)</span>
+        <span class="n">progress_label2a</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="n">column</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">row</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">sticky</span><span class="o">=</span><span class="n">tk</span><span class="o">.</span><span class="n">EW</span><span class="p">)</span>
+        <span class="n">progress_bar2</span> <span class="o">=</span> <span class="n">ttk</span><span class="o">.</span><span class="n">Progressbar</span><span class="p">(</span><span class="n">progress_frame</span><span class="p">,</span> <span class="n">orient</span><span class="o">=</span><span class="n">tk</span><span class="o">.</span><span class="n">HORIZONTAL</span><span class="p">,</span> <span class="n">length</span><span class="o">=</span><span class="mi">500</span><span class="p">,</span> 
+                                        <span class="n">value</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">maximum</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;indeterminate&#39;</span><span class="p">)</span> 
+        <span class="n">progress_bar2</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="n">column</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">row</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">sticky</span><span class="o">=</span><span class="n">tk</span><span class="o">.</span><span class="n">EW</span><span class="p">)</span>
+        <span class="n">progress_label2b</span> <span class="o">=</span> <span class="n">tk</span><span class="o">.</span><span class="n">Label</span><span class="p">(</span><span class="n">progress_frame</span><span class="p">,</span> <span class="n">justify</span><span class="o">=</span><span class="n">tk</span><span class="o">.</span><span class="n">LEFT</span><span class="p">,</span> <span class="n">anchor</span><span class="o">=</span><span class="n">tk</span><span class="o">.</span><span class="n">W</span><span class="p">)</span>
+        <span class="n">progress_label2b</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="n">column</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">row</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">sticky</span><span class="o">=</span><span class="n">tk</span><span class="o">.</span><span class="n">EW</span><span class="p">)</span>
+
+        <span class="n">popup</span><span class="o">.</span><span class="n">update</span><span class="p">()</span>
+
+        <span class="n">progress</span> <span class="o">=</span> <span class="p">(</span><span class="n">progress_label1a</span><span class="p">,</span> <span class="n">progress_bar1</span><span class="p">,</span> <span class="n">progress_label1b</span><span class="p">,</span> 
+                    <span class="n">progress_label2a</span><span class="p">,</span> <span class="n">progress_bar2</span><span class="p">,</span> <span class="n">progress_label2b</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">progress</span> </div>
+
+<div class="viewcode-block" id="MainGuiPage.build_options"><a class="viewcode-back" href="../qchecker_gui.html#qchecker_gui.MainGuiPage.build_options">[docs]</a>    <span class="k">def</span> <span class="nf">build_options</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;options&#39;&#39;&#39;</span>
+
+        <span class="n">options_frame</span> <span class="o">=</span> <span class="n">ttk</span><span class="o">.</span><span class="n">Frame</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="n">options_frame</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="n">row</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">section_rows</span><span class="p">[</span><span class="s1">&#39;options&#39;</span><span class="p">],</span> <span class="n">sticky</span><span class="o">=</span><span class="n">tk</span><span class="o">.</span><span class="n">NSEW</span><span class="p">)</span>
+
+        <span class="n">label</span> <span class="o">=</span> <span class="n">tk</span><span class="o">.</span><span class="n">Label</span><span class="p">(</span><span class="n">options_frame</span><span class="p">,</span> <span class="n">text</span><span class="o">=</span><span class="s1">&#39;SETTINGS&#39;</span><span class="p">,</span> <span class="n">font</span><span class="o">=</span><span class="n">LARGE_FONT_BOLD</span><span class="p">)</span>
+        <span class="n">label</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="n">row</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">columnspan</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">pady</span><span class="o">=</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">sticky</span><span class="o">=</span><span class="n">tk</span><span class="o">.</span><span class="n">W</span><span class="p">)</span>
+
+        <span class="k">def</span> <span class="nf">get_proj_names</span><span class="p">():</span>
+            <span class="c1">#with open(self.config[&#39;project_list&#39;], &#39;r&#39;) as f:</span>
+            <span class="c1">#   project_ids = [s.strip() for s in f.readlines()]</span>
+
+            <span class="n">project_unc</span> <span class="o">=</span> <span class="sa">r</span><span class="s1">&#39;</span><span class="se">\\</span><span class="s1">ngs-s-rsd\Lidar_Contract00&#39;</span>
+            <span class="n">project_ids</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">listdir</span><span class="p">(</span><span class="n">project_unc</span><span class="p">)</span>
+
+            <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">project_ids</span><span class="p">)</span>
+
+        <span class="n">item</span> <span class="o">=</span> <span class="s1">&#39;project_name&#39;</span>
+        <span class="n">row</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="n">option_label</span> <span class="o">=</span> <span class="n">tk</span><span class="o">.</span><span class="n">Label</span><span class="p">(</span><span class="n">options_frame</span><span class="p">,</span> 
+                                <span class="n">text</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">gui</span><span class="p">[</span><span class="s1">&#39;options&#39;</span><span class="p">][</span><span class="n">item</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span> 
+                                <span class="n">width</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">label_width</span><span class="p">,</span> 
+                                <span class="n">anchor</span><span class="o">=</span><span class="n">tk</span><span class="o">.</span><span class="n">W</span><span class="p">,</span> 
+                                <span class="n">justify</span><span class="o">=</span><span class="n">tk</span><span class="o">.</span><span class="n">LEFT</span><span class="p">)</span>
+
+        <span class="n">option_label</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="n">column</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">row</span><span class="o">=</span><span class="n">row</span><span class="p">,</span> <span class="n">sticky</span><span class="o">=</span><span class="n">tk</span><span class="o">.</span><span class="n">W</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">gui</span><span class="p">[</span><span class="s1">&#39;options&#39;</span><span class="p">][</span><span class="n">item</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">tk</span><span class="o">.</span><span class="n">StringVar</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">gui</span><span class="p">[</span><span class="s1">&#39;options&#39;</span><span class="p">][</span><span class="n">item</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="n">item</span><span class="p">])</span>
+        <span class="n">proj_down_down</span> <span class="o">=</span> <span class="n">tk</span><span class="o">.</span><span class="n">OptionMenu</span><span class="p">(</span><span class="n">options_frame</span><span class="p">,</span> 
+                                       <span class="bp">self</span><span class="o">.</span><span class="n">gui</span><span class="p">[</span><span class="s1">&#39;options&#39;</span><span class="p">][</span><span class="n">item</span><span class="p">][</span><span class="mi">1</span><span class="p">],</span> 
+                                       <span class="o">*</span><span class="n">get_proj_names</span><span class="p">())</span>
+        <span class="n">proj_down_down</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="n">column</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">row</span><span class="o">=</span><span class="n">row</span><span class="p">,</span> <span class="n">sticky</span><span class="o">=</span><span class="n">tk</span><span class="o">.</span><span class="n">EW</span><span class="p">)</span>
+
+        <span class="n">item</span> <span class="o">=</span> <span class="s1">&#39;to_pyramid&#39;</span>
+        <span class="n">row</span> <span class="o">=</span> <span class="mi">3</span>
+        <span class="n">option_label</span> <span class="o">=</span> <span class="n">tk</span><span class="o">.</span><span class="n">Label</span><span class="p">(</span><span class="n">options_frame</span><span class="p">,</span> 
+                                <span class="n">text</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">gui</span><span class="p">[</span><span class="s1">&#39;options&#39;</span><span class="p">][</span><span class="n">item</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span> 
+                                <span class="n">width</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">label_width</span><span class="p">,</span> 
+                                <span class="n">anchor</span><span class="o">=</span><span class="n">tk</span><span class="o">.</span><span class="n">W</span><span class="p">,</span> 
+                                <span class="n">justify</span><span class="o">=</span><span class="n">tk</span><span class="o">.</span><span class="n">LEFT</span><span class="p">)</span>
+
+        <span class="n">option_label</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="n">column</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">row</span><span class="o">=</span><span class="n">row</span><span class="p">,</span> <span class="n">sticky</span><span class="o">=</span><span class="n">tk</span><span class="o">.</span><span class="n">W</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">gui</span><span class="p">[</span><span class="s1">&#39;options&#39;</span><span class="p">][</span><span class="n">item</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">tk</span><span class="o">.</span><span class="n">BooleanVar</span><span class="p">()</span>
+        <span class="n">is_checked</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="n">item</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">gui</span><span class="p">[</span><span class="s1">&#39;options&#39;</span><span class="p">][</span><span class="n">item</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="n">is_checked</span><span class="p">)</span>
+        <span class="n">chk</span> <span class="o">=</span> <span class="n">tk</span><span class="o">.</span><span class="n">Checkbutton</span><span class="p">(</span>
+            <span class="n">options_frame</span><span class="p">,</span> 
+            <span class="n">text</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span>
+            <span class="n">var</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">gui</span><span class="p">[</span><span class="s1">&#39;options&#39;</span><span class="p">][</span><span class="n">item</span><span class="p">][</span><span class="mi">1</span><span class="p">],</span> 
+            <span class="n">anchor</span><span class="o">=</span><span class="n">tk</span><span class="o">.</span><span class="n">W</span><span class="p">,</span> <span class="n">justify</span><span class="o">=</span><span class="n">tk</span><span class="o">.</span><span class="n">LEFT</span><span class="p">)</span>
+        <span class="n">chk</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="n">column</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">row</span><span class="o">=</span><span class="n">row</span><span class="p">,</span> <span class="n">sticky</span><span class="o">=</span><span class="n">tk</span><span class="o">.</span><span class="n">W</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="MainGuiPage.build_files"><a class="viewcode-back" href="../qchecker_gui.html#qchecker_gui.MainGuiPage.build_files">[docs]</a>    <span class="k">def</span> <span class="nf">build_files</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;Files&#39;&#39;&#39;</span>
+
+        <span class="n">files_frame</span> <span class="o">=</span> <span class="n">ttk</span><span class="o">.</span><span class="n">Frame</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="n">files_frame</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="n">row</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">section_rows</span><span class="p">[</span><span class="s1">&#39;files&#39;</span><span class="p">],</span> <span class="n">sticky</span><span class="o">=</span><span class="n">tk</span><span class="o">.</span><span class="n">NSEW</span><span class="p">)</span>
+
+        <span class="k">def</span> <span class="nf">bind_files_command</span><span class="p">(</span><span class="n">f</span><span class="p">):</span>
+            <span class="k">def</span> <span class="nf">func</span><span class="p">():</span>
+                <span class="n">file_str</span> <span class="o">=</span> <span class="n">filedialog</span><span class="o">.</span><span class="n">askopenfilename</span><span class="p">()</span>
+                <span class="n">display_str</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">build_display_str</span><span class="p">(</span><span class="n">file_str</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">gui</span><span class="p">[</span><span class="s1">&#39;files_to_set&#39;</span><span class="p">][</span><span class="n">f</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">configure</span><span class="p">(</span><span class="n">text</span><span class="o">=</span><span class="n">display_str</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">gui</span><span class="p">[</span><span class="s1">&#39;files_to_set&#39;</span><span class="p">][</span><span class="n">f</span><span class="p">][</span><span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="n">file_str</span> 
+            <span class="n">func</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">=</span> <span class="n">f</span>
+            <span class="k">return</span> <span class="n">func</span>
+
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">f</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">gui</span><span class="p">[</span><span class="s1">&#39;files_to_set&#39;</span><span class="p">],</span> <span class="mi">1</span><span class="p">):</span>
+            <span class="n">check_label</span> <span class="o">=</span> <span class="n">tk</span><span class="o">.</span><span class="n">Label</span><span class="p">(</span><span class="n">files_frame</span><span class="p">,</span> 
+                                   <span class="n">text</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">gui</span><span class="p">[</span><span class="s1">&#39;files_to_set&#39;</span><span class="p">][</span><span class="n">f</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span> 
+                                   <span class="n">width</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">label_width</span><span class="p">,</span> 
+                                   <span class="n">anchor</span><span class="o">=</span><span class="n">tk</span><span class="o">.</span><span class="n">W</span><span class="p">,</span> 
+                                   <span class="n">justify</span><span class="o">=</span><span class="n">tk</span><span class="o">.</span><span class="n">LEFT</span><span class="p">)</span>
+
+            <span class="n">check_label</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="n">column</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">row</span><span class="o">=</span><span class="n">i</span><span class="p">,</span> <span class="n">sticky</span><span class="o">=</span><span class="n">tk</span><span class="o">.</span><span class="n">W</span><span class="p">)</span>
+
+            <span class="n">display_str</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">build_display_str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="n">f</span><span class="p">])</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">gui</span><span class="p">[</span><span class="s1">&#39;files_to_set&#39;</span><span class="p">][</span><span class="n">f</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">tk</span><span class="o">.</span><span class="n">Label</span><span class="p">(</span><span class="n">files_frame</span><span class="p">,</span> <span class="n">text</span><span class="o">=</span><span class="n">display_str</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">gui</span><span class="p">[</span><span class="s1">&#39;files_to_set&#39;</span><span class="p">][</span><span class="n">f</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="n">column</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">row</span><span class="o">=</span><span class="n">i</span><span class="p">,</span> <span class="n">sticky</span><span class="o">=</span><span class="n">tk</span><span class="o">.</span><span class="n">W</span><span class="p">)</span>
+
+            <span class="n">btn</span> <span class="o">=</span> <span class="n">tk</span><span class="o">.</span><span class="n">Button</span><span class="p">(</span><span class="n">files_frame</span><span class="p">,</span> <span class="n">text</span><span class="o">=</span><span class="s1">&#39;...&#39;</span><span class="p">,</span> <span class="n">command</span><span class="o">=</span><span class="n">bind_files_command</span><span class="p">(</span><span class="n">f</span><span class="p">))</span>
+            <span class="n">btn</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="n">column</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">row</span><span class="o">=</span><span class="n">i</span><span class="p">,</span> <span class="n">sticky</span><span class="o">=</span><span class="n">tk</span><span class="o">.</span><span class="n">W</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="MainGuiPage.build_dirs"><a class="viewcode-back" href="../qchecker_gui.html#qchecker_gui.MainGuiPage.build_dirs">[docs]</a>    <span class="k">def</span> <span class="nf">build_dirs</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;Directories&#39;&#39;&#39;</span>
+
+        <span class="n">dirs_frame</span> <span class="o">=</span> <span class="n">ttk</span><span class="o">.</span><span class="n">Frame</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="n">dirs_frame</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="n">row</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">section_rows</span><span class="p">[</span><span class="s1">&#39;dirs&#39;</span><span class="p">],</span> <span class="n">sticky</span><span class="o">=</span><span class="n">tk</span><span class="o">.</span><span class="n">NSEW</span><span class="p">)</span>
+
+        <span class="k">def</span> <span class="nf">bind_dirs_command</span><span class="p">(</span><span class="n">d</span><span class="p">):</span>
+            <span class="k">def</span> <span class="nf">func</span><span class="p">():</span>
+                <span class="n">dir_str</span> <span class="o">=</span> <span class="n">filedialog</span><span class="o">.</span><span class="n">askdirectory</span><span class="p">()</span>
+                <span class="n">display_str</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">build_display_str</span><span class="p">(</span><span class="n">dir_str</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">gui</span><span class="p">[</span><span class="s1">&#39;dirs_to_set&#39;</span><span class="p">][</span><span class="n">d</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">configure</span><span class="p">(</span><span class="n">text</span><span class="o">=</span><span class="n">display_str</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">gui</span><span class="p">[</span><span class="s1">&#39;dirs_to_set&#39;</span><span class="p">][</span><span class="n">d</span><span class="p">][</span><span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="n">dir_str</span> 
+            <span class="n">func</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">=</span> <span class="n">d</span>
+            <span class="k">return</span> <span class="n">func</span>
+
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">d</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">gui</span><span class="p">[</span><span class="s1">&#39;dirs_to_set&#39;</span><span class="p">],</span> <span class="mi">1</span><span class="p">):</span>
+            <span class="n">dir_label</span> <span class="o">=</span> <span class="n">tk</span><span class="o">.</span><span class="n">Label</span><span class="p">(</span><span class="n">dirs_frame</span><span class="p">,</span> 
+                                 <span class="n">text</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">gui</span><span class="p">[</span><span class="s1">&#39;dirs_to_set&#39;</span><span class="p">][</span><span class="n">d</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span> 
+                                 <span class="n">width</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">label_width</span><span class="p">,</span> 
+                                 <span class="n">anchor</span><span class="o">=</span><span class="n">tk</span><span class="o">.</span><span class="n">W</span><span class="p">,</span> 
+                                 <span class="n">justify</span><span class="o">=</span><span class="n">tk</span><span class="o">.</span><span class="n">LEFT</span><span class="p">)</span>
+
+            <span class="n">dir_label</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="n">column</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">row</span><span class="o">=</span><span class="n">i</span><span class="p">,</span> <span class="n">sticky</span><span class="o">=</span><span class="n">tk</span><span class="o">.</span><span class="n">W</span><span class="p">)</span>
+            
+            <span class="n">display_str</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">build_display_str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="n">d</span><span class="p">])</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">gui</span><span class="p">[</span><span class="s1">&#39;dirs_to_set&#39;</span><span class="p">][</span><span class="n">d</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">tk</span><span class="o">.</span><span class="n">Label</span><span class="p">(</span><span class="n">dirs_frame</span><span class="p">,</span> <span class="n">text</span><span class="o">=</span><span class="n">display_str</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">gui</span><span class="p">[</span><span class="s1">&#39;dirs_to_set&#39;</span><span class="p">][</span><span class="n">d</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="n">column</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">row</span><span class="o">=</span><span class="n">i</span><span class="p">,</span> <span class="n">sticky</span><span class="o">=</span><span class="n">tk</span><span class="o">.</span><span class="n">W</span><span class="p">)</span>
+
+            <span class="n">btn</span> <span class="o">=</span> <span class="n">tk</span><span class="o">.</span><span class="n">Button</span><span class="p">(</span><span class="n">dirs_frame</span><span class="p">,</span> <span class="n">text</span><span class="o">=</span><span class="s1">&#39;...&#39;</span><span class="p">,</span> <span class="n">command</span><span class="o">=</span><span class="n">bind_dirs_command</span><span class="p">(</span><span class="n">d</span><span class="p">))</span>
+            <span class="n">btn</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="n">column</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">row</span><span class="o">=</span><span class="n">i</span><span class="p">,</span> <span class="n">sticky</span><span class="o">=</span><span class="n">tk</span><span class="o">.</span><span class="n">W</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="MainGuiPage.get_wkt_ids"><a class="viewcode-back" href="../qchecker_gui.html#qchecker_gui.MainGuiPage.get_wkt_ids">[docs]</a>    <span class="k">def</span> <span class="nf">get_wkt_ids</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">wkts_file</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s1">&#39;srs_wkts&#39;</span><span class="p">]</span>
+        <span class="n">wkts_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="n">wkts_file</span><span class="p">,</span> <span class="n">index_col</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">header</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+        <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">wkts_df</span><span class="o">.</span><span class="n">index</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="MainGuiPage.get_gps_times"><a class="viewcode-back" href="../qchecker_gui.html#qchecker_gui.MainGuiPage.get_gps_times">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">get_gps_times</span><span class="p">():</span>
+        <span class="k">return</span> <span class="p">(</span><span class="s1">&#39;Satellite GPS Time&#39;</span><span class="p">,</span> <span class="s1">&#39;GPS Week Seconds&#39;</span><span class="p">)</span>  <span class="c1"># TODO: verify names</span></div>
+
+<div class="viewcode-block" id="MainGuiPage.get_naming_types"><a class="viewcode-back" href="../qchecker_gui.html#qchecker_gui.MainGuiPage.get_naming_types">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">get_naming_types</span><span class="p">():</span>
+        <span class="n">naming_types</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;yyyy_[easting]e_[northing]n_las&#39;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">naming_types</span></div>
+
+<div class="viewcode-block" id="MainGuiPage.get_versions"><a class="viewcode-back" href="../qchecker_gui.html#qchecker_gui.MainGuiPage.get_versions">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">get_versions</span><span class="p">():</span>
+        <span class="k">return</span> <span class="p">(</span><span class="s1">&#39;1.2&#39;</span><span class="p">,</span> <span class="s1">&#39;1.4&#39;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="MainGuiPage.get_vdatums"><a class="viewcode-back" href="../qchecker_gui.html#qchecker_gui.MainGuiPage.get_vdatums">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">get_vdatums</span><span class="p">():</span>
+        <span class="k">return</span> <span class="p">(</span><span class="s1">&#39;MHW&#39;</span><span class="p">,</span> <span class="s1">&#39;MLLW&#39;</span><span class="p">,</span> <span class="s1">&#39;GRS80&#39;</span><span class="p">,</span> <span class="s1">&#39;WGS84&#39;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="MainGuiPage.get_pdrfs"><a class="viewcode-back" href="../qchecker_gui.html#qchecker_gui.MainGuiPage.get_pdrfs">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">get_pdrfs</span><span class="p">():</span>
+        <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="mi">11</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="MainGuiPage.get_class_picker_msg"><a class="viewcode-back" href="../qchecker_gui.html#qchecker_gui.MainGuiPage.get_class_picker_msg">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">get_class_picker_msg</span><span class="p">():</span>
+        <span class="k">return</span> <span class="p">(</span><span class="s1">&#39;open class picker...&#39;</span><span class="p">,)</span></div>
+
+<div class="viewcode-block" id="MainGuiPage.get_pt_src_id_logic"><a class="viewcode-back" href="../qchecker_gui.html#qchecker_gui.MainGuiPage.get_pt_src_id_logic">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">get_pt_src_id_logic</span><span class="p">():</span>
+        <span class="n">pt_src_id_logic</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;Verify Unique Flight Line IDs&#39;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">pt_src_id_logic</span></div>
+
+<div class="viewcode-block" id="MainGuiPage.update_version_affected_info"><a class="viewcode-back" href="../qchecker_gui.html#qchecker_gui.MainGuiPage.update_version_affected_info">[docs]</a>    <span class="k">def</span> <span class="nf">update_version_affected_info</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">version</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">gui</span><span class="p">[</span><span class="s1">&#39;check_keys&#39;</span><span class="p">][</span><span class="s1">&#39;version&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">version</span> <span class="o">==</span> <span class="s1">&#39;1.2&#39;</span><span class="p">:</span>
+            <span class="n">pdrf</span> <span class="o">=</span> <span class="s1">&#39;3&#39;</span>
+            <span class="n">exp_classes</span> <span class="o">=</span> <span class="s1">&#39;02,26&#39;</span>
+            <span class="n">supp_las_domain</span> <span class="o">=</span> <span class="s1">&#39;RSD Supplemental Classes&#39;</span>
+        <span class="k">elif</span> <span class="n">version</span> <span class="o">==</span> <span class="s1">&#39;1.4&#39;</span><span class="p">:</span>
+            <span class="n">pdrf</span> <span class="o">=</span> <span class="s1">&#39;6&#39;</span>
+            <span class="n">exp_classes</span> <span class="o">=</span> <span class="s1">&#39;02,40&#39;</span>
+            <span class="n">supp_las_domain</span> <span class="o">=</span> <span class="s1">&#39;Topo-Bathy Lidar Domain Profile&#39;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">pdrf</span> <span class="o">=</span> <span class="kc">None</span>
+                    
+        <span class="bp">self</span><span class="o">.</span><span class="n">gui</span><span class="p">[</span><span class="s1">&#39;check_keys&#39;</span><span class="p">][</span><span class="s1">&#39;pdrf&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="n">pdrf</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">gui</span><span class="p">[</span><span class="s1">&#39;check_keys&#39;</span><span class="p">][</span><span class="s1">&#39;exp_cls&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="n">exp_classes</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">gui</span><span class="p">[</span><span class="s1">&#39;supp_las_domain&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="n">supp_las_domain</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="MainGuiPage.add_checks"><a class="viewcode-back" href="../qchecker_gui.html#qchecker_gui.MainGuiPage.add_checks">[docs]</a>    <span class="k">def</span> <span class="nf">add_checks</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">check</span> <span class="o">=</span> <span class="s1">&#39;naming&#39;</span>
+        <span class="n">get_key_options_def</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_naming_types</span><span class="p">()</span>
+        <span class="n">state</span> <span class="o">=</span> <span class="s1">&#39;disabled&#39;</span>
+        <span class="n">command</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">def</span> <span class="nf">add_check_key</span><span class="p">(</span><span class="n">check</span><span class="p">,</span> <span class="n">get_key_options_def</span><span class="p">,</span> <span class="n">state</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">gui</span><span class="p">[</span><span class="s1">&#39;check_keys&#39;</span><span class="p">][</span><span class="n">check</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">tk</span><span class="o">.</span><span class="n">StringVar</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">gui</span><span class="p">[</span><span class="s1">&#39;check_keys&#39;</span><span class="p">][</span><span class="n">check</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">set</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s1">&#39;check_keys&#39;</span><span class="p">][</span><span class="n">check</span><span class="p">])</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">gui</span><span class="p">[</span><span class="s1">&#39;check_keys&#39;</span><span class="p">][</span><span class="n">check</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">tk</span><span class="o">.</span><span class="n">OptionMenu</span><span class="p">(</span>
+                <span class="n">checks_frame</span><span class="p">,</span> 
+                <span class="bp">self</span><span class="o">.</span><span class="n">gui</span><span class="p">[</span><span class="s1">&#39;check_keys&#39;</span><span class="p">][</span><span class="n">check</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span>
+                <span class="o">*</span><span class="n">get_key_options_def</span><span class="p">,</span>
+                <span class="n">command</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">gui</span><span class="p">[</span><span class="s1">&#39;check_keys&#39;</span><span class="p">][</span><span class="n">check</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">config</span><span class="p">(</span><span class="n">state</span><span class="o">=</span><span class="n">state</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">gui</span><span class="p">[</span><span class="s1">&#39;check_keys&#39;</span><span class="p">][</span><span class="n">check</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">configure</span><span class="p">(</span><span class="n">anchor</span><span class="o">=</span><span class="s1">&#39;w&#39;</span><span class="p">)</span>
+
+        <span class="k">def</span> <span class="nf">add_naming_key</span><span class="p">():</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">gui</span><span class="p">[</span><span class="s1">&#39;check_keys&#39;</span><span class="p">][</span><span class="s1">&#39;naming&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">tk</span><span class="o">.</span><span class="n">StringVar</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">gui</span><span class="p">[</span><span class="s1">&#39;check_keys&#39;</span><span class="p">][</span><span class="s1">&#39;naming&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">set</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s1">&#39;check_keys&#39;</span><span class="p">][</span><span class="s1">&#39;naming&#39;</span><span class="p">])</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">gui</span><span class="p">[</span><span class="s1">&#39;check_keys&#39;</span><span class="p">][</span><span class="s1">&#39;naming&#39;</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">tk</span><span class="o">.</span><span class="n">OptionMenu</span><span class="p">(</span>
+                <span class="n">checks_frame</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">gui</span><span class="p">[</span><span class="s1">&#39;check_keys&#39;</span><span class="p">][</span><span class="s1">&#39;naming&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span> 
+                <span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">get_naming_types</span><span class="p">())</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">gui</span><span class="p">[</span><span class="s1">&#39;check_keys&#39;</span><span class="p">][</span><span class="s1">&#39;naming&#39;</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">config</span><span class="p">(</span><span class="n">state</span><span class="o">=</span><span class="s1">&#39;disabled&#39;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">gui</span><span class="p">[</span><span class="s1">&#39;check_keys&#39;</span><span class="p">][</span><span class="s1">&#39;naming&#39;</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">configure</span><span class="p">(</span><span class="n">anchor</span><span class="o">=</span><span class="s1">&#39;w&#39;</span><span class="p">)</span>
+
+        <span class="k">def</span> <span class="nf">add_version_key</span><span class="p">():</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">gui</span><span class="p">[</span><span class="s1">&#39;check_keys&#39;</span><span class="p">][</span><span class="s1">&#39;version&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">tk</span><span class="o">.</span><span class="n">StringVar</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">gui</span><span class="p">[</span><span class="s1">&#39;check_keys&#39;</span><span class="p">][</span><span class="s1">&#39;version&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">set</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s1">&#39;check_keys&#39;</span><span class="p">][</span><span class="s1">&#39;version&#39;</span><span class="p">])</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">gui</span><span class="p">[</span><span class="s1">&#39;check_keys&#39;</span><span class="p">][</span><span class="s1">&#39;version&#39;</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">tk</span><span class="o">.</span><span class="n">OptionMenu</span><span class="p">(</span>
+                <span class="n">checks_frame</span><span class="p">,</span> 
+                <span class="bp">self</span><span class="o">.</span><span class="n">gui</span><span class="p">[</span><span class="s1">&#39;check_keys&#39;</span><span class="p">][</span><span class="s1">&#39;version&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span> 
+                <span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">get_versions</span><span class="p">(),</span> 
+                <span class="n">command</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">update_version_affected_info</span><span class="p">())</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">gui</span><span class="p">[</span><span class="s1">&#39;check_keys&#39;</span><span class="p">][</span><span class="s1">&#39;version&#39;</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">configure</span><span class="p">(</span><span class="n">anchor</span><span class="o">=</span><span class="s1">&#39;w&#39;</span><span class="p">)</span>
+
+        <span class="k">def</span> <span class="nf">add_pdrf_key</span><span class="p">():</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">gui</span><span class="p">[</span><span class="s1">&#39;check_keys&#39;</span><span class="p">][</span><span class="s1">&#39;pdrf&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">tk</span><span class="o">.</span><span class="n">StringVar</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">gui</span><span class="p">[</span><span class="s1">&#39;check_keys&#39;</span><span class="p">][</span><span class="s1">&#39;pdrf&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">set</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s1">&#39;check_keys&#39;</span><span class="p">][</span><span class="s1">&#39;pdrf&#39;</span><span class="p">])</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">gui</span><span class="p">[</span><span class="s1">&#39;check_keys&#39;</span><span class="p">][</span><span class="s1">&#39;pdrf&#39;</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">tk</span><span class="o">.</span><span class="n">OptionMenu</span><span class="p">(</span>
+                <span class="n">checks_frame</span><span class="p">,</span> 
+                <span class="bp">self</span><span class="o">.</span><span class="n">gui</span><span class="p">[</span><span class="s1">&#39;check_keys&#39;</span><span class="p">][</span><span class="s1">&#39;pdrf&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span> 
+                <span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">get_pdrfs</span><span class="p">(),</span> 
+                <span class="n">command</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">update_version_affected_info</span><span class="p">())</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">gui</span><span class="p">[</span><span class="s1">&#39;check_keys&#39;</span><span class="p">][</span><span class="s1">&#39;pdrf&#39;</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">config</span><span class="p">(</span><span class="n">state</span><span class="o">=</span><span class="s1">&#39;disabled&#39;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">gui</span><span class="p">[</span><span class="s1">&#39;check_keys&#39;</span><span class="p">][</span><span class="s1">&#39;pdrf&#39;</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">configure</span><span class="p">(</span><span class="n">anchor</span><span class="o">=</span><span class="s1">&#39;w&#39;</span><span class="p">)</span>
+
+        <span class="k">def</span> <span class="nf">add_gps_time_key</span><span class="p">():</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">gui</span><span class="p">[</span><span class="s1">&#39;check_keys&#39;</span><span class="p">][</span><span class="s1">&#39;gps_time&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">tk</span><span class="o">.</span><span class="n">StringVar</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">gui</span><span class="p">[</span><span class="s1">&#39;check_keys&#39;</span><span class="p">][</span><span class="s1">&#39;gps_time&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">set</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s1">&#39;check_keys&#39;</span><span class="p">][</span><span class="s1">&#39;gps_time&#39;</span><span class="p">])</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">gui</span><span class="p">[</span><span class="s1">&#39;check_keys&#39;</span><span class="p">][</span><span class="s1">&#39;gps_time&#39;</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">tk</span><span class="o">.</span><span class="n">OptionMenu</span><span class="p">(</span>
+                <span class="n">checks_frame</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">gui</span><span class="p">[</span><span class="s1">&#39;check_keys&#39;</span><span class="p">][</span><span class="s1">&#39;gps_time&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span> 
+                <span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">get_gps_times</span><span class="p">())</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">gui</span><span class="p">[</span><span class="s1">&#39;check_keys&#39;</span><span class="p">][</span><span class="s1">&#39;gps_time&#39;</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">config</span><span class="p">(</span><span class="n">state</span><span class="o">=</span><span class="s1">&#39;disabled&#39;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">gui</span><span class="p">[</span><span class="s1">&#39;check_keys&#39;</span><span class="p">][</span><span class="s1">&#39;gps_time&#39;</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">configure</span><span class="p">(</span><span class="n">anchor</span><span class="o">=</span><span class="s1">&#39;w&#39;</span><span class="p">)</span>
+
+        <span class="k">def</span> <span class="nf">add_hdatum_key</span><span class="p">():</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">gui</span><span class="p">[</span><span class="s1">&#39;check_keys&#39;</span><span class="p">][</span><span class="s1">&#39;hdatum&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">tk</span><span class="o">.</span><span class="n">StringVar</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">gui</span><span class="p">[</span><span class="s1">&#39;check_keys&#39;</span><span class="p">][</span><span class="s1">&#39;hdatum&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">set</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s1">&#39;check_keys&#39;</span><span class="p">][</span><span class="s1">&#39;hdatum&#39;</span><span class="p">])</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">gui</span><span class="p">[</span><span class="s1">&#39;check_keys&#39;</span><span class="p">][</span><span class="s1">&#39;hdatum&#39;</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">tk</span><span class="o">.</span><span class="n">OptionMenu</span><span class="p">(</span>
+                <span class="n">checks_frame</span><span class="p">,</span> 
+                <span class="bp">self</span><span class="o">.</span><span class="n">gui</span><span class="p">[</span><span class="s1">&#39;check_keys&#39;</span><span class="p">][</span><span class="s1">&#39;hdatum&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span> 
+                <span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">get_wkt_ids</span><span class="p">())</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">gui</span><span class="p">[</span><span class="s1">&#39;check_keys&#39;</span><span class="p">][</span><span class="s1">&#39;hdatum&#39;</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">configure</span><span class="p">(</span><span class="n">anchor</span><span class="o">=</span><span class="s1">&#39;w&#39;</span><span class="p">)</span>
+
+        <span class="k">def</span> <span class="nf">add_vdatum_key</span><span class="p">():</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">gui</span><span class="p">[</span><span class="s1">&#39;check_keys&#39;</span><span class="p">][</span><span class="s1">&#39;vdatum&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">tk</span><span class="o">.</span><span class="n">StringVar</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">gui</span><span class="p">[</span><span class="s1">&#39;check_keys&#39;</span><span class="p">][</span><span class="s1">&#39;vdatum&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">set</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s1">&#39;check_keys&#39;</span><span class="p">][</span><span class="s1">&#39;vdatum&#39;</span><span class="p">])</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">gui</span><span class="p">[</span><span class="s1">&#39;check_keys&#39;</span><span class="p">][</span><span class="s1">&#39;vdatum&#39;</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">tk</span><span class="o">.</span><span class="n">OptionMenu</span><span class="p">(</span>
+                <span class="n">checks_frame</span><span class="p">,</span> 
+                <span class="bp">self</span><span class="o">.</span><span class="n">gui</span><span class="p">[</span><span class="s1">&#39;check_keys&#39;</span><span class="p">][</span><span class="s1">&#39;vdatum&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span> 
+                <span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">get_vdatums</span><span class="p">())</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">gui</span><span class="p">[</span><span class="s1">&#39;check_keys&#39;</span><span class="p">][</span><span class="s1">&#39;vdatum&#39;</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">configure</span><span class="p">(</span><span class="n">anchor</span><span class="o">=</span><span class="s1">&#39;w&#39;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">gui</span><span class="p">[</span><span class="s1">&#39;check_keys&#39;</span><span class="p">][</span><span class="s1">&#39;vdatum&#39;</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">config</span><span class="p">(</span><span class="n">state</span><span class="o">=</span><span class="s1">&#39;disabled&#39;</span><span class="p">)</span>
+
+        <span class="k">def</span> <span class="nf">add_pt_src_ids_key</span><span class="p">():</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">gui</span><span class="p">[</span><span class="s1">&#39;check_keys&#39;</span><span class="p">][</span><span class="s1">&#39;pt_src_ids&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">tk</span><span class="o">.</span><span class="n">StringVar</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">gui</span><span class="p">[</span><span class="s1">&#39;check_keys&#39;</span><span class="p">][</span><span class="s1">&#39;pt_src_ids&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">set</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s1">&#39;check_keys&#39;</span><span class="p">][</span><span class="s1">&#39;pt_src_ids&#39;</span><span class="p">])</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">gui</span><span class="p">[</span><span class="s1">&#39;check_keys&#39;</span><span class="p">][</span><span class="s1">&#39;pt_src_ids&#39;</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">tk</span><span class="o">.</span><span class="n">OptionMenu</span><span class="p">(</span>
+                <span class="n">checks_frame</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">gui</span><span class="p">[</span><span class="s1">&#39;check_keys&#39;</span><span class="p">][</span><span class="s1">&#39;pt_src_ids&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span> 
+                <span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">get_pt_src_id_logic</span><span class="p">())</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">gui</span><span class="p">[</span><span class="s1">&#39;check_keys&#39;</span><span class="p">][</span><span class="s1">&#39;pt_src_ids&#39;</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">config</span><span class="p">(</span><span class="n">state</span><span class="o">=</span><span class="s1">&#39;disabled&#39;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">gui</span><span class="p">[</span><span class="s1">&#39;check_keys&#39;</span><span class="p">][</span><span class="s1">&#39;pt_src_ids&#39;</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">configure</span><span class="p">(</span><span class="n">anchor</span><span class="o">=</span><span class="s1">&#39;w&#39;</span><span class="p">)</span>
+
+        <span class="k">def</span> <span class="nf">add_exp_cls_key</span><span class="p">():</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">gui</span><span class="p">[</span><span class="s1">&#39;check_keys&#39;</span><span class="p">][</span><span class="s1">&#39;exp_cls&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">tk</span><span class="o">.</span><span class="n">StringVar</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">gui</span><span class="p">[</span><span class="s1">&#39;check_keys&#39;</span><span class="p">][</span><span class="s1">&#39;exp_cls&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">set</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s1">&#39;check_keys&#39;</span><span class="p">][</span><span class="s1">&#39;exp_cls&#39;</span><span class="p">])</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">gui</span><span class="p">[</span><span class="s1">&#39;check_keys&#39;</span><span class="p">][</span><span class="s1">&#39;exp_cls&#39;</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">tk</span><span class="o">.</span><span class="n">OptionMenu</span><span class="p">(</span>
+                <span class="n">checks_frame</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">gui</span><span class="p">[</span><span class="s1">&#39;check_keys&#39;</span><span class="p">][</span><span class="s1">&#39;exp_cls&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span> 
+                <span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">get_class_picker_msg</span><span class="p">(),</span>
+                <span class="n">command</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">pick_classes</span><span class="p">())</span>
+            <span class="c1">#self.gui[&#39;check_keys&#39;][&#39;exp_cls&#39;][1].config(state=&#39;disabled&#39;)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">gui</span><span class="p">[</span><span class="s1">&#39;check_keys&#39;</span><span class="p">][</span><span class="s1">&#39;exp_cls&#39;</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">configure</span><span class="p">(</span><span class="n">anchor</span><span class="o">=</span><span class="s1">&#39;w&#39;</span><span class="p">)</span>
+
+        <span class="k">def</span> <span class="nf">add_supp_las_domain</span><span class="p">():</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">gui</span><span class="p">[</span><span class="s1">&#39;supp_las_domain&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">tk</span><span class="o">.</span><span class="n">StringVar</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">gui</span><span class="p">[</span><span class="s1">&#39;supp_las_domain&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s1">&#39;supp_las_domain&#39;</span><span class="p">])</span>
+
+        <span class="sd">&#39;&#39;&#39;Checks&#39;&#39;&#39;</span>
+        <span class="n">checks_frame</span> <span class="o">=</span> <span class="n">ttk</span><span class="o">.</span><span class="n">Frame</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="n">checks_frame</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="n">row</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">section_rows</span><span class="p">[</span><span class="s1">&#39;checks&#39;</span><span class="p">],</span> <span class="n">sticky</span><span class="o">=</span><span class="n">tk</span><span class="o">.</span><span class="n">NSEW</span><span class="p">)</span>
+
+        <span class="n">label</span> <span class="o">=</span> <span class="n">tk</span><span class="o">.</span><span class="n">Label</span><span class="p">(</span><span class="n">checks_frame</span><span class="p">,</span> <span class="n">text</span><span class="o">=</span><span class="s1">&#39;CHECKS&#39;</span><span class="p">,</span> <span class="n">font</span><span class="o">=</span><span class="n">LARGE_FONT_BOLD</span><span class="p">)</span>
+        <span class="n">label</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="n">row</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">columnspan</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">pady</span><span class="o">=</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">sticky</span><span class="o">=</span><span class="n">tk</span><span class="o">.</span><span class="n">W</span><span class="p">)</span>
+
+        <span class="n">add_naming_key</span><span class="p">()</span>
+        <span class="n">add_version_key</span><span class="p">()</span>
+        <span class="n">add_pdrf_key</span><span class="p">()</span>
+        <span class="n">add_gps_time_key</span><span class="p">()</span>
+        <span class="n">add_hdatum_key</span><span class="p">()</span>
+        <span class="n">add_vdatum_key</span><span class="p">()</span>
+        <span class="n">add_pt_src_ids_key</span><span class="p">()</span>
+        <span class="n">add_exp_cls_key</span><span class="p">()</span>
+        <span class="n">add_supp_las_domain</span><span class="p">()</span>
+
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">c</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">gui</span><span class="p">[</span><span class="s1">&#39;checks_to_do&#39;</span><span class="p">],</span> <span class="mi">1</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">gui</span><span class="p">[</span><span class="s1">&#39;checks_to_do&#39;</span><span class="p">][</span><span class="n">c</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">tk</span><span class="o">.</span><span class="n">BooleanVar</span><span class="p">()</span>
+            <span class="n">is_checked</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s1">&#39;checks_to_do&#39;</span><span class="p">][</span><span class="n">c</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">gui</span><span class="p">[</span><span class="s1">&#39;checks_to_do&#39;</span><span class="p">][</span><span class="n">c</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="n">is_checked</span><span class="p">)</span>
+            <span class="n">chk</span> <span class="o">=</span> <span class="n">tk</span><span class="o">.</span><span class="n">Checkbutton</span><span class="p">(</span>
+                <span class="n">checks_frame</span><span class="p">,</span> 
+                <span class="n">text</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">gui</span><span class="p">[</span><span class="s1">&#39;checks_to_do&#39;</span><span class="p">][</span><span class="n">c</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span>
+                <span class="n">var</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">gui</span><span class="p">[</span><span class="s1">&#39;checks_to_do&#39;</span><span class="p">][</span><span class="n">c</span><span class="p">][</span><span class="mi">1</span><span class="p">],</span> 
+                <span class="n">anchor</span><span class="o">=</span><span class="n">tk</span><span class="o">.</span><span class="n">W</span><span class="p">,</span> <span class="n">justify</span><span class="o">=</span><span class="n">tk</span><span class="o">.</span><span class="n">LEFT</span><span class="p">)</span>
+            <span class="n">chk</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="n">column</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">row</span><span class="o">=</span><span class="n">i</span><span class="p">,</span> <span class="n">sticky</span><span class="o">=</span><span class="n">tk</span><span class="o">.</span><span class="n">W</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">gui</span><span class="p">[</span><span class="s1">&#39;check_keys&#39;</span><span class="p">][</span><span class="n">c</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="n">column</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">row</span><span class="o">=</span><span class="n">i</span><span class="p">,</span> <span class="n">sticky</span><span class="o">=</span><span class="n">tk</span><span class="o">.</span><span class="n">EW</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="MainGuiPage.add_surfaces"><a class="viewcode-back" href="../qchecker_gui.html#qchecker_gui.MainGuiPage.add_surfaces">[docs]</a>    <span class="k">def</span> <span class="nf">add_surfaces</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        
+        <span class="k">def</span> <span class="nf">bind_dirs_command</span><span class="p">(</span><span class="n">s</span><span class="p">):</span>
+            <span class="k">def</span> <span class="nf">func</span><span class="p">():</span>
+                <span class="n">dir_str</span> <span class="o">=</span> <span class="n">filedialog</span><span class="o">.</span><span class="n">askdirectory</span><span class="p">()</span>
+                <span class="n">display_str</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">build_display_str</span><span class="p">(</span><span class="n">dir_str</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">gui</span><span class="p">[</span><span class="s1">&#39;surfaces_to_make&#39;</span><span class="p">][</span><span class="n">s</span><span class="p">][</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">configure</span><span class="p">(</span><span class="n">text</span><span class="o">=</span><span class="n">display_str</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">gui</span><span class="p">[</span><span class="s1">&#39;surfaces_to_make&#39;</span><span class="p">][</span><span class="n">s</span><span class="p">][</span><span class="mi">3</span><span class="p">]</span> <span class="o">=</span> <span class="n">dir_str</span> 
+            <span class="n">func</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">=</span> <span class="n">s</span>
+            <span class="k">return</span> <span class="n">func</span>
+
+        <span class="k">def</span> <span class="nf">bind_file_command</span><span class="p">(</span><span class="n">s</span><span class="p">):</span>
+            <span class="k">def</span> <span class="nf">func</span><span class="p">():</span>
+                <span class="n">file_str</span> <span class="o">=</span> <span class="n">filedialog</span><span class="o">.</span><span class="n">askdirectory</span><span class="p">()</span>
+                <span class="n">display_str</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">build_display_str</span><span class="p">(</span><span class="n">file_str</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">gui</span><span class="p">[</span><span class="s1">&#39;mosaics_to_make&#39;</span><span class="p">][</span><span class="n">s</span><span class="p">][</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">configure</span><span class="p">(</span><span class="n">text</span><span class="o">=</span><span class="n">display_str</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">gui</span><span class="p">[</span><span class="s1">&#39;mosaics_to_make&#39;</span><span class="p">][</span><span class="n">s</span><span class="p">][</span><span class="mi">3</span><span class="p">]</span> <span class="o">=</span> <span class="n">file_str</span> 
+            <span class="n">func</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">=</span> <span class="n">s</span>
+            <span class="k">return</span> <span class="n">func</span>
+
+        <span class="k">def</span> <span class="nf">add_tile_surface</span><span class="p">():</span>
+            <span class="c1"># checkbox</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">gui</span><span class="p">[</span><span class="s1">&#39;surfaces_to_make&#39;</span><span class="p">][</span><span class="n">s</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">tk</span><span class="o">.</span><span class="n">BooleanVar</span><span class="p">()</span>
+            <span class="n">is_checked</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s1">&#39;surfaces_to_make&#39;</span><span class="p">][</span><span class="n">s</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">gui</span><span class="p">[</span><span class="s1">&#39;surfaces_to_make&#39;</span><span class="p">][</span><span class="n">s</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="n">is_checked</span><span class="p">)</span>
+            <span class="n">chk</span> <span class="o">=</span> <span class="n">tk</span><span class="o">.</span><span class="n">Checkbutton</span><span class="p">(</span>
+                <span class="n">subframe</span><span class="p">,</span> 
+                <span class="n">text</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">gui</span><span class="p">[</span><span class="s1">&#39;surfaces_to_make&#39;</span><span class="p">][</span><span class="n">s</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span> 
+                <span class="n">var</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">gui</span><span class="p">[</span><span class="s1">&#39;surfaces_to_make&#39;</span><span class="p">][</span><span class="n">s</span><span class="p">][</span><span class="mi">1</span><span class="p">],</span> 
+                <span class="n">anchor</span><span class="o">=</span><span class="n">tk</span><span class="o">.</span><span class="n">W</span><span class="p">,</span> <span class="n">justify</span><span class="o">=</span><span class="n">tk</span><span class="o">.</span><span class="n">LEFT</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="mi">13</span><span class="p">)</span>
+            <span class="n">chk</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="n">column</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">row</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">sticky</span><span class="o">=</span><span class="n">tk</span><span class="o">.</span><span class="n">EW</span><span class="p">)</span>
+
+        <span class="k">def</span> <span class="nf">add_mosaic_surface</span><span class="p">():</span>
+            <span class="c1"># checkbox</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">gui</span><span class="p">[</span><span class="s1">&#39;mosaics_to_make&#39;</span><span class="p">][</span><span class="n">s</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">tk</span><span class="o">.</span><span class="n">BooleanVar</span><span class="p">()</span>
+            <span class="n">is_checked</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s1">&#39;mosaics_to_make&#39;</span><span class="p">][</span><span class="n">s</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">gui</span><span class="p">[</span><span class="s1">&#39;mosaics_to_make&#39;</span><span class="p">][</span><span class="n">s</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="n">is_checked</span><span class="p">)</span>
+            <span class="n">chk</span> <span class="o">=</span> <span class="n">tk</span><span class="o">.</span><span class="n">Checkbutton</span><span class="p">(</span>
+                <span class="n">subframe</span><span class="p">,</span> 
+                <span class="n">text</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">gui</span><span class="p">[</span><span class="s1">&#39;mosaics_to_make&#39;</span><span class="p">][</span><span class="n">s</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span> 
+                <span class="n">var</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">gui</span><span class="p">[</span><span class="s1">&#39;mosaics_to_make&#39;</span><span class="p">][</span><span class="n">s</span><span class="p">][</span><span class="mi">1</span><span class="p">],</span> 
+                <span class="n">anchor</span><span class="o">=</span><span class="n">tk</span><span class="o">.</span><span class="n">W</span><span class="p">,</span> <span class="n">justify</span><span class="o">=</span><span class="n">tk</span><span class="o">.</span><span class="n">LEFT</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="mi">13</span><span class="p">)</span>
+            <span class="n">chk</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="n">column</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">row</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">sticky</span><span class="o">=</span><span class="n">tk</span><span class="o">.</span><span class="n">EW</span><span class="p">)</span>
+
+        <span class="sd">&#39;&#39;&#39;Surfaces&#39;&#39;&#39;</span>
+        <span class="n">surf_frame</span> <span class="o">=</span> <span class="n">ttk</span><span class="o">.</span><span class="n">Frame</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="n">surf_frame</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="n">row</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">section_rows</span><span class="p">[</span><span class="s1">&#39;surfaces&#39;</span><span class="p">],</span> <span class="n">sticky</span><span class="o">=</span><span class="n">tk</span><span class="o">.</span><span class="n">NSEW</span><span class="p">)</span>
+
+        <span class="n">label</span> <span class="o">=</span> <span class="n">tk</span><span class="o">.</span><span class="n">Label</span><span class="p">(</span><span class="n">surf_frame</span><span class="p">,</span> <span class="n">text</span><span class="o">=</span><span class="s1">&#39;SURFACES&#39;</span><span class="p">,</span> <span class="n">font</span><span class="o">=</span><span class="n">LARGE_FONT_BOLD</span><span class="p">)</span>
+        <span class="n">label</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="n">row</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">columnspan</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">pady</span><span class="o">=</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">sticky</span><span class="o">=</span><span class="n">tk</span><span class="o">.</span><span class="n">W</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">s</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">gui</span><span class="p">[</span><span class="s1">&#39;surfaces_to_make&#39;</span><span class="p">],</span> <span class="mi">1</span><span class="p">):</span>
+            <span class="n">subframe</span> <span class="o">=</span> <span class="n">ttk</span><span class="o">.</span><span class="n">Frame</span><span class="p">(</span><span class="n">surf_frame</span><span class="p">)</span>
+            <span class="n">subframe</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="n">row</span><span class="o">=</span><span class="n">i</span><span class="p">,</span> <span class="n">column</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">sticky</span><span class="o">=</span><span class="n">tk</span><span class="o">.</span><span class="n">EW</span><span class="p">)</span>
+
+            <span class="n">add_tile_surface</span><span class="p">()</span>
+            <span class="n">add_mosaic_surface</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="MainGuiPage.add_run_panel"><a class="viewcode-back" href="../qchecker_gui.html#qchecker_gui.MainGuiPage.add_run_panel">[docs]</a>    <span class="k">def</span> <span class="nf">add_run_panel</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">run_frame</span> <span class="o">=</span> <span class="n">ttk</span><span class="o">.</span><span class="n">Frame</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="n">run_frame</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="n">row</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">section_rows</span><span class="p">[</span><span class="s1">&#39;run_button&#39;</span><span class="p">],</span> 
+                       <span class="n">sticky</span><span class="o">=</span><span class="n">tk</span><span class="o">.</span><span class="n">NSEW</span><span class="p">,</span> <span class="n">pady</span><span class="o">=</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>
+
+        <span class="n">btn</span> <span class="o">=</span> <span class="n">tk</span><span class="o">.</span><span class="n">Button</span><span class="p">(</span><span class="n">run_frame</span><span class="p">,</span> <span class="n">text</span><span class="o">=</span><span class="s1">&#39;Run QAQC Processes&#39;</span><span class="p">,</span> 
+                        <span class="n">command</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">run_qaqc_process</span><span class="p">,</span> 
+                        <span class="n">width</span><span class="o">=</span><span class="mi">25</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+        <span class="n">btn</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="n">columnspan</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span> <span class="n">row</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">sticky</span><span class="o">=</span><span class="n">tk</span><span class="o">.</span><span class="n">EW</span><span class="p">,</span> <span class="n">padx</span><span class="o">=</span><span class="p">(</span><span class="mi">100</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="MainGuiPage.run_qaqc_process"><a class="viewcode-back" href="../qchecker_gui.html#qchecker_gui.MainGuiPage.run_qaqc_process">[docs]</a>    <span class="k">def</span> <span class="nf">run_qaqc_process</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">controller</span><span class="o">.</span><span class="n">save_config</span><span class="p">()</span>
+        <span class="c1">#progress = self.add_progress_bar()</span>
+        
+        <span class="n">run_qaqc</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">controller</span><span class="o">.</span><span class="n">config_file</span><span class="p">)</span> <span class="c1">#  from qaqc.py</span></div></div>
+    
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+    <span class="n">qchecker_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">realpath</span><span class="p">(</span><span class="vm">__file__</span><span class="p">))</span>
+    <span class="n">os</span><span class="o">.</span><span class="n">chdir</span><span class="p">(</span><span class="n">qchecker_path</span><span class="p">)</span>
+
+    <span class="n">now</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">()</span>
+    <span class="n">date_time_now_str</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">{}{}{}</span><span class="s1">_</span><span class="si">{}{}{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">now</span><span class="o">.</span><span class="n">year</span><span class="p">,</span> 
+                                               <span class="nb">str</span><span class="p">(</span><span class="n">now</span><span class="o">.</span><span class="n">month</span><span class="p">)</span><span class="o">.</span><span class="n">zfill</span><span class="p">(</span><span class="mi">2</span><span class="p">),</span> 
+                                               <span class="nb">str</span><span class="p">(</span><span class="n">now</span><span class="o">.</span><span class="n">day</span><span class="p">)</span><span class="o">.</span><span class="n">zfill</span><span class="p">(</span><span class="mi">2</span><span class="p">),</span>
+                                               <span class="nb">str</span><span class="p">(</span><span class="n">now</span><span class="o">.</span><span class="n">hour</span><span class="p">)</span><span class="o">.</span><span class="n">zfill</span><span class="p">(</span><span class="mi">2</span><span class="p">),</span>
+                                               <span class="nb">str</span><span class="p">(</span><span class="n">now</span><span class="o">.</span><span class="n">minute</span><span class="p">)</span><span class="o">.</span><span class="n">zfill</span><span class="p">(</span><span class="mi">2</span><span class="p">),</span>
+                                               <span class="nb">str</span><span class="p">(</span><span class="n">now</span><span class="o">.</span><span class="n">second</span><span class="p">)</span><span class="o">.</span><span class="n">zfill</span><span class="p">(</span><span class="mi">2</span><span class="p">))</span>
+
+    <span class="n">log_file</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">qchecker_path</span><span class="p">,</span> <span class="s1">&#39;QChecker_</span><span class="si">{}</span><span class="s1">.log&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">date_time_now_str</span><span class="p">))</span>
+    <span class="n">logging</span><span class="o">.</span><span class="n">basicConfig</span><span class="p">(</span><span class="c1">#filename=log_file,</span>
+                        <span class="nb">format</span><span class="o">=</span><span class="s1">&#39;</span><span class="si">%(asctime)s</span><span class="s1">:</span><span class="si">%(message)s</span><span class="s1">&#39;</span><span class="p">,</span>
+                        <span class="n">level</span><span class="o">=</span><span class="n">logging</span><span class="o">.</span><span class="n">INFO</span><span class="p">)</span>
+
+    <span class="n">app</span> <span class="o">=</span> <span class="n">QaqcApp</span><span class="p">()</span>
+    <span class="n">app</span><span class="o">.</span><span class="n">resizable</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="n">app</span><span class="o">.</span><span class="n">geometry</span><span class="p">(</span><span class="s1">&#39;400x615&#39;</span><span class="p">)</span>
+    <span class="n">app</span><span class="o">.</span><span class="n">mainloop</span><span class="p">()</span>  <span class="c1"># tk functionality</span>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2019, Nick Forfinski-Sarkozi
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>
