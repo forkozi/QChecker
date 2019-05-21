@@ -1,5 +1,20 @@
-Metadata Checks
-===============
+Q-Checker User Interface
+************************
+
+The Q-Checker graphical user interface (GUI) has three main parts:
+
+- Settings
+- Checks
+- Surfaces
+
+.. image:: ../../assets/images/gui.PNG
+
+Settings
+--------
+
+
+Checks
+------
 
 The user can run a series of checks to verify that certain expected information is contained in the submitted LAS files.
 
@@ -7,8 +22,8 @@ The user can run a series of checks to verify that certain expected information 
 
 .. csv-table:: Available Checks
     :header: Check, Description
-	:widths: 10, 30
-
+    :widths: 10, 30
+    
     Naming Convention, checks that las files are named according to the *yyyy_[easting]e_[northing]n_las* naming convention
     Version, checks that the las files are the version specified in the corresponding dropdown menu
     Point Data Record Format, checks the Las files contain the propoer PDRF corresponding to the specified version
@@ -18,21 +33,18 @@ The user can run a series of checks to verify that certain expected information 
     Point Source IDs, checks that Las file contains > 1 unique point source id (flight line number)
     Expected Classes, checks that Las file contains classes other than the specified expected classes
 
-The Checks portion of Q-Checker generates two outputs:
+Surfaces
+--------
 
-- QA/QC results shapefile
-- QA/QC results html dashboard
+The user has the option to generate the following surfaces:
 
-QA/QC results shapefile
------------------------
+.. image:: ../../assets/images/surfaces.PNG
 
-The QA/QC results shapefile contains a polygon for each input LAS tile, along with the associated check results in the shapefile attribute table.  In the image below, the tiles are colored according to whether or not they passed the version test.
-
-.. image:: ../../assets/images/qaqc_tiles_eg.PNG
-
-QA/QC results html dashboard
-----------------------------
-
-The QA/QC results html dashboard contains project-wide summary visualizations of the QA/QC results (see image below).
-
-.. image:: ../../assets/images/ResultsDashboard.PNG
+.. csv-table:: Available Checks
+    :header: Surface, Description
+    :widths: 10, 30
+    
+    Dz, shows the maximum difference in the z values (i.e. dz values) of points from overlapping las files
+    Hillshade, an 8-bit gridded representation of the lidar point cloud based on an illumination azimuth/altitude of 315°/45°
+    Dz Mosaic, all of the individual tile Dz surfaces combined into a single surface
+    Hillshade Mosaic, all of the individual tile hillshade surfaces combined into a single surface

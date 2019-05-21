@@ -397,9 +397,10 @@ class Configuration:
         self.wgs84_epsg = {'init': 'epsg:4326'}
 
         self.aprx = Path(data['aprx'])
-        self.dz_export_settings = Path(data['dz_export_settings'])
         self.dz_classes_template = Path(data['dz_classes_template'])
-        self.hillshade_export_settings = Path(data['hillshade_export_settings'])
+        
+        self.surface_export_settings = {'Dz': Path(data['dz_export_settings']),
+                                        'Hillshade': Path(data['hillshade_export_settings'])}
 
         self.lp360_ldexport_exe = Path(data['lp360_ldexport_exe'])
 
@@ -678,7 +679,7 @@ class Mosaic:
 
     def export_mosaic_dataset(self):
         try:
-            self.config.exported_mosaic_dataset = self.config.qaqc_dir / 'dz' / (self.mosaic_dataset_base_name + '.tif')
+            self.config.exported_mosaic_dataset = self.config.qaqc_dir / self.mtype / (self.mosaic_dataset_base_name + '.tif')
             arcpy.AddMessage('exporting {} to tif...'.format(self.mosaic_dataset_base_name))
             arcpy.env.overwriteOutput = True
             arcpy.CopyRaster_management(str(self.mosaic_dataset_path), str(self.config.exported_mosaic_dataset))
@@ -690,15 +691,14 @@ class Mosaic:
         try:
             mosaic_lyrx = self.config.qaqc_dir / '{}.lyrx'.format(self.mosaic_dataset_base_name)
             arcpy.AddMessage('adding {} to aprx...'.format(mosaic_lyrx))
-            #aprx = arcpy.mp.ArcGISProject('CURRENT')
             aprx = arcpy.mp.ArcGISProject(str(self.config.aprx))
             m = aprx.listMaps('QAQC_layers')[0]
-            mosaic_name = '{}_Dz_mosaic'.format(self.config.project_name)
+            mosaic_name = '{}_{}_mosaic'.format(self.config.project_name, self.mtype)
             arcpy.MakeRasterLayer_management(str(self.config.exported_mosaic_dataset), mosaic_name)
 
             if not mosaic_lyrx.exists():
                 arcpy.AddMessage('saving {}...'.format(mosaic_lyrx))
-                arcpy.SaveToLayerFile_management(mosaic_name, mosaic_lyrx)
+                arcpy.SaveToLayerFile_management(mosaic_name, str(mosaic_lyrx))
             
             m.addDataFromPath(mosaic_lyrx)
             #arcpy.ApplySymbologyFromLayer_management(mosaic_lyr, self.config.dz_classes_template)
@@ -719,53 +719,26 @@ class Surface:
         self.las_extents = tile.las_extents
         self.config = config
 
-        self.binary_path = {'Dz': os.path.join(self.config.surfaces_to_make[self.stype][1],
-                                               '{}_dz_dzValue.flt'.format(self.las_name)),
-                            'Hillshade': ''}
-
-        self.raster_path = {'Dz': os.path.join(self.config.raster_dir, 'dz_{}'.format(self.las_name)),
-                            'Hillshade': ''}
-
     def __str__(self):
         return self.raster_path[self.stype]
 
-    def binary_to_raster(self):
-        try:
-            arcpy.AddMessage('converting {} to {}...'.format(self.binary_path[self.stype], 
-                                                         self.raster_path[self.stype]))
-            arcpy.FloatToRaster_conversion(self.binary_path[self.stype], 
-                                           self.raster_path[self.stype])
-        except Exception as e:
-            arcpy.AddMessage(e)
-
-    def update_dz_export_settings_extents(self):
-        arcpy.AddMessage('updating dz export settings xml with las extents...')
-        tree = ET.parse(self.config.dz_export_settings)
+    def update_surface_export_settings_extents(self):
+        arcpy.AddMessage('updating {} export settings xml with las extents...'.format(self.stype))
+        tree = ET.parse(self.config.surface_export_settings[self.stype])
         root = tree.getroot()
         for extent, val in self.las_extents.items():
             for e in root.findall(extent):
                 e.text = str(val)
         new_dz_settings = ET.tostring(root).decode('utf-8')  # is byte string
-        myfile = open(self.config.dz_export_settings, "w")
+        myfile = open(self.config.surface_export_settings[self.stype], "w")
         myfile.write(new_dz_settings)
 
-    def gen_dz_surface(self):
+    def gen_surface(self):
         exe = self.config.lp360_ldexport_exe
         las = self.las_path.replace('CLASSIFIED_LAS\\', 'CLASSIFIED_LAS\\\\')
-        dz = r'{}\{}'.format(self.config.surfaces_to_make[self.stype][1], self.las_name)
-        cmd_str = '{} -s {} -f {} -o {}'.format(exe, self.config.dz_export_settings, las, dz)
-        arcpy.AddMessage('generating dz ortho for {}...'.format(las))
-        try:
-            returncode, output = self.config.run_console_cmd(cmd_str)
-        except Exception as e:
-            arcpy.AddMessage(e)
-
-    def gen_hillshade_surface(self):
-        exe = self.config.lp360_ldexport_exe
-        las = self.las_path.replace('CLASSIFIED_LAS\\', 'CLASSIFIED_LAS\\\\')
-        dz = r'{}\{}'.format(self.config.surfaces_to_make[self.stype][1], self.las_name)
-        cmd_str = '{} -s {} -f {} -o {}'.format(exe, self.config.dz_export_settings, las, dz)
-        arcpy.AddMessage('generating dz ortho for {}...'.format(las))
+        surface = r'{}\{}'.format(self.config.surfaces_to_make[self.stype][1], self.las_name)
+        cmd_str = '{} -s {} -f {} -o {}'.format(exe, self.config.surface_export_settings[self.stype], las, surface)
+        arcpy.AddMessage('generating {} surface for {}...'.format(self.stype, las))
         try:
             returncode, output = self.config.run_console_cmd(cmd_str)
         except Exception as e:
@@ -910,14 +883,19 @@ class QaqcTile:
         from qchecker import Surface
         if tile.has_bathy or tile.has_ground:
             tile_dz = Surface(tile, 'Dz', self.config)
-            tile_dz.update_dz_export_settings_extents()
-            tile_dz.gen_dz_surface()
-            #tile_dz.binary_to_raster()
+            tile_dz.update_surface_export_settings_extents()
+            tile_dz.gen_surface()
         else:
             arcpy.AddMessage('{} has no bathy or ground points; no dz ortho generated'.format(tile.name))
 
-    def create_hillshade(self):
-        pass
+    def create_hillshade(self, tile):
+        from qchecker import Surface
+        if tile.has_bathy or tile.has_ground:
+            tile_hillshade = Surface(tile, 'Hillshade', self.config)
+            tile_hillshade.update_surface_export_settings_extents()
+            tile_hillshade.gen_surface()
+        else:
+            arcpy.AddMessage('{} has no bathy or ground points; no hillshade ortho generated'.format(tile.name))
 
     def add_tile_check_results(self, tile_check_results):
         arcpy.AddMessage(tile_check_results)
@@ -1173,7 +1151,7 @@ def run_qaqc(config_json):
     config = Configuration(config_json)
     
     qaqc_tile_collection = LasTileCollection(config.las_tile_dir)
-    qaqc = QaqcTileCollection(qaqc_tile_collection.get_las_tile_paths()[0:10], config)
+    qaqc = QaqcTileCollection(qaqc_tile_collection.get_las_tile_paths()[0:100], config)
     
     qaqc.run_qaqc_tile_collection_checks(multiprocess=False)
     qaqc.set_qaqc_results_df()

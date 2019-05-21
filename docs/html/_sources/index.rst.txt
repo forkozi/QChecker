@@ -10,11 +10,11 @@ Q-Checker can be run independently or as a geoprocessing tool within ArcPro.
 
 .. toctree::
     :maxdepth: 1
-
+    
     install
-    checks
-    surfaces
-
+    gui
+    workflow
+    output
 
 Soure Code Documentation
 ------------------------
