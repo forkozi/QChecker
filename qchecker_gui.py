@@ -75,6 +75,7 @@ class QaqcApp(tk.Tk):
             #'tile_size': ['Tile Size (m)', None],
             'to_pyramid': ['Build LAS Pyramids', None],
             #'make_contact_centroids': ['Make Contr. Tile Centroid shp', None],
+            'multiprocess': ['Use Multiprocessing', None],  # hard-coded False for now
             }})
 
         self.components.update({'files_to_set': {
@@ -125,7 +126,7 @@ class QaqcApp(tk.Tk):
             with open(self.config_file) as cf:
                 self.configuration = json.load(cf)
         else:
-           print('configuration file doesn\'t exist')
+           logging.debug('configuration file doesn\'t exist')
 
     def save_config(self):
 
@@ -162,7 +163,7 @@ class QaqcApp(tk.Tk):
         # supp_las_domain
         self.configuration['supp_las_domain'] = self.components['supp_las_domain'].get()
 
-        print('saving {}...'.format(self.config_file))
+        logging.debug('saving {}...'.format(self.config_file))
         with open(self.config_file, 'w') as f:
             json.dump(self.configuration, f)
 
@@ -389,6 +390,25 @@ class MainGuiPage(ttk.Frame):
 
         item = 'to_pyramid'
         row = 3
+        option_label = tk.Label(options_frame, 
+                                text=self.gui['options'][item][0], 
+                                width=self.label_width, 
+                                anchor=tk.W, 
+                                justify=tk.LEFT)
+
+        option_label.grid(column=0, row=row, sticky=tk.W)
+        self.gui['options'][item][1] = tk.BooleanVar()
+        is_checked = self.config[item]
+        self.gui['options'][item][1].set(is_checked)
+        chk = tk.Checkbutton(
+            options_frame, 
+            text='',
+            var=self.gui['options'][item][1], 
+            anchor=tk.W, justify=tk.LEFT)
+        chk.grid(column=1, row=row, sticky=tk.W)
+
+        item = 'multiprocess'
+        row = 4
         option_label = tk.Label(options_frame, 
                                 text=self.gui['options'][item][0], 
                                 width=self.label_width, 
@@ -747,11 +767,11 @@ if __name__ == '__main__':
                                                str(now.second).zfill(2))
 
     log_file = os.path.join(qchecker_path, 'QChecker_{}.log'.format(date_time_now_str))
-    logging.basicConfig(#filename=log_file,
+    logging.basicConfig(filename=log_file,
                         format='%(asctime)s:%(message)s',
-                        level=logging.INFO)
+                        level=logging.DEBUG)
 
     app = QaqcApp()
     app.resizable(0, 0)
-    app.geometry('400x615')
+    app.geometry('400x635')
     app.mainloop()  # tk functionality
