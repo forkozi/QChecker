@@ -354,6 +354,32 @@ class MainGuiPage(ttk.Frame):
 
         return progress 
 
+    def clear_paths(self):
+        not_specified_text = '(specify path)'
+        self.gui['files_to_set']['contractor_shp'][1].configure(text=not_specified_text, fg='red')
+        self.gui['files_to_set']['contractor_shp'][2] = not_specified_text
+
+        self.gui['dirs_to_set']['qaqc_dir'][1].configure(text=not_specified_text, fg='red')
+        self.gui['dirs_to_set']['qaqc_dir'][2] = not_specified_text
+
+        self.gui['dirs_to_set']['las_tile_dir'][1].configure(text=not_specified_text, fg='red')
+        self.gui['dirs_to_set']['las_tile_dir'][2] = not_specified_text
+
+        self.run_btn['state'] = 'disabled'
+
+        self.controller.save_config()
+
+    def check_paths(self):
+        not_specified_text = '(specify path)'
+        path1 = True if str(self.gui['files_to_set']['contractor_shp'][2]) != not_specified_text else False
+        path2 = True if str(self.gui['dirs_to_set']['qaqc_dir'][2]) != not_specified_text else False
+        path3 = True if str(self.gui['dirs_to_set']['las_tile_dir'][2]) != not_specified_text else False
+
+        if path1 and path2 and path3:
+            self.run_btn['state'] = 'normal'
+        else:
+            self.run_btn['state'] = 'disabled'
+
     def build_options(self):
         '''options'''
 
@@ -372,6 +398,7 @@ class MainGuiPage(ttk.Frame):
 
             return tuple(project_ids)
 
+        # -----------------------------------------------------
         item = 'project_name'
         row = 1
         option_label = tk.Label(options_frame, 
@@ -385,9 +412,12 @@ class MainGuiPage(ttk.Frame):
         self.gui['options'][item][1].set(self.config[item])
         proj_down_down = tk.OptionMenu(options_frame, 
                                        self.gui['options'][item][1], 
-                                       *get_proj_names())
+                                       *get_proj_names(),
+                                       command=lambda x: self.clear_paths())
+
         proj_down_down.grid(column=1, row=row, sticky=tk.EW)
 
+        # -----------------------------------------------------
         item = 'to_pyramid'
         row = 3
         option_label = tk.Label(options_frame, 
@@ -407,6 +437,7 @@ class MainGuiPage(ttk.Frame):
             anchor=tk.W, justify=tk.LEFT)
         chk.grid(column=1, row=row, sticky=tk.W)
 
+        # -----------------------------------------------------
         item = 'multiprocess'
         row = 4
         option_label = tk.Label(options_frame, 
@@ -421,7 +452,7 @@ class MainGuiPage(ttk.Frame):
         self.gui['options'][item][1].set(is_checked)
         chk = tk.Checkbutton(
             options_frame, 
-            text='',
+            text='(Uses 1 LP360 license per process)',
             var=self.gui['options'][item][1], 
             anchor=tk.W, justify=tk.LEFT)
         chk.grid(column=1, row=row, sticky=tk.W)
@@ -436,8 +467,9 @@ class MainGuiPage(ttk.Frame):
             def func():
                 file_str = filedialog.askopenfilename()
                 display_str = self.build_display_str(file_str)
-                self.gui['files_to_set'][f][1].configure(text=display_str)
+                self.gui['files_to_set'][f][1].configure(text=display_str, fg='black')
                 self.gui['files_to_set'][f][2] = file_str 
+                self.check_paths()
             func.__name__ = f
             return func
 
@@ -450,8 +482,14 @@ class MainGuiPage(ttk.Frame):
 
             check_label.grid(column=0, row=i, sticky=tk.W)
 
-            display_str = self.build_display_str(self.config[f])
-            self.gui['files_to_set'][f][1] = tk.Label(files_frame, text=display_str)
+            if self.config[f] == '(specify path)':
+                display_str = self.config[f]
+                font_color = 'red'
+            else:
+                display_str = self.build_display_str(self.config[f])
+                font_color = 'black'
+
+            self.gui['files_to_set'][f][1] = tk.Label(files_frame, text=display_str, fg=font_color)
             self.gui['files_to_set'][f][1].grid(column=2, row=i, sticky=tk.W)
 
             btn = tk.Button(files_frame, text='...', command=bind_files_command(f))
@@ -467,8 +505,9 @@ class MainGuiPage(ttk.Frame):
             def func():
                 dir_str = filedialog.askdirectory()
                 display_str = self.build_display_str(dir_str)
-                self.gui['dirs_to_set'][d][1].configure(text=display_str)
-                self.gui['dirs_to_set'][d][2] = dir_str 
+                self.gui['dirs_to_set'][d][1].configure(text=display_str, fg='black')
+                self.gui['dirs_to_set'][d][2] = dir_str
+                self.check_paths()
             func.__name__ = d
             return func
 
@@ -481,8 +520,14 @@ class MainGuiPage(ttk.Frame):
 
             dir_label.grid(column=0, row=i, sticky=tk.W)
             
-            display_str = self.build_display_str(self.config[d])
-            self.gui['dirs_to_set'][d][1] = tk.Label(dirs_frame, text=display_str)
+            if self.config[d] == '(specify path)':
+                display_str = self.config[d]
+                font_color = 'red'
+            else:
+                display_str = self.build_display_str(self.config[d])
+                font_color = 'black'
+
+            self.gui['dirs_to_set'][d][1] = tk.Label(dirs_frame, text=display_str, fg=font_color)
             self.gui['dirs_to_set'][d][1].grid(column=2, row=i, sticky=tk.W)
 
             btn = tk.Button(dirs_frame, text='...', command=bind_dirs_command(d))
@@ -742,10 +787,12 @@ class MainGuiPage(ttk.Frame):
         run_frame.grid(row=self.section_rows['run_button'], 
                        sticky=tk.NSEW, pady=(10, 0))
 
-        btn = tk.Button(run_frame, text='Run QAQC Processes', 
+        self.run_btn = tk.Button(run_frame, text='Run QAQC Processes', 
                         command=self.run_qaqc_process, 
                         width=25, height=3)
-        btn.grid(columnspan=4, row=0, sticky=tk.EW, padx=(100, 0))
+        self.run_btn.grid(columnspan=4, row=0, sticky=tk.EW, padx=(100, 0))
+
+        self.check_paths()
 
     def run_qaqc_process(self):
         self.controller.save_config()
@@ -767,8 +814,11 @@ if __name__ == '__main__':
                                                str(now.second).zfill(2))
 
     log_file = os.path.join(qchecker_path, 'QChecker_{}.log'.format(date_time_now_str))
-    logging.basicConfig(filename=log_file,
-                        format='%(asctime)s:%(message)s',
+    #logging.basicConfig(filename=log_file,
+    #                    format='%(asctime)s:%(message)s',
+    #                    level=logging.DEBUG)
+
+    logging.basicConfig(format='%(asctime)s:%(message)s',
                         level=logging.DEBUG)
 
     app = QaqcApp()
