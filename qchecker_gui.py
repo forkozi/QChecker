@@ -819,7 +819,7 @@ if __name__ == '__main__':
     #                    level=logging.DEBUG)
 
     logging.basicConfig(format='%(asctime)s:%(message)s',
-                        level=logging.DEBUG)
+                        level=logging.ERROR)
 
     app = QaqcApp()
     app.resizable(0, 0)

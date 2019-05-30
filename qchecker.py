@@ -430,9 +430,16 @@ class Configuration:
         return json.dumps(self.data, indent=4, sort_keys=True)
 
     @staticmethod
-    def run_console_cmd(cmd):
-        process = subprocess.Popen(cmd.split(' '), shell=False)#, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+    def run_console_cmd(cmd, las_path):
+        process = subprocess.Popen(cmd.split(' '), stdout=subprocess.PIPE, stderr=subprocess.PIPE)#, shell=False)
         output, error = process.communicate()
+        logging.debug(output)
+        logging.debug(error)
+        error_msg = 'ERROR: Failed in getting valid license'
+        error = error.strip().decode('utf-8')
+        if error == error_msg:
+            logging.error('{}|{}'.format(las_path, error))
+
         returncode = process.poll()
         return returncode, output, error
 
@@ -646,7 +653,7 @@ class LasTile:
         logging.debug('generating pyramids for {}...'.format(self.path))
         logging.debug(cmd_str)
         try:
-            returncode, output, error = self.config.run_console_cmd(cmd_str)
+            returncode, output, error = self.config.run_console_cmd(cmd_str, self.path)
         except Exception as e:
             logging.debug(e)
 
@@ -742,7 +749,7 @@ class Surface:
         cmd_str = '{} -s {} -f {} -o {}'.format(exe, self.config.surface_export_settings[self.stype], las, surface)
         logging.debug('generating {} surface for {}...'.format(self.stype, las))
         try:
-            returncode, output, error = self.config.run_console_cmd(cmd_str)
+            returncode, output, error = self.config.run_console_cmd(cmd_str, self.las_path)
             logging.info('{}: {}'.format(las, returncode))
         except Exception as e:
             logging.debug(e)
@@ -910,7 +917,7 @@ class QaqcTile:
         
         logging.basicConfig(filename=log_path,
                             format='%(asctime)s:%(message)s',
-                            level=logging.INFO)
+                            level=logging.ERROR)
 
         logging.debug(pid)
         logging.debug('{}'.format(las_path))
@@ -919,12 +926,10 @@ class QaqcTile:
         for c in [k for k, v in self.config.checks_to_do.items() if v]:
             logging.debug('running {}...'.format(c))
             result = self.checks[c](tile)
-            logging.debug(result)
 
         for c in [k for k, v in self.config.surfaces_to_make.items() if v[0]]:
             logging.debug('running {}...'.format(c))
             result = self.surfaces[c](tile)
-            logging.debug(result)        
 
         tile.output_las_qaqc_to_json()
 
@@ -941,18 +946,16 @@ class QaqcTile:
             for c in [k for k, v in self.config.checks_to_do.items() if v]:
                 logging.debug('running {}...'.format(c))
                 result = self.checks[c](tile)
-                logging.debug(result)
 
             for c in [k for k, v in self.config.surfaces_to_make.items() if v[0]]:
                 logging.debug('running {}...'.format(c))
                 result = self.surfaces[c](tile)
-                logging.debug(result)
 
             tile.output_las_qaqc_to_json()
 
     def run_qaqc(self, las_paths):
         if self.config.multiprocess:
-            p = pp.ProcessPool(2)
+            p = pp.ProcessPool()
             #p.imap(self.run_qaqc_checks_multiprocess, las_paths)
             num_las = len(las_paths)
             for _ in tqdm(p.imap(self.run_qaqc_checks_multiprocess, las_paths), total=num_las, ascii=True):
@@ -963,6 +966,12 @@ class QaqcTile:
         else:
             self.run_qaqc_checks(las_paths)
 
+        error_log = self.config.qaqc_dir / 'license_errors.txt'
+        temp_err_logs = list(self.config.qaqc_dir.glob('*_TEMP.log'))
+        with open(error_log, "wb") as outfile:
+            for f in temp_err_logs:
+                with open(f, "rb") as infile:
+                    outfile.write(infile.read())
 
 class QaqcTileCollection:
 
@@ -973,7 +982,20 @@ class QaqcTileCollection:
 
     def run_qaqc_tile_collection_checks(self):
         tiles_qaqc = QaqcTile(self.config)
-        tiles_qaqc.run_qaqc(self.las_paths)
+
+        continue_processing = True
+        while continue_processing:
+            error_files = tiles_qaqc.run_qaqc(self.las_paths)
+            if error_files:
+                print('{} file(s) not processed due to unavailable LP360 license')
+                answer = raw_input('Retry? (enter y or n)')
+
+                if answer == 'n':
+                    continue_processing = False
+                elif answer == 'y':
+                    continue_processing = True
+                else:
+                    print('Umm, that\'s not either a y or n.  Let\'s try that again...')
 
     def gen_qaqc_results_dict(self):
         def flatten_dict(d_obj):
@@ -1171,7 +1193,7 @@ def run_qaqc(config_json):
     config = Configuration(config_json)
     
     qaqc_tile_collection = LasTileCollection(config.las_tile_dir)
-    qaqc = QaqcTileCollection(qaqc_tile_collection.get_las_tile_paths()[0:10], config)
+    qaqc = QaqcTileCollection(qaqc_tile_collection.get_las_tile_paths()[0:100], config)
     
     qaqc.run_qaqc_tile_collection_checks()
     qaqc.set_qaqc_results_df()
@@ -1193,7 +1215,9 @@ def run_qaqc(config_json):
     else:
         logging.debug('no mosaics to build...')
 
-    logging.debug('\nYAY, you just QAQC\'d project {}!!!'.format(config.project_name))
+    print('')
+    print('\tYAY, you just QAQC\'d project {}!!!'.format(config.project_name).upper())
+    print('\t(Restart Q-Checker before running it again.)')
 
     pass
 
