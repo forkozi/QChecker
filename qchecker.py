@@ -1,4 +1,5 @@
 import os
+from shutil import copyfile
 import json
 import logging
 import numpy as np
@@ -733,13 +734,19 @@ class Surface:
 
     def update_surface_export_settings_extents(self):
         logging.debug('updating {} export settings xml with las extents...'.format(self.stype))
-        tree = ET.parse(self.config.surface_export_settings[self.stype])
+        
+        pid = ph.mp.current_process().pid
+        temp_xml = self.config.qaqc_dir / 'dz_export_settings_pid_{}_TEMP.xml'.format(pid)
+        original_xml = self.config.surface_export_settings[self.stype]
+        copyfile(original_xml, temp_xml)
+
+        tree = ET.parse(temp_xml)
         root = tree.getroot()
         for extent, val in self.las_extents.items():
             for e in root.findall(extent):
                 e.text = str(val)
         new_dz_settings = ET.tostring(root).decode('utf-8')  # is byte string
-        myfile = open(self.config.surface_export_settings[self.stype], "w")
+        myfile = open(temp_xml, "w")
         myfile.write(new_dz_settings)
 
     def gen_surface(self):
@@ -907,25 +914,30 @@ class QaqcTile:
         else:
             logging.debug('{} has no bathy or ground points; no hillshade ortho generated'.format(tile.name))
 
-    def run_qaqc_checks_multiprocess(self, las_path):
+    def run_qaqc_checks_multiprocess(self, variables):
         from qchecker import LasTile, LasTileCollection
         import logging
         import xml.etree.ElementTree as ET
+
+        las_path = variables[0]
+        just_surfaces = variables[1]
 
         pid = ph.mp.current_process().pid
         log_path = self.config.qaqc_dir / 'multiprocessing_pid_{}_TEMP.log'.format(pid)
         
         logging.basicConfig(filename=log_path,
-                            format='%(asctime)s:%(message)s',
+                            format='%(asctime)s|%(message)s',
                             level=logging.ERROR)
 
         logging.debug(pid)
         logging.debug('{}'.format(las_path))
 
         tile = LasTile(las_path, self.config)
-        for c in [k for k, v in self.config.checks_to_do.items() if v]:
-            logging.debug('running {}...'.format(c))
-            result = self.checks[c](tile)
+
+        if not just_surfaces:
+            for c in [k for k, v in self.config.checks_to_do.items() if v]:
+                logging.debug('running {}...'.format(c))
+                result = self.checks[c](tile)
 
         for c in [k for k, v in self.config.surfaces_to_make.items() if v[0]]:
             logging.debug('running {}...'.format(c))
@@ -953,25 +965,27 @@ class QaqcTile:
 
             tile.output_las_qaqc_to_json()
 
-    def run_qaqc(self, las_paths):
+    def run_qaqc(self, las_paths, just_surfaces):
         if self.config.multiprocess:
             p = pp.ProcessPool()
-            #p.imap(self.run_qaqc_checks_multiprocess, las_paths)
             num_las = len(las_paths)
-            for _ in tqdm(p.imap(self.run_qaqc_checks_multiprocess, las_paths), total=num_las, ascii=True):
+            variables = zip(las_paths, [just_surfaces] * num_las)
+            for _ in tqdm(p.imap(self.run_qaqc_checks_multiprocess, variables), total=num_las, ascii=True):
                 pass
 
-            p.close()
-            p.join()
         else:
             self.run_qaqc_checks(las_paths)
 
         error_log = self.config.qaqc_dir / 'license_errors.txt'
         temp_err_logs = list(self.config.qaqc_dir.glob('*_TEMP.log'))
+
         with open(error_log, "wb") as outfile:
             for f in temp_err_logs:
                 with open(f, "rb") as infile:
                     outfile.write(infile.read())
+
+        return error_log, p
+
 
 class QaqcTileCollection:
 
@@ -984,18 +998,39 @@ class QaqcTileCollection:
         tiles_qaqc = QaqcTile(self.config)
 
         continue_processing = True
-        while continue_processing:
-            error_files = tiles_qaqc.run_qaqc(self.las_paths)
-            if error_files:
-                print('{} file(s) not processed due to unavailable LP360 license')
-                answer = raw_input('Retry? (enter y or n)')
+        just_surfaces = False
+        las_to_process = self.las_paths
 
-                if answer == 'n':
-                    continue_processing = False
-                elif answer == 'y':
-                    continue_processing = True
-                else:
-                    print('Umm, that\'s not either a y or n.  Let\'s try that again...')
+        def parse_las_paths(error_log):
+            las_paths = []
+            with open(error_log, "r") as outfile:
+                error = outfile.readline()
+                while error:
+                    las_paths.append(error.split('|')[1])
+                    error = outfile.readline()
+            return las_paths
+
+        while continue_processing:
+            error_log, pool = tiles_qaqc.run_qaqc(las_to_process, just_surfaces)
+            error_las_paths = parse_las_paths(error_log)
+            if error_las_paths:
+                print('{} dz/hillshade surfaces not processed due to unavailable LP360 license'.format(len(error_las_paths)))
+                answered = False
+                while not answered:
+                    answer = input('Retry making surfaces? (enter y or n) ')
+
+                    if answer == 'n':
+                        answered = True
+                        continue_processing = False
+                        pool.close()
+                        pool.join()
+                    elif answer == 'y':
+                        answered = True
+                        continue_processing = True
+                        just_surfaces = True
+                        las_to_process = error_las_paths
+                    else:
+                        print('Umm, that\'s not either a y or n.  Let\'s try that again...')
 
     def gen_qaqc_results_dict(self):
         def flatten_dict(d_obj):
