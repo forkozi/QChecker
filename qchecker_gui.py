@@ -78,10 +78,6 @@ class QaqcApp(tk.Tk):
             'multiprocess': ['Use Multiprocessing', None],  # hard-coded False for now
             }})
 
-        self.components.update({'files_to_set': {
-            'contractor_shp': ['Contractor Tile Shapefile', None, Path(self.configuration['contractor_shp']), '.shp'],
-            }})
-
         self.components.update({'dirs_to_set': {
             'qaqc_dir': ['QAQC Root Dir.', None, Path(self.configuration['qaqc_dir'])],
             'las_tile_dir': ['Las Tiles', None, Path(self.configuration['las_tile_dir'])],
@@ -133,10 +129,6 @@ class QaqcApp(tk.Tk):
         # options
         for k, v in self.components['options'].items():
             self.configuration[k] = v[1].get()
-            
-        # files_to_set
-        for k, v in self.components['files_to_set'].items():
-            self.configuration[k] = str(v[2])
 
         # dirs_to_set
         for k, v in self.components['dirs_to_set'].items():
@@ -216,11 +208,10 @@ class MainGuiPage(ttk.Frame):
 
         self.section_rows = {
             'options': 0,
-            'files': 1,
-            'dirs': 2,
-            'checks': 3,
-            'surfaces': 4,
-            'run_button': 5,
+            'dirs': 1,
+            'checks': 2,
+            'surfaces': 3,
+            'run_button': 4,
             }
 
         #  Build the GUI
@@ -228,7 +219,6 @@ class MainGuiPage(ttk.Frame):
         self.label_width = 23
 
         self.build_options()
-        self.build_files()
         self.build_dirs()
         self.add_checks()
         self.add_surfaces()
@@ -356,8 +346,6 @@ class MainGuiPage(ttk.Frame):
 
     def clear_paths(self):
         not_specified_text = '(specify path)'
-        self.gui['files_to_set']['contractor_shp'][1].configure(text=not_specified_text, fg='red')
-        self.gui['files_to_set']['contractor_shp'][2] = not_specified_text
 
         self.gui['dirs_to_set']['qaqc_dir'][1].configure(text=not_specified_text, fg='red')
         self.gui['dirs_to_set']['qaqc_dir'][2] = not_specified_text
@@ -371,11 +359,10 @@ class MainGuiPage(ttk.Frame):
 
     def check_paths(self):
         not_specified_text = '(specify path)'
-        path1 = True if str(self.gui['files_to_set']['contractor_shp'][2]) != not_specified_text else False
-        path2 = True if str(self.gui['dirs_to_set']['qaqc_dir'][2]) != not_specified_text else False
-        path3 = True if str(self.gui['dirs_to_set']['las_tile_dir'][2]) != not_specified_text else False
+        path1 = True if str(self.gui['dirs_to_set']['qaqc_dir'][2]) != not_specified_text else False
+        path2 = True if str(self.gui['dirs_to_set']['las_tile_dir'][2]) != not_specified_text else False
 
-        if path1 and path2 and path3:
+        if path1 and path2:
             self.run_btn['state'] = 'normal'
         else:
             self.run_btn['state'] = 'disabled'
@@ -452,48 +439,10 @@ class MainGuiPage(ttk.Frame):
         self.gui['options'][item][1].set(is_checked)
         chk = tk.Checkbutton(
             options_frame, 
-            text='(Uses 1 LP360 license per process)',
+            text='(deferred to future version)',
             var=self.gui['options'][item][1], 
-            anchor=tk.W, justify=tk.LEFT)
+            anchor=tk.W, justify=tk.LEFT, state='disabled')
         chk.grid(column=1, row=row, sticky=tk.W)
-
-    def build_files(self):
-        '''Files'''
-
-        files_frame = ttk.Frame(self)
-        files_frame.grid(row=self.section_rows['files'], sticky=tk.NSEW)
-
-        def bind_files_command(f):
-            def func():
-                file_str = filedialog.askopenfilename()
-                display_str = self.build_display_str(file_str)
-                self.gui['files_to_set'][f][1].configure(text=display_str, fg='black')
-                self.gui['files_to_set'][f][2] = file_str 
-                self.check_paths()
-            func.__name__ = f
-            return func
-
-        for i, f in enumerate(self.gui['files_to_set'], 1):
-            check_label = tk.Label(files_frame, 
-                                   text=self.gui['files_to_set'][f][0], 
-                                   width=self.label_width, 
-                                   anchor=tk.W, 
-                                   justify=tk.LEFT)
-
-            check_label.grid(column=0, row=i, sticky=tk.W)
-
-            if self.config[f] == '(specify path)':
-                display_str = self.config[f]
-                font_color = 'red'
-            else:
-                display_str = self.build_display_str(self.config[f])
-                font_color = 'black'
-
-            self.gui['files_to_set'][f][1] = tk.Label(files_frame, text=display_str, fg=font_color)
-            self.gui['files_to_set'][f][1].grid(column=2, row=i, sticky=tk.W)
-
-            btn = tk.Button(files_frame, text='...', command=bind_files_command(f))
-            btn.grid(column=1, row=i, sticky=tk.W)
 
     def build_dirs(self):
         '''Directories'''
@@ -818,10 +767,9 @@ if __name__ == '__main__':
     #                    format='%(asctime)s:%(message)s',
     #                    level=logging.DEBUG)
 
-    logging.basicConfig(format='%(asctime)s:%(message)s',
-                        level=logging.ERROR)
+    logging.basicConfig(format='%(asctime)s:%(message)s', level=logging.ERROR)
 
     app = QaqcApp()
     app.resizable(0, 0)
-    app.geometry('400x635')
+    app.geometry('400x610')
     app.mainloop()  # tk functionality
