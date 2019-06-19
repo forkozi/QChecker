@@ -344,7 +344,8 @@ class MainGuiPage(ttk.Frame):
 
         return progress 
 
-    def clear_paths(self):
+    def validate_qaqc_dirs(self):
+
         not_specified_text = '(specify path)'
 
         self.gui['dirs_to_set']['qaqc_dir'][1].configure(text=not_specified_text, fg='red')
@@ -358,11 +359,36 @@ class MainGuiPage(ttk.Frame):
         self.controller.save_config()
 
     def check_paths(self):
+
+        def validate_qaqc_directories(qaqc_dir):
+            dirs = [
+                qaqc_dir / 'dashboard_summary',
+                qaqc_dir / 'dz',
+                qaqc_dir / 'dz' / 'dz_tiles',
+                qaqc_dir / 'hillshade',
+                qaqc_dir / 'hillshade' / 'hillshade_tiles',
+                qaqc_dir / 'qaqc_tile_check_results',
+                qaqc_dir / 'qaqc_tile_check_results' / 'qaqc_tile_json',
+                qaqc_dir / 'temp',
+                ]
+
+            #qaqc_dir / (self.config['project_name'] + '_ArcProject'),
+            #qaqc_dir / (self.config['project_name'] + '_ArcProject') / (self.config['project_name'] + '.gdb'),
+
+            for d in dirs:
+                d = Path(d)
+                if not d.exists():
+                    os.mkdir(str(d))
+                    print('created {}'.format(d))
+                else:
+                    print('{} already exists'.format(d))
+
         not_specified_text = '(specify path)'
         path1 = True if str(self.gui['dirs_to_set']['qaqc_dir'][2]) != not_specified_text else False
         path2 = True if str(self.gui['dirs_to_set']['las_tile_dir'][2]) != not_specified_text else False
 
         if path1 and path2:
+            validate_qaqc_directories(self.gui['dirs_to_set']['qaqc_dir'][2])
             self.run_btn['state'] = 'normal'
         else:
             self.run_btn['state'] = 'disabled'
@@ -400,7 +426,7 @@ class MainGuiPage(ttk.Frame):
         proj_down_down = tk.OptionMenu(options_frame, 
                                        self.gui['options'][item][1], 
                                        *get_proj_names(),
-                                       command=lambda x: self.clear_paths())
+                                       command=lambda x: self.validate_qaqc_dirs())
 
         proj_down_down.grid(column=1, row=row, sticky=tk.EW)
 
@@ -443,6 +469,7 @@ class MainGuiPage(ttk.Frame):
             var=self.gui['options'][item][1], 
             anchor=tk.W, justify=tk.LEFT, state='disabled')
         chk.grid(column=1, row=row, sticky=tk.W)
+
 
     def build_dirs(self):
         '''Directories'''

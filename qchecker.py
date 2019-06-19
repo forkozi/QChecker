@@ -368,11 +368,11 @@ class Configuration:
         self.las_tile_dir = Path(data['las_tile_dir'])
         self.qaqc_dir = Path(data['qaqc_dir'])
 
-        self.dz_dir = self.qaqc_dir / 'dz'
-        self.hillshade_dir = self.qaqc_dir / 'hillshade'
+        #self.dz_dir = self.qaqc_dir / 'dz'
+        #self.hillshade_dir = self.qaqc_dir / 'hillshade'
 
-        self.dz_tiles_dir = self.qaqc_dir / 'dz' / 'dz_tiles'
-        self.hillshade_tiles_dir = self.qaqc_dir / 'hillshade' / 'hillshade_tiles'
+        #self.dz_tiles_dir = self.qaqc_dir / 'dz' / 'dz_tiles'
+        #self.hillshade_tiles_dir = self.qaqc_dir / 'hillshade' / 'hillshade_tiles'
 
         self.qaqc_gdb = Path(data['qaqc_gdb'])
         self.raster_dir = Path(data['qaqc_gdb'])
@@ -1226,7 +1226,7 @@ def run_qaqc(config_json):
     print()
 
     qaqc_tile_collection = LasTileCollection(config.las_tile_dir)
-    qaqc = QaqcTileCollection(qaqc_tile_collection.get_las_tile_paths()[0:], config)
+    qaqc = QaqcTileCollection(qaqc_tile_collection.get_las_tile_paths()[0:20], config)
     
     qaqc.run_qaqc_tile_collection_checks()
     qaqc.set_qaqc_results_df()
