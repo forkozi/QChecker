@@ -21,6 +21,7 @@ import progressbar
 from osgeo import osr
 from pathlib import Path
 from tqdm import tqdm
+import cProfile
 
 from bokeh.models.widgets import Panel, Tabs
 from bokeh.io import output_file, show
@@ -49,6 +50,9 @@ os.environ["PROJ_LIB"] = str(proj_lib)
 
 
 class SummaryPlots:
+
+    """This class pr
+    """
 
     def __init__(self, config, qaqc_results_df):
         self.config = config
@@ -374,8 +378,6 @@ class Configuration:
         #self.dz_tiles_dir = self.qaqc_dir / 'dz' / 'dz_tiles'
         #self.hillshade_tiles_dir = self.qaqc_dir / 'hillshade' / 'hillshade_tiles'
 
-        self.qaqc_gdb = Path(data['qaqc_gdb'])
-        self.raster_dir = Path(data['qaqc_gdb'])
         self.tile_size = float(data['tile_size'])
         self.to_pyramid = data['to_pyramid']
         self.multiprocess = data['multiprocess']
@@ -408,7 +410,7 @@ class Configuration:
 
         self.lp360_ldexport_exe = Path(data['lp360_ldexport_exe'])
 
-        self.contractor_shp = Path(data['contractor_shp'])
+        #self.contractor_shp = Path(data['contractor_shp'])
         self.checks_to_do = data['checks_to_do']
         self.surfaces_to_make = data['surfaces_to_make']
         self.mosaics_to_make = data['mosaics_to_make']
@@ -554,7 +556,14 @@ class LasTile:
             ])).wkt()
 
         self.tile_centroid_wkt = GeoObject(Point(self.centroid_x, self.centroid_y)).wkt()
+        
+        print('GETTING CLASSES TIME')
+        tic = time.time()
         self.classes_present, self.class_counts = self.get_class_counts()
+        print(time.time() - tic)
+
+        #cProfile.runctx('self.get_class_counts()', globals=None, locals={'self': self}, sort='cumtime')
+
         self.has_bathy = True if 'class26' in self.class_counts.keys() else False
         self.has_ground = True if 'class2' in self.class_counts.keys() else False
 
@@ -609,6 +618,11 @@ class LasTile:
         classes_present = [c for c in class_counts[0]]
         class_counts = dict(zip(['class{}'.format(str(c)) for c in class_counts[0]],
                                 [int(c) for c in class_counts[1]]))
+
+        #class_counts = pd.value_counts(self.inFile.classification)
+        #classes_present = class_counts.index
+        #class_counts = dict(zip(['class{}'.format(str(c)) for c in class_counts.index], [int(c) for c in class_counts.values]))
+
         return classes_present, class_counts
 
     def get_gps_time(self):
@@ -652,7 +666,7 @@ class Mosaic:
         logging.debug('creating mosaic dataset {}...'.format(self.mosaic_dataset_base_name))
         sr = arcpy.SpatialReference(self.config.epsg_code)
         try:
-            arcpy.CreateMosaicDataset_management(str(self.config.qaqc_gdb), 
+            arcpy.CreateMosaicDataset_management(self.config.mosaics_to_make[self.mtype][1], 
                                                  self.mosaic_dataset_base_name, 
                                                  coordinate_system=sr)
         except Exception as e:
@@ -919,6 +933,7 @@ class QaqcTile:
 
         tile = LasTile(las_path, self.config)
 
+
         if not just_surfaces:
             for c in [k for k, v in self.config.checks_to_do.items() if v]:
                 logging.debug('running {}...'.format(c))
@@ -937,7 +952,11 @@ class QaqcTile:
         for las_path in progressbar.progressbar(las_paths, redirect_stdout=True):
 
             logging.debug('starting {}...'.format(las_path))
+            tic = time.time()
             tile = LasTile(las_path, self.config)
+            print(time.time() - tic)
+
+            #cProfile.runctx('LasTile(las_path, self.config)', globals={'LasTile': LasTile}, locals={'las_path': las_path, 'self': self}, sort='cumtime')
 
             for c in [k for k, v in self.config.checks_to_do.items() if v]:
                 logging.debug('running {}...'.format(c))
@@ -951,7 +970,7 @@ class QaqcTile:
 
     def run_qaqc(self, las_paths, just_surfaces):
         if self.config.multiprocess:
-            p = pp.ProcessPool()
+            p = pp.ProcessPool(int(ph.cpu_count() / 2))
             num_las = len(las_paths)
             variables = zip(las_paths, [just_surfaces] * num_las)
             for _ in tqdm(p.imap(self.run_qaqc_checks_multiprocess, variables), total=num_las, ascii=True):
@@ -962,6 +981,8 @@ class QaqcTile:
             p.clear()
         else:
             self.run_qaqc_checks(las_paths)
+
+            #cProfile.runctx('self.run_qaqc_checks(las_paths)', globals=None, locals={'las_paths': las_paths, 'self': self}, sort='cumtime')
 
         error_log = self.config.qaqc_dir / 'license_errors.txt'
         temp_err_logs = list((self.config.qaqc_dir / 'temp').glob('*_TEMP.log'))
@@ -983,7 +1004,6 @@ class QaqcTileCollection:
 
     def run_qaqc_tile_collection_checks(self):
         tiles_qaqc = QaqcTile(self.config)
-
         continue_processing = True
         just_surfaces = False
         las_to_process = self.las_paths
@@ -1226,7 +1246,7 @@ def run_qaqc(config_json):
     print()
 
     qaqc_tile_collection = LasTileCollection(config.las_tile_dir)
-    qaqc = QaqcTileCollection(qaqc_tile_collection.get_las_tile_paths()[0:20], config)
+    qaqc = QaqcTileCollection(qaqc_tile_collection.get_las_tile_paths()[0:], config)
     
     qaqc.run_qaqc_tile_collection_checks()
     qaqc.set_qaqc_results_df()

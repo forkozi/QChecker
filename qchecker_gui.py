@@ -145,12 +145,15 @@ class QaqcApp(tk.Tk):
         # surfaces_to_make
         for k, v in self.components['surfaces_to_make'].items():
             self.configuration['surfaces_to_make'][k][0] = v[1].get()
-            self.configuration['surfaces_to_make'][k][1] = str(v[3])
+            self.configuration['surfaces_to_make'][k][1] = str(Path(self.configuration['qaqc_dir'], k, '{}_tiles'.format(k)))
 
         # mosaics_to_make
         for k, v in self.components['mosaics_to_make'].items():
             self.configuration['mosaics_to_make'][k][0] = v[1].get()
-            self.configuration['mosaics_to_make'][k][1] = str(v[3])
+            self.configuration['mosaics_to_make'][k][1] = str(Path(
+                self.configuration['qaqc_dir'], 
+                '{}_ArcProject'.format(self.configuration['project_name']), 
+                '{}.gdb'.format(self.configuration['project_name'])))
 
         # supp_las_domain
         self.configuration['supp_las_domain'] = self.components['supp_las_domain'].get()
@@ -360,35 +363,11 @@ class MainGuiPage(ttk.Frame):
 
     def check_paths(self):
 
-        def validate_qaqc_directories(qaqc_dir):
-            dirs = [
-                qaqc_dir / 'dashboard_summary',
-                qaqc_dir / 'dz',
-                qaqc_dir / 'dz' / 'dz_tiles',
-                qaqc_dir / 'hillshade',
-                qaqc_dir / 'hillshade' / 'hillshade_tiles',
-                qaqc_dir / 'qaqc_tile_check_results',
-                qaqc_dir / 'qaqc_tile_check_results' / 'qaqc_tile_json',
-                qaqc_dir / 'temp',
-                ]
-
-            #qaqc_dir / (self.config['project_name'] + '_ArcProject'),
-            #qaqc_dir / (self.config['project_name'] + '_ArcProject') / (self.config['project_name'] + '.gdb'),
-
-            for d in dirs:
-                d = Path(d)
-                if not d.exists():
-                    os.mkdir(str(d))
-                    print('created {}'.format(d))
-                else:
-                    print('{} already exists'.format(d))
-
         not_specified_text = '(specify path)'
         path1 = True if str(self.gui['dirs_to_set']['qaqc_dir'][2]) != not_specified_text else False
         path2 = True if str(self.gui['dirs_to_set']['las_tile_dir'][2]) != not_specified_text else False
 
         if path1 and path2:
-            validate_qaqc_directories(self.gui['dirs_to_set']['qaqc_dir'][2])
             self.run_btn['state'] = 'normal'
         else:
             self.run_btn['state'] = 'disabled'
@@ -771,11 +750,40 @@ class MainGuiPage(ttk.Frame):
         self.check_paths()
 
     def run_qaqc_process(self):
-        self.controller.save_config()
-        #progress = self.add_progress_bar()
-        
-        run_qaqc(self.controller.config_file) #  from qaqc.py
-    
+
+        def validate_qaqc_directories(qaqc_dir):
+            dirs = [
+                qaqc_dir / 'dashboard_summary',
+                qaqc_dir / 'dz',
+                qaqc_dir / 'dz' / 'dz_tiles',
+                qaqc_dir / 'hillshade',
+                qaqc_dir / 'hillshade' / 'hillshade_tiles',
+                qaqc_dir / 'qaqc_tile_check_results',
+                qaqc_dir / 'qaqc_tile_check_results' / 'qaqc_tile_json',
+                qaqc_dir / 'temp',
+                qaqc_dir / (self.config['project_name'] + '_ArcProject')
+                ]
+
+            for d in dirs:
+                if not d.exists():
+                    os.mkdir(str(d))
+                    print('created {}'.format(d))
+                else:
+                    print('{} already exists'.format(d))
+
+        def validate_arc_project_gdb(qaqc_dir):
+            project_gdb = qaqc_dir / (self.config['project_name'] + '_ArcProject') / (self.config['project_name'] + '.gdb')
+            if not project_gdb.exists():
+                self.controller.popupmsg(
+                    'Oops, the ArcPro project for {} does not exist.\nPlease create {} (using ArcPRO) before continuing.'.format(self.config['project_name'], project_gdb.stem + '.aprx'))
+            else:
+                self.controller.save_config()
+                #progress = self.add_progress_bar()
+                run_qaqc(self.controller.config_file) #  from qaqc.py
+
+        validate_qaqc_directories(Path(self.gui['dirs_to_set']['qaqc_dir'][2]))
+        validate_arc_project_gdb(Path(self.gui['dirs_to_set']['qaqc_dir'][2]))
+
 
 if __name__ == '__main__':
     qchecker_path = os.path.dirname(os.path.realpath(__file__))
@@ -794,7 +802,7 @@ if __name__ == '__main__':
     #                    format='%(asctime)s:%(message)s',
     #                    level=logging.DEBUG)
 
-    logging.basicConfig(format='%(asctime)s:%(message)s', level=logging.ERROR)
+    logging.basicConfig(format='%(asctime)s:%(message)s', level=logging.DEBUG)
 
     app = QaqcApp()
     app.resizable(0, 0)
