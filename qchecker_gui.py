@@ -790,6 +790,8 @@ if __name__ == '__main__':
     os.environ["GDAL_DATA"] = str(gdal_data)
     os.environ["PROJ_LIB"] = str(proj_lib)
 
+    print(os.environ["GDAL_DATA"])
+
     now = datetime.datetime.now()
     date_time_now_str = '{}{}{}_{}{}{}'.format(now.year, 
                                                str(now.month).zfill(2), 

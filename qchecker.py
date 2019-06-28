@@ -349,22 +349,12 @@ class Configuration:
 
         self.data = data
         self.project_name = data['project_name']
-
         self.las_tile_dir = Path(data['las_tile_dir'])
         self.qaqc_dir = Path(data['qaqc_dir'])
-
-        #self.dz_dir = self.qaqc_dir / 'dz'
-        #self.hillshade_dir = self.qaqc_dir / 'hillshade'
-
-        #self.dz_tiles_dir = self.qaqc_dir / 'dz' / 'dz_tiles'
-        #self.hillshade_tiles_dir = self.qaqc_dir / 'hillshade' / 'hillshade_tiles'
-
         self.tile_size = float(data['tile_size'])
         self.to_pyramid = data['to_pyramid']
         self.multiprocess = data['multiprocess']
         self.make_tile_centroids_shp = data['make_tile_centroids_shp']
-
-        # checks "answer kt
         self.check_keys = data['check_keys']
         self.hdatum_key = data['check_keys']['hdatum']
         self.vdatum_key = data['check_keys']['vdatum']
@@ -373,24 +363,16 @@ class Configuration:
         self.gps_time_key = data['check_keys']['gps_time']
         self.version_key = data['check_keys']['version']
         self.pt_src_ids_key = data['check_keys']['pt_src_ids']
-
         self.las_classes_json = Path(data['las_classes_json'])
         self.srs_wkts = Path(data['srs_wkts'])
-
         self.wkts_df = pd.read_csv( self.srs_wkts, index_col=1, header=None)
         self.epsg_code = int(self.wkts_df.loc[self.hdatum_key][0])
         self.crs = {'init': 'epsg:{}'.format(self.epsg_code)}
         self.web_mercator_epsg = {'init': 'epsg:3857'}
         self.wgs84_epsg = {'init': 'epsg:4326'}
-                
-        #self.surface_export_settings = {'Dz': Path(data['dz_export_settings']),
-        #                                'Hillshade': Path(data['hillshade_export_settings'])}
-
-        #self.contractor_shp = Path(data['contractor_shp'])
         self.checks_to_do = data['checks_to_do']
         self.surfaces_to_make = data['surfaces_to_make']
         self.mosaics_to_make = data['mosaics_to_make']
-
         self.qaqc_geojson_NAD83_UTM_CENTROIDS = self.qaqc_dir / 'qaqc_NAD83_UTM_CENTROIDS.json'
         self.qaqc_geojson_NAD83_UTM_POLYGONS = self.qaqc_dir / 'qaqc_NAD83_UTM_POLYGONS.json'
         self.qaqc_geojson_WebMercator_CENTROIDS = self.qaqc_dir / 'dashboard_summary' / '{}_qaqc_WebMercator_CENTROIDS.json'.format(self.project_name)
@@ -407,20 +389,6 @@ class Configuration:
 
     def __str__(self):
         return json.dumps(self.data, indent=4, sort_keys=True)
-
-    @staticmethod
-    def run_console_cmd(cmd, las_path):
-        process = subprocess.Popen(cmd.split(' '), stdout=subprocess.PIPE, stderr=subprocess.PIPE)#, shell=False)
-        output, error = process.communicate()
-        logging.debug(output)
-        logging.debug(error)
-        error_msg = 'ERROR: Failed in getting valid license'
-        error = error.strip().decode('utf-8')
-        if error == error_msg:
-            logging.error('{}|{}'.format(las_path, error))
-
-        returncode = process.poll()
-        return returncode, output, error
 
         
 class LasTileCollection():
@@ -439,16 +407,6 @@ class LasTileCollection():
 
     def get_las_base_names(self):
         return [os.path.splitext(tile)[0] for tile in self.get_las_names()]
-
-    def get_classification_scheme(xml_fpath):
-        root = ET.parse(xml_fpath).getroot()
-        classes = {}
-        for c in root.iter('Class'):
-            label = c.find('Label').text
-            value = c.find('Values')[0].text
-            classes[label] = value
-        #classes_json_str = json.dumps(classes, indent=2)
-        #logging.debug(classes_json_str)
 
 
 class LasTile:
@@ -546,10 +504,7 @@ class LasTile:
 
         self.tile_centroid_wkt = GeoObject(Point(self.centroid_x, self.centroid_y)).wkt()
         
-        print('GETTING CLASSES TIME')
-        tic = time.time()
         self.classes_present, self.class_counts = self.get_class_counts()
-        print(time.time() - tic)
 
         #cProfile.runctx('self.get_class_counts()', globals=None, locals={'self': self}, sort='cumtime')
 
@@ -572,9 +527,6 @@ class LasTile:
 
         if self.version == '1.4':
             self.has_wkt = self.inFile.header.get_wkt()
-
-        if self.to_pyramid and not self.is_pyramided:
-            self.create_las_pyramids()
 
     def __str__(self):
         info_to_output = {
@@ -608,16 +560,13 @@ class LasTile:
         class_counts = dict(zip(['class{}'.format(str(c)) for c in class_counts[0]],
                                 [int(c) for c in class_counts[1]]))
 
-        #class_counts = pd.value_counts(self.inFile.classification)
-        #classes_present = class_counts.index
-        #class_counts = dict(zip(['class{}'.format(str(c)) for c in class_counts.index], [int(c) for c in class_counts.values]))
-
         return classes_present, class_counts
 
     def get_gps_time(self):
         gps_times = {0: 'GPS Week Time', 1: 'Satellite GPS Time'}
         bit_num_gps_time_type = 0
         gps_time_type_bit = int(bin(self.header['global_encoding'])[2:].zfill(16)[::-1][bit_num_gps_time_type])
+
         return gps_times[gps_time_type_bit]
 
     def get_las_version(self):
@@ -628,19 +577,6 @@ class LasTile:
 
     def get_pt_src_ids(self):
         return np.unique(self.inFile.pt_src_id)
-
-    def create_las_pyramids(self):
-        exe = r'C:\Program Files\Common Files\LP360\LDPyramid.exe'
-        thin_factor = 12
-        cmd_str = '{} -f {} {}'.format(exe, thin_factor, self.path)
-        logging.debug('generating pyramids for {}...'.format(self.path))
-        logging.debug(cmd_str)
-        try:
-            returncode, output, error = self.config.run_console_cmd(cmd_str, self.path)
-        except Exception as e:
-            logging.debug(e)
-
-        pass
 
 
 class Mosaic:
@@ -661,14 +597,6 @@ class Mosaic:
         except Exception as e:
             logging.debug(e)
 
-    def add_rasters_to_mosaic_dataset(self):
-        logging.debug('adding {} rasters to {}...'.format(self.mtype, self.mosaic_dataset_path))
-        arcpy.AddRastersToMosaicDataset_management(str(self.mosaic_dataset_path), 'Raster Dataset',
-                                                   self.config.surfaces_to_make[self.mtype][1],
-                                                   build_pyramids='BUILD_PYRAMIDS',
-                                                   calculate_statistics='CALCULATE_STATISTICS',
-                                                   duplicate_items_action='OVERWRITE_DUPLICATES')
-
     def export_mosaic_dataset(self):
         try:
             self.config.exported_mosaic_dataset = self.config.qaqc_dir / self.mtype / (self.mosaic_dataset_base_name + '.tif')
@@ -678,26 +606,6 @@ class Mosaic:
             arcpy.env.overwriteOutput = False
         except Exception as e:
             logging.debug(e)
-
-    def add_mosaic_dataset_tif_to_aprx(self):
-        try:
-            mosaic_lyrx = self.config.qaqc_dir / '{}.lyrx'.format(self.mosaic_dataset_base_name)
-            logging.debug('adding {} to aprx...'.format(mosaic_lyrx))
-            aprx = arcpy.mp.ArcGISProject(str(self.config.aprx))
-            m = aprx.listMaps('QAQC_layers')[0]
-            mosaic_name = '{}_{}_mosaic'.format(self.config.project_name, self.mtype)
-            arcpy.MakeRasterLayer_management(str(self.config.exported_mosaic_dataset), mosaic_name)
-
-            if not mosaic_lyrx.exists():
-                logging.debug('saving {}...'.format(mosaic_lyrx))
-                arcpy.SaveToLayerFile_management(mosaic_name, str(mosaic_lyrx))
-            
-            m.addDataFromPath(mosaic_lyrx)
-            aprx.save()
-        except Exception as e:
-            logging.debug(e)
-
-        pass
 
 
 class Surface:
@@ -712,33 +620,39 @@ class Surface:
     def __str__(self):
         return self.raster_path[self.stype]
 
-    def update_surface_export_settings_extents(self):
-        logging.debug('updating {} export settings xml with las extents...'.format(self.stype))
-        
-        pid = ph.mp.current_process().pid
-        self.modified_xml = self.config.qaqc_dir / 'temp' / 'dz_export_settings_pid_{}_TEMP.xml'.format(pid)
-        copyfile(self.config.surface_export_settings[self.stype], self.modified_xml)
+    def gen_surface(self, dem_type):
+        las_str = str(self.las_path).replace('\\', '/')
+        gtiff_path = r'{}\{}_{}.tif'.format(self.config.surfaces_to_make[self.stype][1], self.las_name, self.stype)
+        gtiff_path = str(gtiff_path).replace('\\', '/')
 
-        tree = ET.parse(self.modified_xml)
-        root = tree.getroot()
-        for extent, val in self.las_extents.items():
-            for e in root.findall(extent):
-                e.text = str(val)
-        new_dz_settings = ET.tostring(root).decode('utf-8')  # is byte string
-        myfile = open(self.modified_xml, "w")
-        myfile.write(new_dz_settings)
+        pdal_json = """{
+            "pipeline":[
+                {
+                    "type": "readers.las",
+                    "filename": """ + '"{}"'.format(las_str) + """
+                },
+                {
+                    "type":"filters.returns",
+                    "groups":"last,only"
+                },
+                {
+                    "filename": """ + '"{}"'.format(gtiff_path) + """,
+                    "gdaldriver": "GTiff",
+                    "output_type": """ + '"{}"'.format(dem_type) + """,
+                    "resolution": "1.0",
+                    "type": "writers.gdal"
+                }
+            ]
+        }"""
+        print(pdal_json)
+        logging.debug('generating {} surface for {}...'.format(self.stype, self.las_name))
 
-    def gen_surface(self):
-        exe = self.config.lp360_ldexport_exe
-        las = self.las_path.replace('CLASSIFIED_LAS\\', 'CLASSIFIED_LAS\\\\')
-        surface = r'{}\{}'.format(self.config.surfaces_to_make[self.stype][1], self.las_name)
-        cmd_str = '{} -s {} -f {} -o {}'.format(exe, self.modified_xml, las, surface)
-        logging.debug('generating {} surface for {}...'.format(self.stype, las))
         try:
-            returncode, output, error = self.config.run_console_cmd(cmd_str, self.las_path)
-            logging.info('{}: {}'.format(las, returncode))
+            pipeline = pdal.Pipeline(pdal_json)
+            count = pipeline.execute()
         except Exception as e:
-            logging.debug(e)
+            print(e)
+        pass
             
     pass
 
@@ -888,8 +802,7 @@ class QaqcTile:
         from qchecker import Surface
         if tile.has_bathy or tile.has_ground:
             tile_dz = Surface(tile, 'Dz', self.config)
-            tile_dz.update_surface_export_settings_extents()
-            tile_dz.gen_surface()
+            tile_dz.gen_surface('stdev')
         else:
             logging.debug('{} has no bathy or ground points; no dz ortho generated'.format(tile.name))
 
@@ -897,41 +810,26 @@ class QaqcTile:
         from qchecker import Surface
         if tile.has_bathy or tile.has_ground:
             tile_hillshade = Surface(tile, 'Hillshade', self.config)
-            tile_hillshade.update_surface_export_settings_extents()
-            tile_hillshade.gen_surface()
+            tile_hillshade.gen_surface('mean')
         else:
             logging.debug('{} has no bathy or ground points; no hillshade ortho generated'.format(tile.name))
 
-    def run_qaqc_checks_multiprocess(self, variables):
+    def run_qaqc_checks_multiprocess(self, las_path):
         from qchecker import LasTile, LasTileCollection
         import logging
         import xml.etree.ElementTree as ET
-
-        las_path = variables[0]
-        just_surfaces = variables[1]
-
-        pid = ph.mp.current_process().pid
-        log_path = self.config.qaqc_dir / 'temp' / 'multiprocessing_pid_{}_TEMP.log'.format(pid)
-        
-        logging.basicConfig(filename=log_path,
-                            format='%(asctime)s|%(message)s',
-                            level=logging.ERROR)
-
-        logging.debug(pid)
-        logging.debug('{}'.format(las_path))
-
+        logging.basicConfig(format='%(asctime)s:%(message)s', level=logging.DEBUG)
         tile = LasTile(las_path, self.config)
-
-
-        if not just_surfaces:
-            for c in [k for k, v in self.config.checks_to_do.items() if v]:
-                logging.debug('running {}...'.format(c))
-                result = self.checks[c](tile)
-            tile.output_las_qaqc_to_json()
+        for c in [k for k, v in self.config.checks_to_do.items() if v]:
+            logging.debug('running {}...'.format(c))
+            result = self.checks[c](tile)
+            logging.debug(result)
 
         for c in [k for k, v in self.config.surfaces_to_make.items() if v[0]]:
             logging.debug('running {}...'.format(c))
-            result = self.surfaces[c](tile)
+            self.surfaces[c](tile)
+
+        tile.output_las_qaqc_to_json()
 
     def run_qaqc_checks(self, las_paths):       
         num_las = len(las_paths)
@@ -953,16 +851,15 @@ class QaqcTile:
 
             for c in [k for k, v in self.config.surfaces_to_make.items() if v[0]]:
                 logging.debug('running {}...'.format(c))
-                result = self.surfaces[c](tile)
+                self.surfaces[c](tile)
 
             tile.output_las_qaqc_to_json()
 
-    def run_qaqc(self, las_paths, just_surfaces):
+    def run_qaqc(self, las_paths):
         if self.config.multiprocess:
             p = pp.ProcessPool(int(ph.cpu_count() / 2))
             num_las = len(las_paths)
-            variables = zip(las_paths, [just_surfaces] * num_las)
-            for _ in tqdm(p.imap(self.run_qaqc_checks_multiprocess, variables), total=num_las, ascii=True):
+            for _ in tqdm(p.imap(self.run_qaqc_checks_multiprocess, las_paths), total=num_las, ascii=True):
                 pass
 
             p.close()
@@ -970,18 +867,6 @@ class QaqcTile:
             p.clear()
         else:
             self.run_qaqc_checks(las_paths)
-
-            #cProfile.runctx('self.run_qaqc_checks(las_paths)', globals=None, locals={'las_paths': las_paths, 'self': self}, sort='cumtime')
-
-        error_log = self.config.qaqc_dir / 'license_errors.txt'
-        temp_err_logs = list((self.config.qaqc_dir / 'temp').glob('*_TEMP.log'))
-
-        with open(error_log, "wb") as outfile:
-            for f in temp_err_logs:
-                with open(f, "rb") as infile:
-                    outfile.write(infile.read())
-
-        return error_log
 
 
 class QaqcTileCollection:
@@ -1117,9 +1002,7 @@ class QaqcTileCollection:
     def gen_mosaic(self, mtype):
         mosaic = Mosaic(mtype, self.config)
         mosaic.create_mosaic_dataset()
-        mosaic.add_rasters_to_mosaic_dataset()
         mosaic.export_mosaic_dataset()
-        mosaic.add_mosaic_dataset_tif_to_aprx()
 
     def gen_tile_geojson_WGS84(shp, geojson):
         gdf = gpd.read_file(shp).to_crs(self.config.wgs84_epsg)
@@ -1174,7 +1057,7 @@ def run_qaqc(config_json):
     print()
 
     qaqc_tile_collection = LasTileCollection(config.las_tile_dir)
-    qaqc = QaqcTileCollection(qaqc_tile_collection.get_las_tile_paths()[0:], config)
+    qaqc = QaqcTileCollection(qaqc_tile_collection.get_las_tile_paths()[100:120], config)
     
     qaqc.run_qaqc_tile_collection_checks()
     qaqc.set_qaqc_results_df()
