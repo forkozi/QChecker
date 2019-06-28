@@ -10,7 +10,8 @@ from shapely import wkt
 import subprocess
 from laspy.file import File
 import xml.etree.ElementTree as ET
-import arcpy
+
+import pdal
 import pathos.pools as pp
 import pathos.helpers as ph
 import re
@@ -32,27 +33,8 @@ from bokeh.palettes import Blues
 from bokeh.transform import log_cmap, factor_cmap
 from bokeh.layouts import layout, gridplot
 
-user_dir = os.path.expanduser('~')
-
-script_path = Path(user_dir).joinpath('AppData', 'Local', 'Continuum', 'anaconda3', 'Scripts')
-gdal_data = Path(user_dir).joinpath('AppData', 'Local', 'Continuum', 'anaconda3', 'envs', 'qchecker', 'Library', 'share', 'gdal')
-proj_lib =Path(user_dir).joinpath('AppData', 'Local', 'Continuum', 'anaconda3', 'envs', 'qchecker', 'Library', 'share')
-
-if script_path.name not in os.environ["PATH"]:
-    os.environ["PATH"] += os.pathsep + str(script_path)
-os.environ["GDAL_DATA"] = str(gdal_data)
-os.environ["PROJ_LIB"] = str(proj_lib)
-
-# may also have to add the following paths
-# C:\Program Files\ArcGIS\Pro\bin
-# C:\Program Files\ArcGIS\Pro\Resources\ArcPy
-# C:\Program Files\ArcGIS\Pro\Resources\ArcToolbox\Scripts
-
 
 class SummaryPlots:
-
-    """This class pr
-    """
 
     def __init__(self, config, qaqc_results_df):
         self.config = config
@@ -366,8 +348,7 @@ class Configuration:
             data = json.load(f)
 
         self.data = data
-
-        self.project_name = arcpy.ValidateTableName(data['project_name'])
+        self.project_name = data['project_name']
 
         self.las_tile_dir = Path(data['las_tile_dir'])
         self.qaqc_dir = Path(data['qaqc_dir'])
@@ -401,14 +382,9 @@ class Configuration:
         self.crs = {'init': 'epsg:{}'.format(self.epsg_code)}
         self.web_mercator_epsg = {'init': 'epsg:3857'}
         self.wgs84_epsg = {'init': 'epsg:4326'}
-
-        self.aprx = Path(data['aprx'])
-        self.dz_classes_template = Path(data['dz_classes_template'])
-        
-        self.surface_export_settings = {'Dz': Path(data['dz_export_settings']),
-                                        'Hillshade': Path(data['hillshade_export_settings'])}
-
-        self.lp360_ldexport_exe = Path(data['lp360_ldexport_exe'])
+                
+        #self.surface_export_settings = {'Dz': Path(data['dz_export_settings']),
+        #                                'Hillshade': Path(data['hillshade_export_settings'])}
 
         #self.contractor_shp = Path(data['contractor_shp'])
         self.checks_to_do = data['checks_to_do']
@@ -497,15 +473,28 @@ class LasTile:
             return vlrs
 
         def get_srs(las_path):
-            cmd_str = 'conda run -n pdal_env pdal info {} --metadata'.format(las_path)
-
             try:
-                process = subprocess.Popen(cmd_str.split(' '), stdout=subprocess.PIPE)  # shell=True
-                output = process.stdout.read()
-                wkt = json.loads(output.decode('utf-8'))['metadata']['comp_spatialreference']
-                srs = osr.SpatialReference(wkt=wkt)
-                hor_srs = srs.GetAttrValue('PROJCS')
-                ver_srs = srs.GetAttrValue('VERT_CS')
+                las = str(las_path).replace('\\', '/')
+
+                pdal_json = """{"pipeline": [ """ + '"{}"'.format(las) + """]}"""
+
+                pipeline = pdal.Pipeline(pdal_json)
+                count = pipeline.execute()
+    
+                metadata = pipeline.metadata
+                meta_dict = json.loads(metadata)
+
+                srs = meta_dict['metadata']['readers.las']['srs']
+
+                hor_wkt = srs['horizontal']
+                ver_wkt = srs['vertical']
+
+                hor_srs=osr.SpatialReference(wkt=hor_wkt)
+                ver_srs=osr.SpatialReference(wkt=ver_wkt)   
+
+                hor_srs = hor_srs.GetAttrValue('projcs')
+                ver_srs = ver_srs.GetAttrValue('vert_cs')
+
             except Exception as e:
                 logging.debug(e)
                 hor_srs = ver_srs = None
@@ -857,7 +846,7 @@ class QaqcTile:
         else:
             passed = self.failed_text
 
-        tile.checks_result['hdatum'] = str(hdatum)  # error for arcpy AddMessage if None
+        tile.checks_result['hdatum'] = str(hdatum)
         tile.checks_result['hdatum_passed'] = passed
         logging.debug(tile.checks_result['hdatum'])
         return passed
@@ -1004,43 +993,7 @@ class QaqcTileCollection:
 
     def run_qaqc_tile_collection_checks(self):
         tiles_qaqc = QaqcTile(self.config)
-        continue_processing = True
-        just_surfaces = False
-        las_to_process = self.las_paths
-
-        def parse_las_paths(error_log):
-            las_paths = []
-            with open(error_log, "r") as outfile:
-                error = outfile.readline()
-                while error:
-                    las_paths.append(error.split('|')[1])
-                    error = outfile.readline()
-
-            os.remove(error_log)
-
-            return las_paths
-
-        while continue_processing:
-            error_log = tiles_qaqc.run_qaqc(las_to_process, just_surfaces)
-            error_las_paths = parse_las_paths(error_log)
-            if error_las_paths:
-                print('{} dz/hillshade surfaces not processed due to unavailable LP360 license'.format(len(error_las_paths)))
-                answered = False
-                while not answered:
-                    answer = input('Retry making surfaces? (enter y or n) ')
-
-                    if answer == 'n':
-                        answered = True
-                        continue_processing = False
-                    elif answer == 'y':
-                        answered = True
-                        continue_processing = True
-                        just_surfaces = True
-                        las_to_process = error_las_paths
-                    else:
-                        print('Umm, that\'s neither a y nor n.  Let\'s try that again...')
-            else:
-                continue_processing = False
+        tiles_qaqc.run_qaqc(self.las_paths)
 
     def gen_qaqc_results_dict(self):
         def flatten_dict(d_obj):
@@ -1152,22 +1105,6 @@ class QaqcTileCollection:
         gdf.to_csv(output, index=False)
 
     def gen_qaqc_shp_NAD83_UTM(self, output):
-        
-        def add_layer_to_aprx(output):
-            logging.debug('adding {} to {}...'.format(output, self.config.aprx))
-            lyrx_name = '{}_qaqc_results'.format(self.config.project_name)
-            lyrx_path = os.path.join(self.config.qaqc_dir, '{}.lyrx'.format(lyrx_name))
-            arcpy.MakeFeatureLayer_management(output, lyrx_name)
-
-            if not os.path.exists(lyrx_path):
-                logging.debug('saving {}...'.format(lyrx_path))
-                arcpy.SaveToLayerFile_management(lyrx_name, lyrx_path)
-            
-            aprx = arcpy.mp.ArcGISProject(self.config.aprx)
-            m = aprx.listMaps('QAQC_layers')[0]
-            m.addDataFromPath(lyrx_path)
-            aprx.save()
-
         logging.debug('creating shp of qaqc results...')
         gdf = self.gen_qaqc_results_gdf_NAD83_UTM_POLYGONS()
         gdf = gdf.drop(columns=['ExtentXMax','ExtentXMin', 'ExtentYMax', 
@@ -1176,15 +1113,6 @@ class QaqcTileCollection:
                                 'x_max', 'x_min', 'y_max', 'y_min'])
 
         gdf.to_file(output, driver='ESRI Shapefile')
-        sr = arcpy.SpatialReference(self.config.epsg_code)
-
-        #try:
-        logging.debug('outputing tile qaqc results to {}...'.format(self.config.qaqc_shp_NAD83_UTM_POLYGONS))
-        logging.debug('defining {} as {}...'.format(output, sr.name))
-        arcpy.DefineProjection_management(str(output), sr)
-        add_layer_to_aprx(str(output))
-        #except Exception as e:
-        #    logging.debug(e)
 
     def gen_mosaic(self, mtype):
         mosaic = Mosaic(mtype, self.config)
@@ -1273,8 +1201,7 @@ def run_qaqc(config_json):
 
     
 if __name__ == '__main__':
-    arcpy.env.overwriteOutput = True
-    
+
     try:
         run_qaqc(config)
         sys.exit(0)
