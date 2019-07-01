@@ -74,7 +74,6 @@ class QaqcApp(tk.Tk):
         self.components.update({'options': {
             'project_name': ['Project', None],
             #'tile_size': ['Tile Size (m)', None],
-            'to_pyramid': ['Build LAS Pyramids', None],
             #'make_contact_centroids': ['Make Contr. Tile Centroid shp', None],
             'multiprocess': ['Use Multiprocessing', None],  # hard-coded False for now
             }})
@@ -411,8 +410,8 @@ class MainGuiPage(ttk.Frame):
         proj_down_down.grid(column=1, row=row, sticky=tk.EW)
 
         # -----------------------------------------------------
-        item = 'to_pyramid'
-        row = 3
+        item = 'multiprocess'
+        row = 4
         option_label = tk.Label(options_frame, 
                                 text=self.gui['options'][item][0], 
                                 width=self.label_width, 
@@ -428,26 +427,6 @@ class MainGuiPage(ttk.Frame):
             text='',
             var=self.gui['options'][item][1], 
             anchor=tk.W, justify=tk.LEFT)
-        chk.grid(column=1, row=row, sticky=tk.W)
-
-        # -----------------------------------------------------
-        item = 'multiprocess'
-        row = 4
-        option_label = tk.Label(options_frame, 
-                                text=self.gui['options'][item][0], 
-                                width=self.label_width, 
-                                anchor=tk.W, 
-                                justify=tk.LEFT)
-
-        option_label.grid(column=0, row=row, sticky=tk.W)
-        self.gui['options'][item][1] = tk.BooleanVar()
-        is_checked = self.config[item]
-        self.gui['options'][item][1].set(is_checked)
-        chk = tk.Checkbutton(
-            options_frame, 
-            text='(deferred to future version)',
-            var=self.gui['options'][item][1], 
-            anchor=tk.W, justify=tk.LEFT, state='disabled')
         chk.grid(column=1, row=row, sticky=tk.W)
 
 
@@ -761,7 +740,6 @@ class MainGuiPage(ttk.Frame):
                 qaqc_dir / 'hillshade' / 'hillshade_tiles',
                 qaqc_dir / 'qaqc_tile_check_results',
                 qaqc_dir / 'qaqc_tile_check_results' / 'qaqc_tile_json',
-                qaqc_dir / 'temp',
                 ]
 
             for d in dirs:

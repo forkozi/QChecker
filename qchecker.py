@@ -34,6 +34,7 @@ from bokeh.transform import log_cmap, factor_cmap
 from bokeh.layouts import layout, gridplot
 
 
+
 class SummaryPlots:
 
     def __init__(self, config, qaqc_results_df):
@@ -433,16 +434,12 @@ class LasTile:
         def get_srs(las_path):
             try:
                 las = str(las_path).replace('\\', '/')
+                cmd_str = 'pdal info {} --metadata'.format(las)
 
-                pdal_json = """{"pipeline": [ """ + '"{}"'.format(las) + """]}"""
-
-                pipeline = pdal.Pipeline(pdal_json)
-                count = pipeline.execute()
-    
-                metadata = pipeline.metadata
+                metadata = self.run_console_cmd(cmd_str)[1].decode('utf-8')
                 meta_dict = json.loads(metadata)
 
-                srs = meta_dict['metadata']['readers.las']['srs']
+                srs = meta_dict['metadata']['srs']
 
                 hor_wkt = srs['horizontal']
                 ver_wkt = srs['vertical']
@@ -506,8 +503,6 @@ class LasTile:
         
         self.classes_present, self.class_counts = self.get_class_counts()
 
-        #cProfile.runctx('self.get_class_counts()', globals=None, locals={'self': self}, sort='cumtime')
-
         self.has_bathy = True if 'class26' in self.class_counts.keys() else False
         self.has_ground = True if 'class2' in self.class_counts.keys() else False
 
@@ -527,6 +522,13 @@ class LasTile:
 
         if self.version == '1.4':
             self.has_wkt = self.inFile.header.get_wkt()
+
+    @staticmethod
+    def run_console_cmd(cmd):
+        process = subprocess.Popen(cmd.split(' '), shell=False, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+        output, error = process.communicate()
+        returncode = process.poll()
+        return returncode, output
 
     def __str__(self):
         info_to_output = {
@@ -555,10 +557,27 @@ class LasTile:
             json_file.write(str(self))
 
     def get_class_counts(self):
-        class_counts = np.unique(self.inFile.classification, return_counts=True)
-        classes_present = [c for c in class_counts[0]]
-        class_counts = dict(zip(['class{}'.format(str(c)) for c in class_counts[0]],
-                                [int(c) for c in class_counts[1]]))
+        las = str(self.path).replace('\\', '/')
+        options = [
+            '--stats',
+            '--filters.stats.dimensions=Classification',
+            '--filters.stats.count=Classification'
+            ]
+
+        cmd_str = 'pdal info {} {} {} {}'.format(las, *options)
+        stats = self.run_console_cmd(cmd_str)[1].decode('utf-8')
+        stats_dict = json.loads(stats)
+        class_counts = stats_dict['stats']['statistic'][0]['counts']
+
+        classes_present = []
+        counts = []
+        
+        for c in class_counts:
+            class_count = c.split('/')
+            classes_present.append(int(float(class_count[0])))
+            counts.append(int(float(class_count[1])))
+
+        class_counts = dict(zip(['class{}'.format(str(c)) for c in classes_present], counts))
 
         return classes_present, class_counts
 
@@ -586,26 +605,36 @@ class Mosaic:
         self.config = config
         self.mosaic_dataset_base_name = r'{}_{}_mosaic'.format(self.config.project_name, self.mtype)
         self.mosaic_dataset_path = Path(self.config.mosaics_to_make[self.mtype][1]) / self.mosaic_dataset_base_name
+        self.dems = []
+        self.src = None
+        self.out_meta = None
 
-    def create_mosaic_dataset(self):
-        logging.debug('creating mosaic dataset {}...'.format(self.mosaic_dataset_base_name))
-        sr = arcpy.SpatialReference(self.config.epsg_code)
-        try:
-            arcpy.CreateMosaicDataset_management(self.config.mosaics_to_make[self.mtype][1], 
-                                                 self.mosaic_dataset_base_name, 
-                                                 coordinate_system=sr)
-        except Exception as e:
-            logging.debug(e)
+    def get_tile_dems(self):
+        for dem in list(out_dir.glob('*_.tif'.format(self.mtype.upper()))):
+            print('retreiving {}...'.format(dem))
+            src = rasterio.open(dem)
+            self.dems.append(src)
 
-    def export_mosaic_dataset(self):
-        try:
-            self.config.exported_mosaic_dataset = self.config.qaqc_dir / self.mtype / (self.mosaic_dataset_base_name + '.tif')
-            logging.debug('exporting {} to tif...'.format(self.mosaic_dataset_base_name))
-            arcpy.env.overwriteOutput = True
-            arcpy.CopyRaster_management(str(self.mosaic_dataset_path), str(self.config.exported_mosaic_dataset))
-            arcpy.env.overwriteOutput = False
-        except Exception as e:
-            logging.debug(e)
+        self.out_meta = src.meta.copy()  # uses last src made
+
+    def gen_mosaic(self):
+        self.get_tile_dems()
+
+        if self.dems:
+            print('generating {}...'.format(self.mosaic_dataset_path))
+            mosaic, out_trans = rasterio.merge.merge(self.dems)
+
+            self.out_metaout_meta.update({
+                'driver': "GTiff",
+                'height': mosaic.shape[1],
+                'width': mosaic.shape[2],
+                'transform': out_trans})
+
+            # save TPU mosaic DEMs
+            with rasterio.open(self.mosaic_dataset_path, 'w', **self.out_metaout_meta) as dest:
+                dest.write(mosaic)
+        else:
+            print('No Hillshade tile DEMs were generated.')
 
 
 class Surface:
@@ -818,7 +847,7 @@ class QaqcTile:
         from qchecker import LasTile, LasTileCollection
         import logging
         import xml.etree.ElementTree as ET
-        logging.basicConfig(format='%(asctime)s:%(message)s', level=logging.DEBUG)
+        logging.basicConfig(format='%(asctime)s:%(message)s', level=logging.WARNING)
         tile = LasTile(las_path, self.config)
         for c in [k for k, v in self.config.checks_to_do.items() if v]:
             logging.debug('running {}...'.format(c))
@@ -1001,8 +1030,7 @@ class QaqcTileCollection:
 
     def gen_mosaic(self, mtype):
         mosaic = Mosaic(mtype, self.config)
-        mosaic.create_mosaic_dataset()
-        mosaic.export_mosaic_dataset()
+        mosaic.gen_mosaic()
 
     def gen_tile_geojson_WGS84(shp, geojson):
         gdf = gpd.read_file(shp).to_crs(self.config.wgs84_epsg)
@@ -1057,7 +1085,7 @@ def run_qaqc(config_json):
     print()
 
     qaqc_tile_collection = LasTileCollection(config.las_tile_dir)
-    qaqc = QaqcTileCollection(qaqc_tile_collection.get_las_tile_paths()[100:120], config)
+    qaqc = QaqcTileCollection(qaqc_tile_collection.get_las_tile_paths()[110:130], config)
     
     qaqc.run_qaqc_tile_collection_checks()
     qaqc.set_qaqc_results_df()
