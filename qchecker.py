@@ -23,6 +23,8 @@ from osgeo import osr
 from pathlib import Path
 from tqdm import tqdm
 import cProfile
+import rasterio
+import rasterio.merge
 
 from bokeh.models.widgets import Panel, Tabs
 from bokeh.io import output_file, show
@@ -466,6 +468,7 @@ class LasTile:
             return (las_centroid_x, las_centroid_y)
 
         self.path = las_path
+        self.las_str = str(self.path).replace('\\', '/')
         self.name = os.path.splitext(las_path.split(os.sep)[-1])[0]
         self.version = None
         self.has_wkt = None
@@ -594,8 +597,22 @@ class LasTile:
     def get_las_pdrf(self):
         return self.header['data_format_id']
 
+    #def get_pt_src_ids(self):
+    #    return np.unique(self.inFile.pt_src_id)
+
     def get_pt_src_ids(self):
-        return np.unique(self.inFile.pt_src_id)
+        options = [
+                '--stats',
+                '--filters.stats.dimensions=PointSourceId',
+                '--filters.stats.enumerate=PointSourceId'
+                ]
+
+
+        cmd_str = 'pdal info {} {} {} {}'.format(self.las_str, *options)
+        stats = self.run_console_cmd(cmd_str)[1].decode('utf-8')
+        stats_dict = json.loads(stats)
+    
+        return np.asarray(stats_dict['stats']['statistic'][0]['values'])
 
 
 class Mosaic:
@@ -643,11 +660,90 @@ class Surface:
         self.stype = stype
         self.las_path = tile.path
         self.las_name = tile.name
+        self.las_str = tile.las_str
         self.las_extents = tile.las_extents
         self.config = config
+        self.tile = tile
 
     def __str__(self):
         return self.raster_path[self.stype]
+
+    def create_dz_dem(self):
+
+        def gen_dz_pipline(pt_src_id, gtiff_path, las_bounds):
+            pdal_json = """{
+                "pipeline":[
+                    {
+                        "type": "readers.las",
+                        "filename": """ + '"{}"'.format(self.las_str) + """
+                    },
+                    {
+                        "type":"filters.returns",
+                        "groups":"last,only"
+                    },
+                    {
+                        "type":"filters.range",
+                        "limits": """ + '"PointSourceId[{}:{}]"'.format(pt_src_id, pt_src_id) + """
+                    },
+                    {
+                        "filename": """ + '"{}"'.format(gtiff_path) + """,
+                        "gdaldriver": "GTiff",
+                        "output_type": "mean",
+                        "resolution": "1.0",
+                        "type": "writers.gdal",
+                        "bounds": """ + '"{}"'.format(las_bounds) + """
+                    }
+                ]
+            }"""
+            print(pdal_json)
+
+            return pdal_json
+
+        cmd_str = 'pdal info {} --summary'.format(self.las_str)
+        stats = self.tile.run_console_cmd(cmd_str)[1]
+        stats_dict = json.loads(stats)
+
+        bounds = stats_dict['summary']['bounds']
+        minx = bounds['minx']
+        maxx = bounds['maxx']
+        miny = bounds['miny']
+        maxy = bounds['maxy']
+        las_bounds = ([minx,maxx],[miny,maxy])
+
+        pt_src_id_dems = []
+        for psi in self.tile.get_pt_src_ids():
+            print('making mean Z DEM for pt_src_id {}...'.format(psi))
+            gtiff_path = r'{}\{}_meanZ_psi_{}.tif'.format(self.config.surfaces_to_make[self.stype][1], self.las_name, psi)
+            gtiff_path = str(gtiff_path).replace('\\', '/')
+
+            pipeline = pdal.Pipeline(gen_dz_pipline(psi, gtiff_path, las_bounds))
+            count = pipeline.execute()
+
+            with rasterio.open(gtiff_path, 'r') as dem:
+                psi_dem = dem.read(1)
+                psi_dem[psi_dem==-9999] = np.nan
+                pt_src_id_dems.append(psi_dem)
+                meta = dem.meta.copy()
+
+        if len(pt_src_id_dems) == 1:
+            print(pt_src_id_dems)
+        elif len(pt_src_id_dems) > 1:
+            dem_stack = np.stack(pt_src_id_dems, axis=0)
+            dem_stack_min = np.nanmin(dem_stack, axis=0)
+            dem_stack_max = np.nanmax(dem_stack, axis=0)
+
+            dem_dz = dem_stack_max - dem_stack_min
+            dem_dz[np.isnan(dem_dz)] = -9999
+            dem_dz[dem_dz==0] = -9999
+
+            print(dem_dz)
+            print(dem_dz.shape)
+
+            dz_path = '{}\{}_DZ.tif'.format(self.config.surfaces_to_make[self.stype][1], self.las_name)
+            with rasterio.open(dz_path, 'w', **meta) as dz:
+                dz.write(np.expand_dims(dem_dz, axis=0))
+        else:
+            print('no flight lines?')
 
     def gen_surface(self, dem_type):
         las_str = str(self.las_path).replace('\\', '/')
@@ -831,7 +927,7 @@ class QaqcTile:
         from qchecker import Surface
         if tile.has_bathy or tile.has_ground:
             tile_dz = Surface(tile, 'Dz', self.config)
-            tile_dz.gen_surface('stdev')
+            tile_dz.create_dz_dem()
         else:
             logging.debug('{} has no bathy or ground points; no dz ortho generated'.format(tile.name))
 
@@ -886,7 +982,7 @@ class QaqcTile:
 
     def run_qaqc(self, las_paths):
         if self.config.multiprocess:
-            p = pp.ProcessPool(int(ph.cpu_count() / 2))
+            p = pp.ProcessPool(min(4, int(ph.cpu_count() / 2)))
             num_las = len(las_paths)
             for _ in tqdm(p.imap(self.run_qaqc_checks_multiprocess, las_paths), total=num_las, ascii=True):
                 pass
@@ -1085,7 +1181,7 @@ def run_qaqc(config_json):
     print()
 
     qaqc_tile_collection = LasTileCollection(config.las_tile_dir)
-    qaqc = QaqcTileCollection(qaqc_tile_collection.get_las_tile_paths()[110:130], config)
+    qaqc = QaqcTileCollection(qaqc_tile_collection.get_las_tile_paths()[130:200], config)
     
     qaqc.run_qaqc_tile_collection_checks()
     qaqc.set_qaqc_results_df()

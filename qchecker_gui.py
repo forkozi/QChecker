@@ -749,6 +749,7 @@ class MainGuiPage(ttk.Frame):
                 else:
                     print('{} already exists'.format(d))
 
+        self.controller.save_config()                                
         validate_qaqc_directories(Path(self.gui['dirs_to_set']['qaqc_dir'][2]))
         run_qaqc(self.controller.config_file)
 

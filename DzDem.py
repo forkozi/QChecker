@@ -21,7 +21,7 @@ def get_directories():
 
 def get_tile_dems(dem_type):
     dems = []
-    for dem in list(out_dir.glob('*_Hillshade.tif'.format(dem_type.upper()))):
+    for dem in list(out_dir.glob('*_DZ.tif'.format(dem_type.upper()))):
         print('retreiving {}...'.format(dem))
         src = rasterio.open(dem)
         dems.append(src)
@@ -49,8 +49,7 @@ def gen_mosaic(dems, out_meta):
     return mosaic
 
 
-def gen_pipline(las_str, pt_src_id, gtiff_path):
-
+def gen_pipline(las_str, pt_src_id, gtiff_path, las_bounds):
 
     pdal_json = """{
         "pipeline":[
@@ -72,6 +71,7 @@ def gen_pipline(las_str, pt_src_id, gtiff_path):
                 "output_type": "mean",
                 "resolution": "1.0",
                 "type": "writers.gdal",
+                "bounds": """ + '"{}"'.format(las_bounds) + """
             }
         ]
     }"""
@@ -80,36 +80,64 @@ def gen_pipline(las_str, pt_src_id, gtiff_path):
     return pdal_json
 
 
+def run_console_cmd(cmd):
+    process = subprocess.Popen(cmd.split(' '), shell=False, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+    output, error = process.communicate()
+    returncode = process.poll()
+    return returncode, output
+
+
 def create_dz_dem(las):
 
     pt_src_id_dems = []
 
     las_str = str(las).replace('\\', '/')
     pt_src_ids = get_pt_src_ids(las)
+
+    cmd_str = 'pdal info {} --summary'.format(las_str)
+    stats = run_console_cmd(cmd_str)[1]
+    stats_dict = json.loads(stats)
+
+    minx = stats_dict['summary']['bounds']['minx']
+    maxx = stats_dict['summary']['bounds']['maxx']
+    miny = stats_dict['summary']['bounds']['miny']
+    maxy = stats_dict['summary']['bounds']['maxy']
+
+    las_bounds = ([minx,maxx],[miny,maxy])
+
     for psi in pt_src_ids:
         print('making mean Z DEM for pt_src_id {}...'.format(psi))
         gtiff_path = out_dir / '{}_{}.tif'.format(las.stem, psi)
         gtiff_path = str(gtiff_path).replace('\\', '/')
 
-        try:
-            pipeline = pdal.Pipeline(gen_pipline(las_str, psi, gtiff_path))
-            count = pipeline.execute()
+        pipeline = pdal.Pipeline(gen_pipline(las_str, psi, gtiff_path, las_bounds))
+        count = pipeline.execute()
 
-            with rasterio.open(gtiff_path, 'r') as dem:
-                pt_src_id_dems.append(dem.read(1))
+        with rasterio.open(gtiff_path, 'r') as dem:
+            psi_dem = dem.read(1)
+            psi_dem[psi_dem==-9999] = np.nan
+            pt_src_id_dems.append(psi_dem)
+            meta = dem.meta.copy()
 
-        except Exception as e:
-            print(e)
+    if len(pt_src_id_dems) == 1:
+        print(pt_src_id_dems)
+    elif len(pt_src_id_dems) > 1:
+        dem_stack = np.stack(pt_src_id_dems, axis=0)
+        dem_stack_min = np.nanmin(dem_stack, axis=0)
+        dem_stack_max = np.nanmax(dem_stack, axis=0)
 
-        dem_stack = np.vstack(pt_src_id_dems)
-        print(dem_stack.shape)
+        dem_dz = dem_stack_max - dem_stack_min
+        dem_dz[np.isnan(dem_dz)] = -9999
+        dem_dz[dem_dz==0] = -9999
 
+        print(dem_dz)
+        print(dem_dz.shape)
 
-def run_console_cmd(cmd):
-    process = subprocess.Popen(cmd.split(' '), shell=False, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
-    output, error = process.communicate()
-    returncode = process.poll()
-    return returncode, output
+        dz_path = out_dir / '{}_DZ.tif'.format(las.stem)
+        with rasterio.open(dz_path, 'w', **meta) as dz:
+            dz.write(np.expand_dims(dem_dz, axis=0))
+    else:
+        print('no flight lines?')
 
 
 def get_pt_src_ids(las):
@@ -122,8 +150,6 @@ def get_pt_src_ids(las):
     cmd_str = 'pdal info {} {} {} {}'.format(las, *options)
     stats = run_console_cmd(cmd_str)[1].decode('utf-8')
     stats_dict = json.loads(stats)
-
-    print(stats_dict)
     
     return stats_dict['stats']['statistic'][0]['values']
 
@@ -162,7 +188,7 @@ if __name__ == '__main__':
     las_dir, out_dir = get_directories()
 
     # generate individual tile DEMs
-    for las in list(las_dir.glob('*.las'))[0:5]:
+    for las in list(las_dir.glob('*.las'))[0:50]:
         
 
         create_dz_dem(las)
