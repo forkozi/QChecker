@@ -5,13 +5,15 @@ import rasterio.merge
 import matplotlib.pyplot as plt
 from matplotlib.gridspec import GridSpec
 import numpy as np
+import json
+import subprocess
 
 
 def get_directories():
     #in_dir = Path(input('Enter tpu las directory:  '))
     #out_dir = Path(input('Enter results diretory:  '))
 
-    in_dir = Path(r'V:\FL1607\lidar\QAQC\hillshade\hillshade_tiles')
+    in_dir = Path(r'V:\FL1607\lidar\CLASSIFIED_LIDAR')
     out_dir = Path(r'V:\FL1607\lidar\QAQC\hillshade\hillshade_tiles')
 
     return in_dir, out_dir
@@ -47,16 +49,9 @@ def gen_mosaic(dems, out_meta):
     return mosaic
 
 
-def gen_pipline(dem_type, gtiff_path):
-    #{
-    #    "type":"filters.range",
-    #    "limits":"Classification[2:26]"
-    #},
-    #{
-    #    "type":"filters.range",
-    #    "limits":"Classification!(2:26)",
-    #    "tag": "A"
-    #},
+def gen_pipline(las_str, pt_src_id, gtiff_path):
+
+
     pdal_json = """{
         "pipeline":[
             {
@@ -68,11 +63,15 @@ def gen_pipline(dem_type, gtiff_path):
                 "groups":"last,only"
             },
             {
+                "type":"filters.range",
+                "limits": """ + '"PointSourceId[{}:{}]"'.format(pt_src_id, pt_src_id) + """
+            },
+            {
                 "filename": """ + '"{}"'.format(gtiff_path) + """,
                 "gdaldriver": "GTiff",
-                "output_type": """ + '"{}"'.format(dem_type) + """,
+                "output_type": "mean",
                 "resolution": "1.0",
-                "type": "writers.gdal"
+                "type": "writers.gdal",
             }
         ]
     }"""
@@ -81,16 +80,52 @@ def gen_pipline(dem_type, gtiff_path):
     return pdal_json
 
 
-def create_dem(dem_type):
-    gtiff_path = out_dir / '{}_{}.tif'.format(las.stem, dem_type.upper())
-    gtiff_path = str(gtiff_path).replace('\\', '/')
+def create_dz_dem(las):
 
-    try:
-        pipeline = pdal.Pipeline(gen_pipline(dem_type, gtiff_path))
-        count = pipeline.execute()
-    except Exception as e:
-        print(e)
-    pass
+    pt_src_id_dems = []
+
+    las_str = str(las).replace('\\', '/')
+    pt_src_ids = get_pt_src_ids(las)
+    for psi in pt_src_ids:
+        print('making mean Z DEM for pt_src_id {}...'.format(psi))
+        gtiff_path = out_dir / '{}_{}.tif'.format(las.stem, psi)
+        gtiff_path = str(gtiff_path).replace('\\', '/')
+
+        try:
+            pipeline = pdal.Pipeline(gen_pipline(las_str, psi, gtiff_path))
+            count = pipeline.execute()
+
+            with rasterio.open(gtiff_path, 'r') as dem:
+                pt_src_id_dems.append(dem.read(1))
+
+        except Exception as e:
+            print(e)
+
+        dem_stack = np.vstack(pt_src_id_dems)
+        print(dem_stack.shape)
+
+
+def run_console_cmd(cmd):
+    process = subprocess.Popen(cmd.split(' '), shell=False, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+    output, error = process.communicate()
+    returncode = process.poll()
+    return returncode, output
+
+
+def get_pt_src_ids(las):
+    options = [
+            '--stats',
+            '--filters.stats.dimensions=PointSourceId',
+            '--filters.stats.enumerate=PointSourceId'
+            ]
+
+    cmd_str = 'pdal info {} {} {} {}'.format(las, *options)
+    stats = run_console_cmd(cmd_str)[1].decode('utf-8')
+    stats_dict = json.loads(stats)
+
+    print(stats_dict)
+    
+    return stats_dict['stats']['statistic'][0]['values']
 
 
 def gen_summary_graphic(mosaic, dem_type):
@@ -123,15 +158,16 @@ def gen_summary_graphic(mosaic, dem_type):
 
 
 if __name__ == '__main__':
-    dem_type = 'max'
+    dem_type = 'mean'
     las_dir, out_dir = get_directories()
 
     # generate individual tile DEMs
-    for las in list(las_dir.glob('*.las'))[0:]:
-        las_str = str(las).replace('\\', '/')
-        create_dem(dem_type)
+    for las in list(las_dir.glob('*.las'))[0:5]:
+        
 
-    # mosaic tile DEMs
-    dems, out_meta = get_tile_dems(dem_type)
-    mosaic = gen_mosaic(dems, out_meta)
-    gen_summary_graphic(mosaic, dem_type)
+        create_dz_dem(las)
+
+    ## mosaic tile DEMs
+    #dems, out_meta = get_tile_dems(dem_type)
+    #mosaic = gen_mosaic(dems, out_meta)
+    #gen_summary_graphic(mosaic, dem_type)
