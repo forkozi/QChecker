@@ -123,13 +123,13 @@ def gen_summary_graphic(mosaic, dem_type):
 
 
 if __name__ == '__main__':
-    dem_type = 'mean'
+    dem_type = 'max'
     las_dir, out_dir = get_directories()
 
-    ## generate individual tile DEMs
-    #for las in list(las_dir.glob('*.las'))[0:]:
-    #    las_str = str(las).replace('\\', '/')
-    #    create_dem(dem_type)
+    # generate individual tile DEMs
+    for las in list(las_dir.glob('*.las'))[0:]:
+        las_str = str(las).replace('\\', '/')
+        create_dem(dem_type)
 
     # mosaic tile DEMs
     dems, out_meta = get_tile_dems(dem_type)
