@@ -627,7 +627,7 @@ class Mosaic:
         self.out_meta = None
 
     def get_tile_dems(self):
-        for dem in list(out_dir.glob('*_.tif'.format(self.mtype.upper()))):
+        for dem in list(out_dir.glob('*_{}.tif'.format(self.mtype.upper()))):
             print('retreiving {}...'.format(dem))
             src = rasterio.open(dem)
             self.dems.append(src)
@@ -711,9 +711,11 @@ class Surface:
         las_bounds = ([minx,maxx],[miny,maxy])
 
         pt_src_id_dems = []
+        gtiffs_to_delete = []
         for psi in self.tile.get_pt_src_ids():
             print('making mean Z DEM for pt_src_id {}...'.format(psi))
             gtiff_path = r'{}\{}_meanZ_psi_{}.tif'.format(self.config.surfaces_to_make[self.stype][1], self.las_name, psi)
+            gtiffs_to_delete.append(gtiff_path)
             gtiff_path = str(gtiff_path).replace('\\', '/')
 
             pipeline = pdal.Pipeline(gen_dz_pipline(psi, gtiff_path, las_bounds))
@@ -726,7 +728,7 @@ class Surface:
                 meta = dem.meta.copy()
 
         if len(pt_src_id_dems) == 1:
-            print(pt_src_id_dems)
+            print('no dz to make (only 1 flight line)')
         elif len(pt_src_id_dems) > 1:
             dem_stack = np.stack(pt_src_id_dems, axis=0)
             dem_stack_min = np.nanmin(dem_stack, axis=0)
@@ -742,10 +744,15 @@ class Surface:
             dz_path = '{}\{}_DZ.tif'.format(self.config.surfaces_to_make[self.stype][1], self.las_name)
             with rasterio.open(dz_path, 'w', **meta) as dz:
                 dz.write(np.expand_dims(dem_dz, axis=0))
+
+            # delete psi dz tiles
+            for g in gtiffs_to_delete:
+                os.remove(g)
+
         else:
             print('no flight lines?')
 
-    def gen_surface(self, dem_type):
+    def gen_mean_z_surface(self, dem_type):
         las_str = str(self.las_path).replace('\\', '/')
         gtiff_path = r'{}\{}_{}.tif'.format(self.config.surfaces_to_make[self.stype][1], self.las_name, self.stype)
         gtiff_path = str(gtiff_path).replace('\\', '/')
@@ -935,7 +942,7 @@ class QaqcTile:
         from qchecker import Surface
         if tile.has_bathy or tile.has_ground:
             tile_hillshade = Surface(tile, 'Hillshade', self.config)
-            tile_hillshade.gen_surface('mean')
+            tile_hillshade.gen_mean_z_surface('mean')
         else:
             logging.debug('{} has no bathy or ground points; no hillshade ortho generated'.format(tile.name))
 
@@ -968,7 +975,7 @@ class QaqcTile:
             tile = LasTile(las_path, self.config)
             print(time.time() - tic)
 
-            #cProfile.runctx('LasTile(las_path, self.config)', globals={'LasTile': LasTile}, locals={'las_path': las_path, 'self': self}, sort='cumtime')
+            cProfile.runctx('LasTile(las_path, self.config)', globals={'LasTile': LasTile}, locals={'las_path': las_path, 'self': self}, sort='cumtime')
 
             for c in [k for k, v in self.config.checks_to_do.items() if v]:
                 logging.debug('running {}...'.format(c))
@@ -982,7 +989,7 @@ class QaqcTile:
 
     def run_qaqc(self, las_paths):
         if self.config.multiprocess:
-            p = pp.ProcessPool(min(4, int(ph.cpu_count() / 2)))
+            p = pp.ProcessPool(int(ph.cpu_count() / 2))
             num_las = len(las_paths)
             for _ in tqdm(p.imap(self.run_qaqc_checks_multiprocess, las_paths), total=num_las, ascii=True):
                 pass

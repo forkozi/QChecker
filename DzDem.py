@@ -37,7 +37,7 @@ def gen_mosaic(dems, out_meta):
     mosaic, out_trans = rasterio.merge.merge(dems)
 
     out_meta.update({
-        "driver": "GTiff",
+        "driver": "MEM",
         "height": mosaic.shape[1],
         "width": mosaic.shape[2],
         "transform": out_trans})
