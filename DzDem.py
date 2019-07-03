@@ -66,17 +66,17 @@ def gen_pipline(las_str, pt_src_id, gtiff_path, las_bounds):
                 "limits": """ + '"PointSourceId[{}:{}]"'.format(pt_src_id, pt_src_id) + """
             },
             {
-                "filename": """ + '"{}"'.format(gtiff_path) + """,
+                "type": "writers.gdal",
                 "gdaldriver": "GTiff",
                 "output_type": "mean",
                 "resolution": "1.0",
-                "type": "writers.gdal",
-                "bounds": """ + '"{}"'.format(las_bounds) + """
+                "bounds": """ + '"{}",'.format(las_bounds) + """
+                "filename":  """ + '"{}"'.format('/vsimem/out.tif') + """
             }
         ]
     }"""
     print(pdal_json)
-
+    #""" + '"{}"'.format(gtiff_path) + """,
     return pdal_json
 
 
@@ -113,7 +113,7 @@ def create_dz_dem(las):
         pipeline = pdal.Pipeline(gen_pipline(las_str, psi, gtiff_path, las_bounds))
         count = pipeline.execute()
 
-        with rasterio.open(gtiff_path, 'r') as dem:
+        with rasterio.open('/vsimem/out.tif', 'r') as dem:
             psi_dem = dem.read(1)
             psi_dem[psi_dem==-9999] = np.nan
             pt_src_id_dems.append(psi_dem)
@@ -188,7 +188,7 @@ if __name__ == '__main__':
     las_dir, out_dir = get_directories()
 
     # generate individual tile DEMs
-    for las in list(las_dir.glob('*.las'))[0:50]:
+    for las in list(las_dir.glob('*.las'))[0:5]:
         
 
         create_dz_dem(las)

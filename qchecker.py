@@ -504,7 +504,7 @@ class LasTile:
 
         self.tile_centroid_wkt = GeoObject(Point(self.centroid_x, self.centroid_y)).wkt()
         
-        self.classes_present, self.class_counts = self.get_class_counts()
+        self.classes_present, self.class_counts = self.get_class_counts_np()
 
         self.has_bathy = True if 'class26' in self.class_counts.keys() else False
         self.has_ground = True if 'class2' in self.class_counts.keys() else False
@@ -558,6 +558,13 @@ class LasTile:
         json_file_name = r'{}\{}.json'.format(self.config.json_dir, self.name)
         with open(json_file_name, 'w') as json_file:
             json_file.write(str(self))
+
+    def get_class_counts_np(self):
+        class_counts = np.unique(self.inFile.classification, return_counts=True)
+        classes_present = [c for c in class_counts[0]]
+        class_counts = dict(zip(['class{}'.format(str(c)) for c in class_counts[0]],
+                                [int(c) for c in class_counts[1]]))
+        return classes_present, class_counts
 
     def get_class_counts(self):
         las = str(self.path).replace('\\', '/')
@@ -621,13 +628,14 @@ class Mosaic:
         self.mtype = mtype
         self.config = config
         self.mosaic_dataset_base_name = r'{}_{}_mosaic'.format(self.config.project_name, self.mtype)
-        self.mosaic_dataset_path = Path(self.config.mosaics_to_make[self.mtype][1]) / self.mosaic_dataset_base_name
+        self.mosaic_dataset_path = Path(self.config.mosaics_to_make[self.mtype][1]) / '{}.tif'.format(self.mosaic_dataset_base_name)
+        self.source_dems_dir = Path(self.config.surfaces_to_make[self.mtype][1])
         self.dems = []
         self.src = None
         self.out_meta = None
 
     def get_tile_dems(self):
-        for dem in list(out_dir.glob('*_{}.tif'.format(self.mtype.upper()))):
+        for dem in list(self.source_dems_dir.glob('*_{}.tif'.format(self.mtype.upper()))):
             print('retreiving {}...'.format(dem))
             src = rasterio.open(dem)
             self.dems.append(src)
@@ -641,14 +649,14 @@ class Mosaic:
             print('generating {}...'.format(self.mosaic_dataset_path))
             mosaic, out_trans = rasterio.merge.merge(self.dems)
 
-            self.out_metaout_meta.update({
+            self.out_meta.update({
                 'driver': "GTiff",
                 'height': mosaic.shape[1],
                 'width': mosaic.shape[2],
                 'transform': out_trans})
 
             # save TPU mosaic DEMs
-            with rasterio.open(self.mosaic_dataset_path, 'w', **self.out_metaout_meta) as dest:
+            with rasterio.open(self.mosaic_dataset_path, 'w', **self.out_meta) as dest:
                 dest.write(mosaic)
         else:
             print('No Hillshade tile DEMs were generated.')
@@ -686,16 +694,15 @@ class Surface:
                         "limits": """ + '"PointSourceId[{}:{}]"'.format(pt_src_id, pt_src_id) + """
                     },
                     {
-                        "filename": """ + '"{}"'.format(gtiff_path) + """,
+                        "type": "writers.gdal",
                         "gdaldriver": "GTiff",
                         "output_type": "mean",
                         "resolution": "1.0",
-                        "type": "writers.gdal",
-                        "bounds": """ + '"{}"'.format(las_bounds) + """
+                        "bounds": """ + '"{}",'.format(las_bounds) + """
+                        "filename":  """ + '"{}"'.format(gtiff_path) + """
                     }
                 ]
             }"""
-            print(pdal_json)
 
             return pdal_json
 
@@ -711,11 +718,9 @@ class Surface:
         las_bounds = ([minx,maxx],[miny,maxy])
 
         pt_src_id_dems = []
-        gtiffs_to_delete = []
         for psi in self.tile.get_pt_src_ids():
-            print('making mean Z DEM for pt_src_id {}...'.format(psi))
-            gtiff_path = r'{}\{}_meanZ_psi_{}.tif'.format(self.config.surfaces_to_make[self.stype][1], self.las_name, psi)
-            gtiffs_to_delete.append(gtiff_path)
+            print('making mean Z DEM for pt_src_id {} ({})...'.format(psi, self.las_name))
+            gtiff_path = r'/vsimem/{}_{}.tif'.format(self.las_name, psi)
             gtiff_path = str(gtiff_path).replace('\\', '/')
 
             pipeline = pdal.Pipeline(gen_dz_pipline(psi, gtiff_path, las_bounds))
@@ -744,10 +749,6 @@ class Surface:
             dz_path = '{}\{}_DZ.tif'.format(self.config.surfaces_to_make[self.stype][1], self.las_name)
             with rasterio.open(dz_path, 'w', **meta) as dz:
                 dz.write(np.expand_dims(dem_dz, axis=0))
-
-            # delete psi dz tiles
-            for g in gtiffs_to_delete:
-                os.remove(g)
 
         else:
             print('no flight lines?')
@@ -1188,7 +1189,7 @@ def run_qaqc(config_json):
     print()
 
     qaqc_tile_collection = LasTileCollection(config.las_tile_dir)
-    qaqc = QaqcTileCollection(qaqc_tile_collection.get_las_tile_paths()[130:200], config)
+    qaqc = QaqcTileCollection(qaqc_tile_collection.get_las_tile_paths()[130:131], config)
     
     qaqc.run_qaqc_tile_collection_checks()
     qaqc.set_qaqc_results_df()

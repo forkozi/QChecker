@@ -151,9 +151,7 @@ class QaqcApp(tk.Tk):
         for k, v in self.components['mosaics_to_make'].items():
             self.configuration['mosaics_to_make'][k][0] = v[1].get()
             self.configuration['mosaics_to_make'][k][1] = str(Path(
-                self.configuration['qaqc_dir'], 
-                '{}_ArcProject'.format(self.configuration['project_name']), 
-                '{}.gdb'.format(self.configuration['project_name'])))
+                self.configuration['qaqc_dir'], k.lower()))
 
         # supp_las_domain
         self.configuration['supp_las_domain'] = self.components['supp_las_domain'].get()
