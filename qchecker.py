@@ -275,11 +275,12 @@ class SummaryPlots:
     def draw_class_count_maps(self):
         min_count = self.qaqc_results_df[self.class_counts.index].min().min()
         max_count = self.qaqc_results_df[self.class_counts.index].max().max()
+        
+        palette = Blues[9]
+        palette.reverse()
 
         class_count_plots = []
         for i, class_field in enumerate(self.class_counts.index):
-            palette = Blues[9]
-            palette.reverse()
 
             color_mapper = log_cmap(field_name=class_field, palette=palette, 
                                     low=min_count, high=max_count, nan_color='white')
@@ -467,11 +468,14 @@ class LasTile:
             las_centroid_y = las_nw_y - self.config.tile_size / 2
             return (las_centroid_x, las_centroid_y)
 
+        tic = time.time()
+
         self.path = las_path
         self.las_str = str(self.path).replace('\\', '/')
         self.name = os.path.splitext(las_path.split(os.sep)[-1])[0]
         self.version = None
         self.has_wkt = None
+        self.refraction_bit_set = None
         self.inFile = File(self.path, mode="r")
         self.config = config
         self.is_pyramided = os.path.isfile(self.path.replace('.las', '.qvr'))
@@ -503,9 +507,9 @@ class LasTile:
             ])).wkt()
 
         self.tile_centroid_wkt = GeoObject(Point(self.centroid_x, self.centroid_y)).wkt()
-        
-        self.classes_present, self.class_counts = self.get_class_counts_np()
 
+        self.classes_present, self.class_counts = self.get_class_counts()
+        
         self.has_bathy = True if 'class26' in self.class_counts.keys() else False
         self.has_ground = True if 'class2' in self.class_counts.keys() else False
 
@@ -522,6 +526,7 @@ class LasTile:
 
         self.vlrs = get_vlrs()
         self.hor_srs, self.ver_srs = get_srs(self.path)
+
 
         if self.version == '1.4':
             self.has_wkt = self.inFile.header.get_wkt()
@@ -559,36 +564,12 @@ class LasTile:
         with open(json_file_name, 'w') as json_file:
             json_file.write(str(self))
 
-    def get_class_counts_np(self):
-        class_counts = np.unique(self.inFile.classification, return_counts=True)
-        classes_present = [c for c in class_counts[0]]
-        class_counts = dict(zip(['class{}'.format(str(c)) for c in class_counts[0]],
-                                [int(c) for c in class_counts[1]]))
-        return classes_present, class_counts
-
     def get_class_counts(self):
-        las = str(self.path).replace('\\', '/')
-        options = [
-            '--stats',
-            '--filters.stats.dimensions=Classification',
-            '--filters.stats.count=Classification'
-            ]
-
-        cmd_str = 'pdal info {} {} {} {}'.format(las, *options)
-        stats = self.run_console_cmd(cmd_str)[1].decode('utf-8')
-        stats_dict = json.loads(stats)
-        class_counts = stats_dict['stats']['statistic'][0]['counts']
-
-        classes_present = []
-        counts = []
-        
-        for c in class_counts:
-            class_count = c.split('/')
-            classes_present.append(int(float(class_count[0])))
-            counts.append(int(float(class_count[1])))
-
-        class_counts = dict(zip(['class{}'.format(str(c)) for c in classes_present], counts))
-
+        bin_counts = np.bincount(self.inFile.points['point']['raw_classification'])
+        classes_present = np.where(bin_counts > 0)[0]  # i.e., indices
+        class_counts = bin_counts[classes_present]
+        class_counts = dict(zip(['class{}'.format(str(c)) for c in classes_present],
+                                [int(c) for c in class_counts]))
         return classes_present, class_counts
 
     def get_gps_time(self):
@@ -604,22 +585,30 @@ class LasTile:
     def get_las_pdrf(self):
         return self.header['data_format_id']
 
-    #def get_pt_src_ids(self):
-    #    return np.unique(self.inFile.pt_src_id)
-
     def get_pt_src_ids(self):
-        options = [
-                '--stats',
-                '--filters.stats.dimensions=PointSourceId',
-                '--filters.stats.enumerate=PointSourceId'
-                ]
+        return np.unique(self.inFile.pt_src_id)
+
+    def get_refraction_bit(self):
+        try:
+           vlr_104 = self.vlrs['104']
+           self.refraction_bit_set = True
+        except Exception as e:
+            print(e)
+            self.refraction_bit_set = 'not_present'
+
+    #def get_pt_src_ids(self):
+    #    options = [
+    #            '--stats',
+    #            '--filters.stats.dimensions=PointSourceId',
+    #            '--filters.stats.enumerate=PointSourceId'
+    #            ]
 
 
-        cmd_str = 'pdal info {} {} {} {}'.format(self.las_str, *options)
-        stats = self.run_console_cmd(cmd_str)[1].decode('utf-8')
-        stats_dict = json.loads(stats)
+    #    cmd_str = 'pdal info {} {} {} {}'.format(self.las_str, *options)
+    #    stats = self.run_console_cmd(cmd_str)[1].decode('utf-8')
+    #    stats_dict = json.loads(stats)
     
-        return np.asarray(stats_dict['stats']['statistic'][0]['values'])
+    #    return np.asarray(stats_dict['stats']['statistic'][0]['values'])
 
 
 class Mosaic:
@@ -677,8 +666,8 @@ class Surface:
         return self.raster_path[self.stype]
 
     def create_dz_dem(self):
-
-        def gen_dz_pipline(pt_src_id, gtiff_path, las_bounds):
+        
+        def gen_pipeline(gtiff_path, las_bounds):
             pdal_json = """{
                 "pipeline":[
                     {
@@ -686,25 +675,53 @@ class Surface:
                         "filename": """ + '"{}"'.format(self.las_str) + """
                     },
                     {
+                        "type":"filters.range",
+                        "limits": "Classification[2:2],Classification[26:26]" 
+                    },
+                    {
                         "type":"filters.returns",
                         "groups":"last,only"
                     },
                     {
-                        "type":"filters.range",
-                        "limits": """ + '"PointSourceId[{}:{}]"'.format(pt_src_id, pt_src_id) + """
+                        "type":"filters.groupby",
+                        "dimension":"PointSourceId"
                     },
                     {
                         "type": "writers.gdal",
                         "gdaldriver": "GTiff",
                         "output_type": "mean",
-                        "resolution": "1.0",
+                        "resolution": "2.0",
                         "bounds": """ + '"{}",'.format(las_bounds) + """
                         "filename":  """ + '"{}"'.format(gtiff_path) + """
                     }
                 ]
             }"""
-
+        
             return pdal_json
+
+        def create_dz(las_name):
+
+            tif_dir = Path(self.config.surfaces_to_make[self.stype][1])
+
+            tifs = []
+            for t in tif_dir.glob('{}*.tif'.format(las_name)):
+                print(t)
+                with rasterio.open(t, 'r') as tif:
+                    tifs.append(tif.read(1))
+                    meta = tif.meta.copy()
+                os.remove(t)
+
+            if tifs:  # sometimes tif isn't made for las having ground or bathy (one e.g. was las having only 3 class 26 pts)
+                tifs = np.stack(tifs, axis=0)
+                tifs[tifs == -9999] = np.nan
+                tifs = np.nanmax(tifs, axis=0) - np.nanmin(tifs, axis=0)
+                tifs[(np.isnan(tifs)) | (tifs == 0)] = -9999
+
+                dz_path = '{}\{}_DZ.tif'.format(self.config.surfaces_to_make[self.stype][1], self.las_name)
+                with rasterio.open(dz_path, 'w', **meta) as dz:
+                    dz.write(np.expand_dims(tifs, axis=0))
+            else:
+                print('{} has no tifs :(...'.format(self.las_name))
 
         cmd_str = 'pdal info {} --summary'.format(self.las_str)
         stats = self.tile.run_console_cmd(cmd_str)[1]
@@ -718,40 +735,14 @@ class Surface:
         las_bounds = ([minx,maxx],[miny,maxy])
 
         pt_src_id_dems = []
-        for psi in self.tile.get_pt_src_ids():
-            print('making mean Z DEM for pt_src_id {} ({})...'.format(psi, self.las_name))
-            gtiff_path = r'/vsimem/{}_{}.tif'.format(self.las_name, psi)
-            gtiff_path = str(gtiff_path).replace('\\', '/')
 
-            pipeline = pdal.Pipeline(gen_dz_pipline(psi, gtiff_path, las_bounds))
-            count = pipeline.execute()
+        gtiff_path = r'{}\{}_PSI_#.tif'.format(self.config.surfaces_to_make[self.stype][1], self.las_name)
+        gtiff_path = str(gtiff_path).replace('\\', '/')
+        
+        pipeline = pdal.Pipeline(gen_pipeline(gtiff_path, las_bounds))
+        __ = pipeline.execute()
 
-            with rasterio.open(gtiff_path, 'r') as dem:
-                psi_dem = dem.read(1)
-                psi_dem[psi_dem==-9999] = np.nan
-                pt_src_id_dems.append(psi_dem)
-                meta = dem.meta.copy()
-
-        if len(pt_src_id_dems) == 1:
-            print('no dz to make (only 1 flight line)')
-        elif len(pt_src_id_dems) > 1:
-            dem_stack = np.stack(pt_src_id_dems, axis=0)
-            dem_stack_min = np.nanmin(dem_stack, axis=0)
-            dem_stack_max = np.nanmax(dem_stack, axis=0)
-
-            dem_dz = dem_stack_max - dem_stack_min
-            dem_dz[np.isnan(dem_dz)] = -9999
-            dem_dz[dem_dz==0] = -9999
-
-            print(dem_dz)
-            print(dem_dz.shape)
-
-            dz_path = '{}\{}_DZ.tif'.format(self.config.surfaces_to_make[self.stype][1], self.las_name)
-            with rasterio.open(dz_path, 'w', **meta) as dz:
-                dz.write(np.expand_dims(dem_dz, axis=0))
-
-        else:
-            print('no flight lines?')
+        create_dz(self.las_name)
 
     def gen_mean_z_surface(self, dem_type):
         las_str = str(self.las_path).replace('\\', '/')
@@ -769,16 +760,20 @@ class Surface:
                     "groups":"last,only"
                 },
                 {
+                    "type":"filters.range",
+                    "limits": "Classification[2:2],Classification[26:26]"
+                },
+                {
                     "filename": """ + '"{}"'.format(gtiff_path) + """,
                     "gdaldriver": "GTiff",
                     "output_type": """ + '"{}"'.format(dem_type) + """,
-                    "resolution": "1.0",
+                    "resolution": "2.0",
                     "type": "writers.gdal"
                 }
             ]
         }"""
-        print(pdal_json)
-        logging.debug('generating {} surface for {}...'.format(self.stype, self.las_name))
+
+        print('generating {} surface for {}...'.format(self.stype, self.las_name))
 
         try:
             pipeline = pdal.Pipeline(pdal_json)
@@ -855,6 +850,9 @@ class QaqcTile:
         tile.checks_result['version_passed'] = passed
         logging.debug(tile.checks_result['version'])
         return passed
+
+    def check_refraction_bit(self, tile):
+        pass
 
     def check_las_pdrf(self, tile):
         pdrf = tile.get_las_pdrf()
@@ -935,6 +933,7 @@ class QaqcTile:
         from qchecker import Surface
         if tile.has_bathy or tile.has_ground:
             tile_dz = Surface(tile, 'Dz', self.config)
+            #tile_dz.create_dz_dem()
             tile_dz.create_dz_dem()
         else:
             logging.debug('{} has no bathy or ground points; no dz ortho generated'.format(tile.name))
@@ -966,17 +965,14 @@ class QaqcTile:
 
     def run_qaqc_checks(self, las_paths):       
         num_las = len(las_paths)
-        tic = time.time()
 
         print('performing tile qaqc processes...')
         for las_path in progressbar.progressbar(las_paths, redirect_stdout=True):
 
             logging.debug('starting {}...'.format(las_path))
-            tic = time.time()
             tile = LasTile(las_path, self.config)
-            print(time.time() - tic)
 
-            cProfile.runctx('LasTile(las_path, self.config)', globals={'LasTile': LasTile}, locals={'las_path': las_path, 'self': self}, sort='cumtime')
+            #cProfile.runctx('LasTile(las_path, self.config)', globals={'LasTile': LasTile}, locals={'las_path': las_path, 'self': self}, sort='cumtime')
 
             for c in [k for k, v in self.config.checks_to_do.items() if v]:
                 logging.debug('running {}...'.format(c))
@@ -991,6 +987,7 @@ class QaqcTile:
     def run_qaqc(self, las_paths):
         if self.config.multiprocess:
             p = pp.ProcessPool(int(ph.cpu_count() / 2))
+            #p = pp.ProcessPool(3)
             num_las = len(las_paths)
             for _ in tqdm(p.imap(self.run_qaqc_checks_multiprocess, las_paths), total=num_las, ascii=True):
                 pass
@@ -1130,7 +1127,9 @@ class QaqcTileCollection:
                                 'created_day', 'created_year', 'tile_polygon', 
                                 'x_max', 'x_min', 'y_max', 'y_min'])
 
-        gdf.to_file(output, driver='ESRI Shapefile')
+        schema = gpd.io.file.infer_schema(gdf)
+        print(schema)
+        gdf.to_file(output, driver='ESRI Shapefile', schema=schema)
 
     def gen_mosaic(self, mtype):
         mosaic = Mosaic(mtype, self.config)
@@ -1189,12 +1188,12 @@ def run_qaqc(config_json):
     print()
 
     qaqc_tile_collection = LasTileCollection(config.las_tile_dir)
-    qaqc = QaqcTileCollection(qaqc_tile_collection.get_las_tile_paths()[130:131], config)
+    qaqc = QaqcTileCollection(qaqc_tile_collection.get_las_tile_paths()[0:1], config)
     
     qaqc.run_qaqc_tile_collection_checks()
     qaqc.set_qaqc_results_df()
     qaqc.gen_qaqc_shp_NAD83_UTM(config.qaqc_shp_NAD83_UTM_POLYGONS)
-    qaqc.gen_qaqc_json_WebMercator_CENTROIDS()
+    #qaqc.gen_qaqc_json_WebMercator_CENTROIDS()
 
     dashboard = SummaryPlots(config, qaqc.qaqc_results_df)
     dashboard.gen_dashboard()
