@@ -1,33 +1,35 @@
 Installation
 ============
 
-Q-Checker can be run independently or as a geoprocessing tool within ArcPro. In both cases, Q-checker relies on two separate Python environments:
+Installing Q-Checker consists of three steps:
 
-- Q-Checker environment (modified version of the arcgispro-py3 Python environment that comes installed with ArcPro)
-- PDAL environment
-
-.. note::
-
-    Relying on two separate Python environments is perhaps unconventional, but doing so is a work-around for conflicts between PDAL and other packages in the modified arcgispro-p3y environment.
+- Download Q-Checker GitHub repository 
+- Create Python environment
+- Configure .bat file
    
-1.  Create Python environments
-------------------------------
+1.  Download Q-Checker GitHub repository
+----------------------------------------
 
-The recommended way to create the necessary Python environments relies on the two environment files (.yml) that are included in this repository. To create each environment, run the following commands at the base Anaconda prompt, where <env_qchecker.yml> and <env_qchecker.yml> are the full paths to the Q-Checker and PDAL .yml files, respectively:
+Download the code repository from https://github.com/noaa-rsd/Q-Checker.github.io to the desired location on your local machine.  
 
-*Q-Checker environment*
-::
 
-    conda env create --prefix <env_qchecker.yml>
-
-*PDAL environment*
-::
-
-    conda env create --prefix <env_qchecker.yml>
-
-2.  Configure ArcPro Python environment
+2.  Create Python environment
 ---------------------------------------
 
-In ArcPro's Python Package Manager, click the "Manage Environments" button and specify the qchecker Python environment that was generated using the env_qchecker.yml file (no the env_pdal.yml file).  You do not manually point anything to the PDAL environment, as it is automatically called from within the qchecker environment.
+The recommended way to create the necessary Python environment is to create a conda environment by running the following command at an :ref:`conda-label`:
 
-.. image:: ../../assets/images/ArcPro_PyEnvManager.PNG
+::
+
+    conda env create --prefix <env_qchecker.yml>
+
+where <env_qchecker.yml> is the full path to the Q-Checker environment file, located in the root level of the repository.
+
+3.  Configure .bat file
+-----------------------    
+
+Modify the .bat file in the root level of the repository to reflect the location of the Python environment and *qchecker_gui.py* file.  For example,
+
+::
+
+    "C:\Users\Bette.Davis\AppData\Local\Continuum\anaconda3\envs\qchecker\python.exe" "Z:\QChecker_noaa-rsd\qchecker_gui.py"
+    pause

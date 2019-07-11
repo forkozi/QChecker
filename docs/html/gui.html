@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>Q-Checker User Interface &mdash; QChecker v1.0.0-alpha documentation</title>
+  <title>Q-Checker GUI &mdash; Q-Checker v1.0.0-rc1 documentation</title>
   
 
   
@@ -35,7 +35,7 @@
   <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="Workflow" href="workflow.html" />
+    <link rel="next" title="File" href="GUI_MenuBar.html" />
     <link rel="prev" title="Installation" href="install.html" /> 
 </head>
 
@@ -50,9 +50,12 @@
           
 
           
-            <a href="index.html" class="icon icon-home"> QChecker
+            <a href="index.html" class="icon icon-home"> Q-Checker
           
 
+          
+            
+            <img src="_static/SplashScreen.gif" class="logo" alt="Logo"/>
           
           </a>
 
@@ -82,10 +85,18 @@
             
               <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="install.html">Installation</a></li>
-<li class="toctree-l1 current"><a class="current reference internal" href="#">Q-Checker User Interface</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#settings">Settings</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#checks">Checks</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#surfaces">Surfaces</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Q-Checker GUI</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#menu-bar">Menu Bar</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="GUI_MenuBar.html">File</a></li>
+<li class="toctree-l3"><a class="reference internal" href="GUI_MenuBar.html#help">Help</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#main-panel">Main Panel</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="GUI_MainPanel.html">Settings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="GUI_MainPanel.html#checks">Checks</a></li>
+<li class="toctree-l3"><a class="reference internal" href="GUI_MainPanel.html#surfaces">Surfaces</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="workflow.html">Workflow</a></li>
@@ -104,7 +115,7 @@
       <nav class="wy-nav-top" aria-label="top navigation">
         
           <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
-          <a href="index.html">QChecker</a>
+          <a href="index.html">Q-Checker</a>
         
       </nav>
 
@@ -135,7 +146,7 @@
     
       <li><a href="index.html">Docs</a> &raquo;</li>
         
-      <li>Q-Checker User Interface</li>
+      <li>Q-Checker GUI</li>
     
     
       <li class="wy-breadcrumbs-aside">
@@ -154,91 +165,28 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
             
-  <div class="section" id="q-checker-user-interface">
-<h1>Q-Checker User Interface<a class="headerlink" href="#q-checker-user-interface" title="Permalink to this headline">¶</a></h1>
-<p>The Q-Checker graphical user interface (GUI) has three main parts:</p>
-<ul class="simple">
-<li><p>Settings</p></li>
-<li><p>Checks</p></li>
-<li><p>Surfaces</p></li>
+  <div class="section" id="q-checker-gui">
+<h1>Q-Checker GUI<a class="headerlink" href="#q-checker-gui" title="Permalink to this headline">¶</a></h1>
+<p>The Q-Checker graphical user interface (GUI) has two main parts:</p>
+<div class="section" id="menu-bar">
+<h2>Menu Bar<a class="headerlink" href="#menu-bar" title="Permalink to this headline">¶</a></h2>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="GUI_MenuBar.html">File</a></li>
+<li class="toctree-l1"><a class="reference internal" href="GUI_MenuBar.html#help">Help</a></li>
 </ul>
+</div>
+</div>
+<div class="section" id="main-panel">
+<h2>Main Panel<a class="headerlink" href="#main-panel" title="Permalink to this headline">¶</a></h2>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="GUI_MainPanel.html">Settings</a></li>
+<li class="toctree-l1"><a class="reference internal" href="GUI_MainPanel.html#checks">Checks</a></li>
+<li class="toctree-l1"><a class="reference internal" href="GUI_MainPanel.html#surfaces">Surfaces</a></li>
+</ul>
+</div>
 <img alt="_images/gui.PNG" src="_images/gui.PNG" />
-<div class="section" id="settings">
-<h2>Settings<a class="headerlink" href="#settings" title="Permalink to this headline">¶</a></h2>
-</div>
-<div class="section" id="checks">
-<h2>Checks<a class="headerlink" href="#checks" title="Permalink to this headline">¶</a></h2>
-<p>The user can run a series of checks to verify that certain expected information is contained in the submitted LAS files.</p>
-<img alt="_images/checks.PNG" src="_images/checks.PNG" />
-<table class="colwidths-given docutils align-center" id="id1">
-<caption><span class="caption-text">Available Checks</span><a class="headerlink" href="#id1" title="Permalink to this table">¶</a></caption>
-<colgroup>
-<col style="width: 25%" />
-<col style="width: 75%" />
-</colgroup>
-<thead>
-<tr class="row-odd"><th class="head"><p>Check</p></th>
-<th class="head"><p>Description</p></th>
-</tr>
-</thead>
-<tbody>
-<tr class="row-even"><td><p>Naming Convention</p></td>
-<td><p>checks that las files are named according to the <em>yyyy_[easting]e_[northing]n_las</em> naming convention</p></td>
-</tr>
-<tr class="row-odd"><td><p>Version</p></td>
-<td><p>checks that the las files are the version specified in the corresponding dropdown menu</p></td>
-</tr>
-<tr class="row-even"><td><p>Point Data Record Format</p></td>
-<td><p>checks the Las files contain the propoer PDRF corresponding to the specified version</p></td>
-</tr>
-<tr class="row-odd"><td><p>GPS Time Type</p></td>
-<td><p>checks that ‘GPS Time Type’ in the Las header is ‘Satellite Adjusted Time’ (not GPS week seconds)</p></td>
-</tr>
-<tr class="row-even"><td><p>Horizontal Datum</p></td>
-<td><p>checks that Las header contains the specified horizontal spatial reference</p></td>
-</tr>
-<tr class="row-odd"><td><p>Vertical Datum</p></td>
-<td><p>checks that Las header contains the specified vertical spatial reference</p></td>
-</tr>
-<tr class="row-even"><td><p>Point Source IDs</p></td>
-<td><p>checks that Las file contains &gt; 1 unique point source id (flight line number)</p></td>
-</tr>
-<tr class="row-odd"><td><p>Expected Classes</p></td>
-<td><p>checks that Las file contains classes other than the specified expected classes</p></td>
-</tr>
-</tbody>
-</table>
-</div>
-<div class="section" id="surfaces">
-<h2>Surfaces<a class="headerlink" href="#surfaces" title="Permalink to this headline">¶</a></h2>
-<p>The user has the option to generate the following surfaces:</p>
-<img alt="_images/surfaces.PNG" src="_images/surfaces.PNG" />
-<table class="colwidths-given docutils align-center" id="id2">
-<caption><span class="caption-text">Available Checks</span><a class="headerlink" href="#id2" title="Permalink to this table">¶</a></caption>
-<colgroup>
-<col style="width: 25%" />
-<col style="width: 75%" />
-</colgroup>
-<thead>
-<tr class="row-odd"><th class="head"><p>Surface</p></th>
-<th class="head"><p>Description</p></th>
-</tr>
-</thead>
-<tbody>
-<tr class="row-even"><td><p>Dz</p></td>
-<td><p>shows the maximum difference in the z values (i.e. dz values) of points from overlapping las files</p></td>
-</tr>
-<tr class="row-odd"><td><p>Hillshade</p></td>
-<td><p>an 8-bit gridded representation of the lidar point cloud based on an illumination azimuth/altitude of 315°/45°</p></td>
-</tr>
-<tr class="row-even"><td><p>Dz Mosaic</p></td>
-<td><p>all of the individual tile Dz surfaces combined into a single surface</p></td>
-</tr>
-<tr class="row-odd"><td><p>Hillshade Mosaic</p></td>
-<td><p>all of the individual tile hillshade surfaces combined into a single surface</p></td>
-</tr>
-</tbody>
-</table>
 </div>
 </div>
 
@@ -250,7 +198,7 @@
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="workflow.html" class="btn btn-neutral float-right" title="Workflow" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+        <a href="GUI_MenuBar.html" class="btn btn-neutral float-right" title="File" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
       
       
         <a href="install.html" class="btn btn-neutral float-left" title="Installation" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
@@ -262,7 +210,7 @@
 
   <div role="contentinfo">
     <p>
-        &copy; Copyright 2019, Nick Forfinski-Sarkozi
+        &copy; Copyright 2019, NOAA Remote Sensing Division
 
     </p>
   </div>

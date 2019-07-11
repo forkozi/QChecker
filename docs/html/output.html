@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>Output &mdash; QChecker v1.0.0-alpha documentation</title>
+  <title>Output &mdash; Q-Checker v1.0.0-rc1 documentation</title>
   
 
   
@@ -49,9 +49,12 @@
           
 
           
-            <a href="index.html" class="icon icon-home"> QChecker
+            <a href="index.html" class="icon icon-home"> Q-Checker
           
 
+          
+            
+            <img src="_static/SplashScreen.gif" class="logo" alt="Logo"/>
           
           </a>
 
@@ -81,11 +84,13 @@
             
               <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="install.html">Installation</a></li>
-<li class="toctree-l1"><a class="reference internal" href="gui.html">Q-Checker User Interface</a></li>
+<li class="toctree-l1"><a class="reference internal" href="gui.html">Q-Checker GUI</a></li>
 <li class="toctree-l1"><a class="reference internal" href="workflow.html">Workflow</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Output</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#qa-qc-results-shapefile">QA/QC results shapefile</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#qa-qc-results-dashboard">QA/QC results dashboard</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#dem">DEM</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#dz-surface">DZ Surface</a></li>
 </ul>
 </li>
 </ul>
@@ -102,7 +107,7 @@
       <nav class="wy-nav-top" aria-label="top navigation">
         
           <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
-          <a href="index.html">QChecker</a>
+          <a href="index.html">Q-Checker</a>
         
       </nav>
 
@@ -154,20 +159,38 @@
             
   <div class="section" id="output">
 <h1>Output<a class="headerlink" href="#output" title="Permalink to this headline">¶</a></h1>
-<p>The Checks portion of Q-Checker generates two outputs:</p>
+<p>Q-Checker has 4 main outputs:</p>
 <ul class="simple">
 <li><p>QA/QC results shapefile</p></li>
 <li><p>QA/QC results dashboard</p></li>
+<li><p>DEM</p></li>
+<li><p>DZ surface</p></li>
 </ul>
 <div class="section" id="qa-qc-results-shapefile">
 <h2>QA/QC results shapefile<a class="headerlink" href="#qa-qc-results-shapefile" title="Permalink to this headline">¶</a></h2>
 <p>The QA/QC results shapefile contains a polygon for each input LAS tile, along with the associated check results in the shapefile attribute table.  In the image below, the tiles are colored according to whether or not they passed the version test.</p>
-<img alt="_images/qaqc_tiles_eg.PNG" src="_images/qaqc_tiles_eg.PNG" />
+<p>QAQC Las Tile Polygons</p>
+<img alt="_images/RESULTS_shapefile.PNG" src="_images/RESULTS_shapefile.PNG" />
+<p>Attribute Table</p>
+<img alt="_images/RESULTS_shapefile_attribute_table.PNG" src="_images/RESULTS_shapefile_attribute_table.PNG" />
 </div>
 <div class="section" id="qa-qc-results-dashboard">
 <h2>QA/QC results dashboard<a class="headerlink" href="#qa-qc-results-dashboard" title="Permalink to this headline">¶</a></h2>
 <p>The QA/QC results dashboard is an HTML page that contains project-wide summary visualizations of the QA/QC results (see image below).</p>
-<img alt="_images/ResultsDashboard.PNG" src="_images/ResultsDashboard.PNG" />
+<p>Check Results</p>
+<img alt="_images/RESULTS_dashboard_checks.PNG" src="_images/RESULTS_dashboard_checks.PNG" />
+<p>Class-Count Results</p>
+<img alt="_images/RESULTS_dashboard_class_counts.PNG" src="_images/RESULTS_dashboard_class_counts.PNG" />
+</div>
+<div class="section" id="dem">
+<h2>DEM<a class="headerlink" href="#dem" title="Permalink to this headline">¶</a></h2>
+<p>Q-Checker creates a true DEM (with elevation values) which can be displayed with any number of colormaps.  A hillshaded surface can then be created using, for example, the ArcPro shaded relief raster function.</p>
+<img alt="_images/RESULTS_DEM_hillshade.PNG" src="_images/RESULTS_DEM_hillshade.PNG" />
+</div>
+<div class="section" id="dz-surface">
+<h2>DZ Surface<a class="headerlink" href="#dz-surface" title="Permalink to this headline">¶</a></h2>
+<p>Q-Checker creates a DZ surface, which shows the maximum difference in per-flight-line mean elevation.  The DZ surface can be visualized using conventional discrete colormaps or continuous colormaps.</p>
+<img alt="_images/RESULTS_DZ_surface.PNG" src="_images/RESULTS_DZ_surface.PNG" />
 </div>
 </div>
 
@@ -189,7 +212,7 @@
 
   <div role="contentinfo">
     <p>
-        &copy; Copyright 2019, Nick Forfinski-Sarkozi
+        &copy; Copyright 2019, NOAA Remote Sensing Division
 
     </p>
   </div>

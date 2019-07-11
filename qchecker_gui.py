@@ -7,6 +7,7 @@ import time
 import json
 import pandas as pd
 import logging
+import datetime
 
 
 #matplotlib.use('Agg')
@@ -31,7 +32,7 @@ class QaqcApp(tk.Tk):
         self.withdraw()
         splash = Splash(self)
 
-        version = 'v1.0.1-beta'
+        version = 'v1.0.0-rc1'
         tk.Tk.wm_title(self, 'Q-Checker {}'.format(version))
         tk.Tk.iconbitmap(self, r'.\assets\images\qaqc.ico')
 
@@ -73,7 +74,6 @@ class QaqcApp(tk.Tk):
         self.components.update({'options': {
             'project_name': ['Project', None],
             #'tile_size': ['Tile Size (m)', None],
-            'to_pyramid': ['Build LAS Pyramids', None],
             #'make_contact_centroids': ['Make Contr. Tile Centroid shp', None],
             'multiprocess': ['Use Multiprocessing', None],  # hard-coded False for now
             }})
@@ -151,9 +151,7 @@ class QaqcApp(tk.Tk):
         for k, v in self.components['mosaics_to_make'].items():
             self.configuration['mosaics_to_make'][k][0] = v[1].get()
             self.configuration['mosaics_to_make'][k][1] = str(Path(
-                self.configuration['qaqc_dir'], 
-                '{}_ArcProject'.format(self.configuration['project_name']), 
-                '{}.gdb'.format(self.configuration['project_name'])))
+                self.configuration['qaqc_dir'], k.lower()))
 
         # supp_las_domain
         self.configuration['supp_las_domain'] = self.components['supp_las_domain'].get()
@@ -410,8 +408,8 @@ class MainGuiPage(ttk.Frame):
         proj_down_down.grid(column=1, row=row, sticky=tk.EW)
 
         # -----------------------------------------------------
-        item = 'to_pyramid'
-        row = 3
+        item = 'multiprocess'
+        row = 4
         option_label = tk.Label(options_frame, 
                                 text=self.gui['options'][item][0], 
                                 width=self.label_width, 
@@ -427,26 +425,6 @@ class MainGuiPage(ttk.Frame):
             text='',
             var=self.gui['options'][item][1], 
             anchor=tk.W, justify=tk.LEFT)
-        chk.grid(column=1, row=row, sticky=tk.W)
-
-        # -----------------------------------------------------
-        item = 'multiprocess'
-        row = 4
-        option_label = tk.Label(options_frame, 
-                                text=self.gui['options'][item][0], 
-                                width=self.label_width, 
-                                anchor=tk.W, 
-                                justify=tk.LEFT)
-
-        option_label.grid(column=0, row=row, sticky=tk.W)
-        self.gui['options'][item][1] = tk.BooleanVar()
-        is_checked = self.config[item]
-        self.gui['options'][item][1].set(is_checked)
-        chk = tk.Checkbutton(
-            options_frame, 
-            text='(deferred to future version)',
-            var=self.gui['options'][item][1], 
-            anchor=tk.W, justify=tk.LEFT, state='disabled')
         chk.grid(column=1, row=row, sticky=tk.W)
 
 
@@ -760,8 +738,6 @@ class MainGuiPage(ttk.Frame):
                 qaqc_dir / 'hillshade' / 'hillshade_tiles',
                 qaqc_dir / 'qaqc_tile_check_results',
                 qaqc_dir / 'qaqc_tile_check_results' / 'qaqc_tile_json',
-                qaqc_dir / 'temp',
-                qaqc_dir / (self.config['project_name'] + '_ArcProject')
                 ]
 
             for d in dirs:
@@ -771,23 +747,27 @@ class MainGuiPage(ttk.Frame):
                 else:
                     print('{} already exists'.format(d))
 
-        def validate_arc_project_gdb(qaqc_dir):
-            project_gdb = qaqc_dir / (self.config['project_name'] + '_ArcProject') / (self.config['project_name'] + '.gdb')
-            if not project_gdb.exists():
-                self.controller.popupmsg(
-                    'Oops, the ArcPro project for {} does not exist.\nPlease create {} (using ArcPRO) before continuing.'.format(self.config['project_name'], project_gdb.stem + '.aprx'))
-            else:
-                self.controller.save_config()
-                #progress = self.add_progress_bar()
-                run_qaqc(self.controller.config_file) #  from qaqc.py
-
+        self.controller.save_config()                                
         validate_qaqc_directories(Path(self.gui['dirs_to_set']['qaqc_dir'][2]))
-        validate_arc_project_gdb(Path(self.gui['dirs_to_set']['qaqc_dir'][2]))
+        run_qaqc(self.controller.config_file)
 
 
 if __name__ == '__main__':
     qchecker_path = os.path.dirname(os.path.realpath(__file__))
     os.chdir(qchecker_path)
+
+    user_dir = os.path.expanduser('~')
+
+    script_path = Path(user_dir).joinpath('AppData', 'Local', 'Continuum', 'anaconda3', 'Scripts')
+    gdal_data = Path(user_dir).joinpath('AppData', 'Local', 'Continuum', 'anaconda3', 'envs', 'qchecker_v2.0', 'Library', 'share', 'gdal')
+    proj_lib =Path(user_dir).joinpath('AppData', 'Local', 'Continuum', 'anaconda3', 'envs', 'qchecker_v2.0', 'Library', 'share')
+
+    if script_path.name not in os.environ["PATH"]:
+        os.environ["PATH"] += os.pathsep + str(script_path)
+    os.environ["GDAL_DATA"] = str(gdal_data)
+    os.environ["PROJ_LIB"] = str(proj_lib)
+
+    print(os.environ["GDAL_DATA"])
 
     now = datetime.datetime.now()
     date_time_now_str = '{}{}{}_{}{}{}'.format(now.year, 
