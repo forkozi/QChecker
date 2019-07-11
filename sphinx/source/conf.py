@@ -17,12 +17,12 @@ sys.path.insert(0, os.path.abspath('../..'))
 
 # -- Project information -----------------------------------------------------
 
-project = 'QChecker'
-copyright = '2019, Nick Forfinski-Sarkozi'
-author = 'Nick Forfinski-Sarkozi'
+project = 'Q-Checker'
+copyright = '2019, NOAA Remote Sensing Division'
+author = 'NOAA Remote Sensing Division'
 
 # The full version, including alpha/beta/rc tags
-release = 'v1.0.0-alpha'
+release = 'v1.0.0-rc1'
 
 
 # -- General configuration ---------------------------------------------------
@@ -87,16 +87,7 @@ html_theme_options = {
     'titles_only': False
 }
 
-#html_context = {
-#    "display_github": True, # Integrate GitHub
-#    "github_user": "forkozi", # Username
-#    "github_repo": "cBLUE", # Repo name
-#    "github_version": "master", # Version
-#    "conf_py_path": "/source/", # Path in the checkout to the docs root
-#}
-
-#github_url = r"https://github.com/forkozi/cBLUE"
-#html_logo = r"../images/qaqc.gif"
+html_logo = r"../../assets/images/SplashScreen.gif"
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,

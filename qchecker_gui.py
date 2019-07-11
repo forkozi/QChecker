@@ -32,7 +32,7 @@ class QaqcApp(tk.Tk):
         self.withdraw()
         splash = Splash(self)
 
-        version = 'v1.0.1-beta'
+        version = 'v1.0.0-rc1'
         tk.Tk.wm_title(self, 'Q-Checker {}'.format(version))
         tk.Tk.iconbitmap(self, r'.\assets\images\qaqc.ico')
 

@@ -4,9 +4,10 @@ Q-Checker
 Q-Checker is an in-house (NOAA Remote Sensing Division) tool to facilitate the initial QA/QC of contract topobathymetric lidar surveys.  Q-Checker provides two main functions:
 
 - verify LAS metadata
-- create preliminary Dz and Hillshade DEMs
+- create DEMs and DZ surfaces
 
-Q-Checker can be run independently or as a geoprocessing tool within ArcPro.
+Documentation
+-------------
 
 .. toctree::
     :maxdepth: 1
@@ -16,8 +17,8 @@ Q-Checker can be run independently or as a geoprocessing tool within ArcPro.
     workflow
     output
 
-Soure Code Documentation
-------------------------
+Soure Code
+----------
 
 * :ref:`genindex`
 * :ref:`modindex`

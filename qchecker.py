@@ -1188,12 +1188,12 @@ def run_qaqc(config_json):
     print()
 
     qaqc_tile_collection = LasTileCollection(config.las_tile_dir)
-    qaqc = QaqcTileCollection(qaqc_tile_collection.get_las_tile_paths()[0:1], config)
+    qaqc = QaqcTileCollection(qaqc_tile_collection.get_las_tile_paths()[0:], config)
     
-    qaqc.run_qaqc_tile_collection_checks()
+    #qaqc.run_qaqc_tile_collection_checks()
     qaqc.set_qaqc_results_df()
     qaqc.gen_qaqc_shp_NAD83_UTM(config.qaqc_shp_NAD83_UTM_POLYGONS)
-    #qaqc.gen_qaqc_json_WebMercator_CENTROIDS()
+    qaqc.gen_qaqc_json_WebMercator_CENTROIDS()
 
     dashboard = SummaryPlots(config, qaqc.qaqc_results_df)
     dashboard.gen_dashboard()
