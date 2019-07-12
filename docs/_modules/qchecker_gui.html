@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>qchecker_gui &mdash; QChecker v1.0.0-alpha documentation</title>
+  <title>qchecker_gui &mdash; Q-Checker v1.0.0-rc1 documentation</title>
   
 
   
@@ -48,9 +48,12 @@
           
 
           
-            <a href="../index.html" class="icon icon-home"> QChecker
+            <a href="../index.html" class="icon icon-home"> Q-Checker
           
 
+          
+            
+            <img src="../_static/SplashScreen.gif" class="logo" alt="Logo"/>
           
           </a>
 
@@ -80,7 +83,7 @@
             
               <ul>
 <li class="toctree-l1"><a class="reference internal" href="../install.html">Installation</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../gui.html">Q-Checker User Interface</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../gui.html">Q-Checker GUI</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../workflow.html">Workflow</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../output.html">Output</a></li>
 </ul>
@@ -97,7 +100,7 @@
       <nav class="wy-nav-top" aria-label="top navigation">
         
           <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
-          <a href="../index.html">QChecker</a>
+          <a href="../index.html">Q-Checker</a>
         
       </nav>
 
@@ -155,6 +158,7 @@
 <span class="kn">import</span> <span class="nn">json</span>
 <span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
 <span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">import</span> <span class="nn">datetime</span>
 
 
 <span class="c1">#matplotlib.use(&#39;Agg&#39;)</span>
@@ -179,7 +183,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">withdraw</span><span class="p">()</span>
         <span class="n">splash</span> <span class="o">=</span> <span class="n">Splash</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
 
-        <span class="n">version</span> <span class="o">=</span> <span class="s1">&#39;v1.0.1-beta&#39;</span>
+        <span class="n">version</span> <span class="o">=</span> <span class="s1">&#39;v1.0.0-rc1&#39;</span>
         <span class="n">tk</span><span class="o">.</span><span class="n">Tk</span><span class="o">.</span><span class="n">wm_title</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;Q-Checker </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">version</span><span class="p">))</span>
         <span class="n">tk</span><span class="o">.</span><span class="n">Tk</span><span class="o">.</span><span class="n">iconbitmap</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="sa">r</span><span class="s1">&#39;.\assets\images\qaqc.ico&#39;</span><span class="p">)</span>
 
@@ -221,12 +225,8 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">components</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s1">&#39;options&#39;</span><span class="p">:</span> <span class="p">{</span>
             <span class="s1">&#39;project_name&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;Project&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">],</span>
             <span class="c1">#&#39;tile_size&#39;: [&#39;Tile Size (m)&#39;, None],</span>
-            <span class="s1">&#39;to_pyramid&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;Build LAS Pyramids&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">],</span>
             <span class="c1">#&#39;make_contact_centroids&#39;: [&#39;Make Contr. Tile Centroid shp&#39;, None],</span>
-            <span class="p">}})</span>
-
-        <span class="bp">self</span><span class="o">.</span><span class="n">components</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s1">&#39;files_to_set&#39;</span><span class="p">:</span> <span class="p">{</span>
-            <span class="s1">&#39;contractor_shp&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;Contractor Tile Shapefile&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">Path</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="p">[</span><span class="s1">&#39;contractor_shp&#39;</span><span class="p">]),</span> <span class="s1">&#39;.shp&#39;</span><span class="p">],</span>
+            <span class="s1">&#39;multiprocess&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;Use Multiprocessing&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">],</span>  <span class="c1"># hard-coded False for now</span>
             <span class="p">}})</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">components</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s1">&#39;dirs_to_set&#39;</span><span class="p">:</span> <span class="p">{</span>
@@ -273,17 +273,13 @@
             <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">config_file</span><span class="p">)</span> <span class="k">as</span> <span class="n">cf</span><span class="p">:</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">cf</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
-           <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;configuration file doesn</span><span class="se">\&#39;</span><span class="s1">t exist&#39;</span><span class="p">)</span></div>
+           <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;configuration file doesn</span><span class="se">\&#39;</span><span class="s1">t exist&#39;</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="QaqcApp.save_config"><a class="viewcode-back" href="../qchecker_gui.html#qchecker_gui.QaqcApp.save_config">[docs]</a>    <span class="k">def</span> <span class="nf">save_config</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 
         <span class="c1"># options</span>
         <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">components</span><span class="p">[</span><span class="s1">&#39;options&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
-            
-        <span class="c1"># files_to_set</span>
-        <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">components</span><span class="p">[</span><span class="s1">&#39;files_to_set&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">v</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
 
         <span class="c1"># dirs_to_set</span>
         <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">components</span><span class="p">[</span><span class="s1">&#39;dirs_to_set&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
@@ -300,17 +296,18 @@
         <span class="c1"># surfaces_to_make</span>
         <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">components</span><span class="p">[</span><span class="s1">&#39;surfaces_to_make&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="p">[</span><span class="s1">&#39;surfaces_to_make&#39;</span><span class="p">][</span><span class="n">k</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="p">[</span><span class="s1">&#39;surfaces_to_make&#39;</span><span class="p">][</span><span class="n">k</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">v</span><span class="p">[</span><span class="mi">3</span><span class="p">])</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="p">[</span><span class="s1">&#39;surfaces_to_make&#39;</span><span class="p">][</span><span class="n">k</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">Path</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="p">[</span><span class="s1">&#39;qaqc_dir&#39;</span><span class="p">],</span> <span class="n">k</span><span class="p">,</span> <span class="s1">&#39;</span><span class="si">{}</span><span class="s1">_tiles&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">k</span><span class="p">)))</span>
 
         <span class="c1"># mosaics_to_make</span>
         <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">components</span><span class="p">[</span><span class="s1">&#39;mosaics_to_make&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="p">[</span><span class="s1">&#39;mosaics_to_make&#39;</span><span class="p">][</span><span class="n">k</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="p">[</span><span class="s1">&#39;mosaics_to_make&#39;</span><span class="p">][</span><span class="n">k</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">v</span><span class="p">[</span><span class="mi">3</span><span class="p">])</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="p">[</span><span class="s1">&#39;mosaics_to_make&#39;</span><span class="p">][</span><span class="n">k</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">Path</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="p">[</span><span class="s1">&#39;qaqc_dir&#39;</span><span class="p">],</span> <span class="n">k</span><span class="o">.</span><span class="n">lower</span><span class="p">()))</span>
 
         <span class="c1"># supp_las_domain</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="p">[</span><span class="s1">&#39;supp_las_domain&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">components</span><span class="p">[</span><span class="s1">&#39;supp_las_domain&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
 
-        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;saving </span><span class="si">{}</span><span class="s1">...&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">config_file</span><span class="p">))</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;saving </span><span class="si">{}</span><span class="s1">...&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">config_file</span><span class="p">))</span>
         <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">config_file</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
             <span class="n">json</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="p">,</span> <span class="n">f</span><span class="p">)</span></div>
 
@@ -363,11 +360,10 @@
 
         <span class="bp">self</span><span class="o">.</span><span class="n">section_rows</span> <span class="o">=</span> <span class="p">{</span>
             <span class="s1">&#39;options&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
-            <span class="s1">&#39;files&#39;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
-            <span class="s1">&#39;dirs&#39;</span><span class="p">:</span> <span class="mi">2</span><span class="p">,</span>
-            <span class="s1">&#39;checks&#39;</span><span class="p">:</span> <span class="mi">3</span><span class="p">,</span>
-            <span class="s1">&#39;surfaces&#39;</span><span class="p">:</span> <span class="mi">4</span><span class="p">,</span>
-            <span class="s1">&#39;run_button&#39;</span><span class="p">:</span> <span class="mi">5</span><span class="p">,</span>
+            <span class="s1">&#39;dirs&#39;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+            <span class="s1">&#39;checks&#39;</span><span class="p">:</span> <span class="mi">2</span><span class="p">,</span>
+            <span class="s1">&#39;surfaces&#39;</span><span class="p">:</span> <span class="mi">3</span><span class="p">,</span>
+            <span class="s1">&#39;run_button&#39;</span><span class="p">:</span> <span class="mi">4</span><span class="p">,</span>
             <span class="p">}</span>
 
         <span class="c1">#  Build the GUI</span>
@@ -375,7 +371,6 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">label_width</span> <span class="o">=</span> <span class="mi">23</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">build_options</span><span class="p">()</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">build_files</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">build_dirs</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">add_checks</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">add_surfaces</span><span class="p">()</span>
@@ -501,6 +496,31 @@
 
         <span class="k">return</span> <span class="n">progress</span> </div>
 
+<div class="viewcode-block" id="MainGuiPage.validate_qaqc_dirs"><a class="viewcode-back" href="../qchecker_gui.html#qchecker_gui.MainGuiPage.validate_qaqc_dirs">[docs]</a>    <span class="k">def</span> <span class="nf">validate_qaqc_dirs</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+
+        <span class="n">not_specified_text</span> <span class="o">=</span> <span class="s1">&#39;(specify path)&#39;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">gui</span><span class="p">[</span><span class="s1">&#39;dirs_to_set&#39;</span><span class="p">][</span><span class="s1">&#39;qaqc_dir&#39;</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">configure</span><span class="p">(</span><span class="n">text</span><span class="o">=</span><span class="n">not_specified_text</span><span class="p">,</span> <span class="n">fg</span><span class="o">=</span><span class="s1">&#39;red&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">gui</span><span class="p">[</span><span class="s1">&#39;dirs_to_set&#39;</span><span class="p">][</span><span class="s1">&#39;qaqc_dir&#39;</span><span class="p">][</span><span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="n">not_specified_text</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">gui</span><span class="p">[</span><span class="s1">&#39;dirs_to_set&#39;</span><span class="p">][</span><span class="s1">&#39;las_tile_dir&#39;</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">configure</span><span class="p">(</span><span class="n">text</span><span class="o">=</span><span class="n">not_specified_text</span><span class="p">,</span> <span class="n">fg</span><span class="o">=</span><span class="s1">&#39;red&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">gui</span><span class="p">[</span><span class="s1">&#39;dirs_to_set&#39;</span><span class="p">][</span><span class="s1">&#39;las_tile_dir&#39;</span><span class="p">][</span><span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="n">not_specified_text</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">run_btn</span><span class="p">[</span><span class="s1">&#39;state&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;disabled&#39;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">controller</span><span class="o">.</span><span class="n">save_config</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="MainGuiPage.check_paths"><a class="viewcode-back" href="../qchecker_gui.html#qchecker_gui.MainGuiPage.check_paths">[docs]</a>    <span class="k">def</span> <span class="nf">check_paths</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+
+        <span class="n">not_specified_text</span> <span class="o">=</span> <span class="s1">&#39;(specify path)&#39;</span>
+        <span class="n">path1</span> <span class="o">=</span> <span class="kc">True</span> <span class="k">if</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">gui</span><span class="p">[</span><span class="s1">&#39;dirs_to_set&#39;</span><span class="p">][</span><span class="s1">&#39;qaqc_dir&#39;</span><span class="p">][</span><span class="mi">2</span><span class="p">])</span> <span class="o">!=</span> <span class="n">not_specified_text</span> <span class="k">else</span> <span class="kc">False</span>
+        <span class="n">path2</span> <span class="o">=</span> <span class="kc">True</span> <span class="k">if</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">gui</span><span class="p">[</span><span class="s1">&#39;dirs_to_set&#39;</span><span class="p">][</span><span class="s1">&#39;las_tile_dir&#39;</span><span class="p">][</span><span class="mi">2</span><span class="p">])</span> <span class="o">!=</span> <span class="n">not_specified_text</span> <span class="k">else</span> <span class="kc">False</span>
+
+        <span class="k">if</span> <span class="n">path1</span> <span class="ow">and</span> <span class="n">path2</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">run_btn</span><span class="p">[</span><span class="s1">&#39;state&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;normal&#39;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">run_btn</span><span class="p">[</span><span class="s1">&#39;state&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;disabled&#39;</span></div>
+
 <div class="viewcode-block" id="MainGuiPage.build_options"><a class="viewcode-back" href="../qchecker_gui.html#qchecker_gui.MainGuiPage.build_options">[docs]</a>    <span class="k">def</span> <span class="nf">build_options</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&#39;&#39;&#39;options&#39;&#39;&#39;</span>
 
@@ -519,6 +539,7 @@
 
             <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">project_ids</span><span class="p">)</span>
 
+        <span class="c1"># -----------------------------------------------------</span>
         <span class="n">item</span> <span class="o">=</span> <span class="s1">&#39;project_name&#39;</span>
         <span class="n">row</span> <span class="o">=</span> <span class="mi">1</span>
         <span class="n">option_label</span> <span class="o">=</span> <span class="n">tk</span><span class="o">.</span><span class="n">Label</span><span class="p">(</span><span class="n">options_frame</span><span class="p">,</span> 
@@ -532,11 +553,14 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">gui</span><span class="p">[</span><span class="s1">&#39;options&#39;</span><span class="p">][</span><span class="n">item</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="n">item</span><span class="p">])</span>
         <span class="n">proj_down_down</span> <span class="o">=</span> <span class="n">tk</span><span class="o">.</span><span class="n">OptionMenu</span><span class="p">(</span><span class="n">options_frame</span><span class="p">,</span> 
                                        <span class="bp">self</span><span class="o">.</span><span class="n">gui</span><span class="p">[</span><span class="s1">&#39;options&#39;</span><span class="p">][</span><span class="n">item</span><span class="p">][</span><span class="mi">1</span><span class="p">],</span> 
-                                       <span class="o">*</span><span class="n">get_proj_names</span><span class="p">())</span>
+                                       <span class="o">*</span><span class="n">get_proj_names</span><span class="p">(),</span>
+                                       <span class="n">command</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">validate_qaqc_dirs</span><span class="p">())</span>
+
         <span class="n">proj_down_down</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="n">column</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">row</span><span class="o">=</span><span class="n">row</span><span class="p">,</span> <span class="n">sticky</span><span class="o">=</span><span class="n">tk</span><span class="o">.</span><span class="n">EW</span><span class="p">)</span>
 
-        <span class="n">item</span> <span class="o">=</span> <span class="s1">&#39;to_pyramid&#39;</span>
-        <span class="n">row</span> <span class="o">=</span> <span class="mi">3</span>
+        <span class="c1"># -----------------------------------------------------</span>
+        <span class="n">item</span> <span class="o">=</span> <span class="s1">&#39;multiprocess&#39;</span>
+        <span class="n">row</span> <span class="o">=</span> <span class="mi">4</span>
         <span class="n">option_label</span> <span class="o">=</span> <span class="n">tk</span><span class="o">.</span><span class="n">Label</span><span class="p">(</span><span class="n">options_frame</span><span class="p">,</span> 
                                 <span class="n">text</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">gui</span><span class="p">[</span><span class="s1">&#39;options&#39;</span><span class="p">][</span><span class="n">item</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span> 
                                 <span class="n">width</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">label_width</span><span class="p">,</span> 
@@ -554,36 +578,6 @@
             <span class="n">anchor</span><span class="o">=</span><span class="n">tk</span><span class="o">.</span><span class="n">W</span><span class="p">,</span> <span class="n">justify</span><span class="o">=</span><span class="n">tk</span><span class="o">.</span><span class="n">LEFT</span><span class="p">)</span>
         <span class="n">chk</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="n">column</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">row</span><span class="o">=</span><span class="n">row</span><span class="p">,</span> <span class="n">sticky</span><span class="o">=</span><span class="n">tk</span><span class="o">.</span><span class="n">W</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="MainGuiPage.build_files"><a class="viewcode-back" href="../qchecker_gui.html#qchecker_gui.MainGuiPage.build_files">[docs]</a>    <span class="k">def</span> <span class="nf">build_files</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&#39;&#39;&#39;Files&#39;&#39;&#39;</span>
-
-        <span class="n">files_frame</span> <span class="o">=</span> <span class="n">ttk</span><span class="o">.</span><span class="n">Frame</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
-        <span class="n">files_frame</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="n">row</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">section_rows</span><span class="p">[</span><span class="s1">&#39;files&#39;</span><span class="p">],</span> <span class="n">sticky</span><span class="o">=</span><span class="n">tk</span><span class="o">.</span><span class="n">NSEW</span><span class="p">)</span>
-
-        <span class="k">def</span> <span class="nf">bind_files_command</span><span class="p">(</span><span class="n">f</span><span class="p">):</span>
-            <span class="k">def</span> <span class="nf">func</span><span class="p">():</span>
-                <span class="n">file_str</span> <span class="o">=</span> <span class="n">filedialog</span><span class="o">.</span><span class="n">askopenfilename</span><span class="p">()</span>
-                <span class="n">display_str</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">build_display_str</span><span class="p">(</span><span class="n">file_str</span><span class="p">)</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">gui</span><span class="p">[</span><span class="s1">&#39;files_to_set&#39;</span><span class="p">][</span><span class="n">f</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">configure</span><span class="p">(</span><span class="n">text</span><span class="o">=</span><span class="n">display_str</span><span class="p">)</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">gui</span><span class="p">[</span><span class="s1">&#39;files_to_set&#39;</span><span class="p">][</span><span class="n">f</span><span class="p">][</span><span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="n">file_str</span> 
-            <span class="n">func</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">=</span> <span class="n">f</span>
-            <span class="k">return</span> <span class="n">func</span>
-
-        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">f</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">gui</span><span class="p">[</span><span class="s1">&#39;files_to_set&#39;</span><span class="p">],</span> <span class="mi">1</span><span class="p">):</span>
-            <span class="n">check_label</span> <span class="o">=</span> <span class="n">tk</span><span class="o">.</span><span class="n">Label</span><span class="p">(</span><span class="n">files_frame</span><span class="p">,</span> 
-                                   <span class="n">text</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">gui</span><span class="p">[</span><span class="s1">&#39;files_to_set&#39;</span><span class="p">][</span><span class="n">f</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span> 
-                                   <span class="n">width</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">label_width</span><span class="p">,</span> 
-                                   <span class="n">anchor</span><span class="o">=</span><span class="n">tk</span><span class="o">.</span><span class="n">W</span><span class="p">,</span> 
-                                   <span class="n">justify</span><span class="o">=</span><span class="n">tk</span><span class="o">.</span><span class="n">LEFT</span><span class="p">)</span>
-
-            <span class="n">check_label</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="n">column</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">row</span><span class="o">=</span><span class="n">i</span><span class="p">,</span> <span class="n">sticky</span><span class="o">=</span><span class="n">tk</span><span class="o">.</span><span class="n">W</span><span class="p">)</span>
-
-            <span class="n">display_str</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">build_display_str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="n">f</span><span class="p">])</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">gui</span><span class="p">[</span><span class="s1">&#39;files_to_set&#39;</span><span class="p">][</span><span class="n">f</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">tk</span><span class="o">.</span><span class="n">Label</span><span class="p">(</span><span class="n">files_frame</span><span class="p">,</span> <span class="n">text</span><span class="o">=</span><span class="n">display_str</span><span class="p">)</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">gui</span><span class="p">[</span><span class="s1">&#39;files_to_set&#39;</span><span class="p">][</span><span class="n">f</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="n">column</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">row</span><span class="o">=</span><span class="n">i</span><span class="p">,</span> <span class="n">sticky</span><span class="o">=</span><span class="n">tk</span><span class="o">.</span><span class="n">W</span><span class="p">)</span>
-
-            <span class="n">btn</span> <span class="o">=</span> <span class="n">tk</span><span class="o">.</span><span class="n">Button</span><span class="p">(</span><span class="n">files_frame</span><span class="p">,</span> <span class="n">text</span><span class="o">=</span><span class="s1">&#39;...&#39;</span><span class="p">,</span> <span class="n">command</span><span class="o">=</span><span class="n">bind_files_command</span><span class="p">(</span><span class="n">f</span><span class="p">))</span>
-            <span class="n">btn</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="n">column</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">row</span><span class="o">=</span><span class="n">i</span><span class="p">,</span> <span class="n">sticky</span><span class="o">=</span><span class="n">tk</span><span class="o">.</span><span class="n">W</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="MainGuiPage.build_dirs"><a class="viewcode-back" href="../qchecker_gui.html#qchecker_gui.MainGuiPage.build_dirs">[docs]</a>    <span class="k">def</span> <span class="nf">build_dirs</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&#39;&#39;&#39;Directories&#39;&#39;&#39;</span>
@@ -595,8 +589,9 @@
             <span class="k">def</span> <span class="nf">func</span><span class="p">():</span>
                 <span class="n">dir_str</span> <span class="o">=</span> <span class="n">filedialog</span><span class="o">.</span><span class="n">askdirectory</span><span class="p">()</span>
                 <span class="n">display_str</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">build_display_str</span><span class="p">(</span><span class="n">dir_str</span><span class="p">)</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">gui</span><span class="p">[</span><span class="s1">&#39;dirs_to_set&#39;</span><span class="p">][</span><span class="n">d</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">configure</span><span class="p">(</span><span class="n">text</span><span class="o">=</span><span class="n">display_str</span><span class="p">)</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">gui</span><span class="p">[</span><span class="s1">&#39;dirs_to_set&#39;</span><span class="p">][</span><span class="n">d</span><span class="p">][</span><span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="n">dir_str</span> 
+                <span class="bp">self</span><span class="o">.</span><span class="n">gui</span><span class="p">[</span><span class="s1">&#39;dirs_to_set&#39;</span><span class="p">][</span><span class="n">d</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">configure</span><span class="p">(</span><span class="n">text</span><span class="o">=</span><span class="n">display_str</span><span class="p">,</span> <span class="n">fg</span><span class="o">=</span><span class="s1">&#39;black&#39;</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">gui</span><span class="p">[</span><span class="s1">&#39;dirs_to_set&#39;</span><span class="p">][</span><span class="n">d</span><span class="p">][</span><span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="n">dir_str</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">check_paths</span><span class="p">()</span>
             <span class="n">func</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">=</span> <span class="n">d</span>
             <span class="k">return</span> <span class="n">func</span>
 
@@ -609,8 +604,14 @@
 
             <span class="n">dir_label</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="n">column</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">row</span><span class="o">=</span><span class="n">i</span><span class="p">,</span> <span class="n">sticky</span><span class="o">=</span><span class="n">tk</span><span class="o">.</span><span class="n">W</span><span class="p">)</span>
             
-            <span class="n">display_str</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">build_display_str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="n">d</span><span class="p">])</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">gui</span><span class="p">[</span><span class="s1">&#39;dirs_to_set&#39;</span><span class="p">][</span><span class="n">d</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">tk</span><span class="o">.</span><span class="n">Label</span><span class="p">(</span><span class="n">dirs_frame</span><span class="p">,</span> <span class="n">text</span><span class="o">=</span><span class="n">display_str</span><span class="p">)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="n">d</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;(specify path)&#39;</span><span class="p">:</span>
+                <span class="n">display_str</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="n">d</span><span class="p">]</span>
+                <span class="n">font_color</span> <span class="o">=</span> <span class="s1">&#39;red&#39;</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">display_str</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">build_display_str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="n">d</span><span class="p">])</span>
+                <span class="n">font_color</span> <span class="o">=</span> <span class="s1">&#39;black&#39;</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">gui</span><span class="p">[</span><span class="s1">&#39;dirs_to_set&#39;</span><span class="p">][</span><span class="n">d</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">tk</span><span class="o">.</span><span class="n">Label</span><span class="p">(</span><span class="n">dirs_frame</span><span class="p">,</span> <span class="n">text</span><span class="o">=</span><span class="n">display_str</span><span class="p">,</span> <span class="n">fg</span><span class="o">=</span><span class="n">font_color</span><span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">gui</span><span class="p">[</span><span class="s1">&#39;dirs_to_set&#39;</span><span class="p">][</span><span class="n">d</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="n">column</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">row</span><span class="o">=</span><span class="n">i</span><span class="p">,</span> <span class="n">sticky</span><span class="o">=</span><span class="n">tk</span><span class="o">.</span><span class="n">W</span><span class="p">)</span>
 
             <span class="n">btn</span> <span class="o">=</span> <span class="n">tk</span><span class="o">.</span><span class="n">Button</span><span class="p">(</span><span class="n">dirs_frame</span><span class="p">,</span> <span class="n">text</span><span class="o">=</span><span class="s1">&#39;...&#39;</span><span class="p">,</span> <span class="n">command</span><span class="o">=</span><span class="n">bind_dirs_command</span><span class="p">(</span><span class="n">d</span><span class="p">))</span>
@@ -870,21 +871,54 @@
         <span class="n">run_frame</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="n">row</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">section_rows</span><span class="p">[</span><span class="s1">&#39;run_button&#39;</span><span class="p">],</span> 
                        <span class="n">sticky</span><span class="o">=</span><span class="n">tk</span><span class="o">.</span><span class="n">NSEW</span><span class="p">,</span> <span class="n">pady</span><span class="o">=</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>
 
-        <span class="n">btn</span> <span class="o">=</span> <span class="n">tk</span><span class="o">.</span><span class="n">Button</span><span class="p">(</span><span class="n">run_frame</span><span class="p">,</span> <span class="n">text</span><span class="o">=</span><span class="s1">&#39;Run QAQC Processes&#39;</span><span class="p">,</span> 
+        <span class="bp">self</span><span class="o">.</span><span class="n">run_btn</span> <span class="o">=</span> <span class="n">tk</span><span class="o">.</span><span class="n">Button</span><span class="p">(</span><span class="n">run_frame</span><span class="p">,</span> <span class="n">text</span><span class="o">=</span><span class="s1">&#39;Run QAQC Processes&#39;</span><span class="p">,</span> 
                         <span class="n">command</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">run_qaqc_process</span><span class="p">,</span> 
                         <span class="n">width</span><span class="o">=</span><span class="mi">25</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
-        <span class="n">btn</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="n">columnspan</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span> <span class="n">row</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">sticky</span><span class="o">=</span><span class="n">tk</span><span class="o">.</span><span class="n">EW</span><span class="p">,</span> <span class="n">padx</span><span class="o">=</span><span class="p">(</span><span class="mi">100</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span></div>
+        <span class="bp">self</span><span class="o">.</span><span class="n">run_btn</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="n">columnspan</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span> <span class="n">row</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">sticky</span><span class="o">=</span><span class="n">tk</span><span class="o">.</span><span class="n">EW</span><span class="p">,</span> <span class="n">padx</span><span class="o">=</span><span class="p">(</span><span class="mi">100</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">check_paths</span><span class="p">()</span></div>
 
 <div class="viewcode-block" id="MainGuiPage.run_qaqc_process"><a class="viewcode-back" href="../qchecker_gui.html#qchecker_gui.MainGuiPage.run_qaqc_process">[docs]</a>    <span class="k">def</span> <span class="nf">run_qaqc_process</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">controller</span><span class="o">.</span><span class="n">save_config</span><span class="p">()</span>
-        <span class="c1">#progress = self.add_progress_bar()</span>
-        
-        <span class="n">run_qaqc</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">controller</span><span class="o">.</span><span class="n">config_file</span><span class="p">)</span> <span class="c1">#  from qaqc.py</span></div></div>
-    
+
+        <span class="k">def</span> <span class="nf">validate_qaqc_directories</span><span class="p">(</span><span class="n">qaqc_dir</span><span class="p">):</span>
+            <span class="n">dirs</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="n">qaqc_dir</span> <span class="o">/</span> <span class="s1">&#39;dashboard_summary&#39;</span><span class="p">,</span>
+                <span class="n">qaqc_dir</span> <span class="o">/</span> <span class="s1">&#39;dz&#39;</span><span class="p">,</span>
+                <span class="n">qaqc_dir</span> <span class="o">/</span> <span class="s1">&#39;dz&#39;</span> <span class="o">/</span> <span class="s1">&#39;dz_tiles&#39;</span><span class="p">,</span>
+                <span class="n">qaqc_dir</span> <span class="o">/</span> <span class="s1">&#39;hillshade&#39;</span><span class="p">,</span>
+                <span class="n">qaqc_dir</span> <span class="o">/</span> <span class="s1">&#39;hillshade&#39;</span> <span class="o">/</span> <span class="s1">&#39;hillshade_tiles&#39;</span><span class="p">,</span>
+                <span class="n">qaqc_dir</span> <span class="o">/</span> <span class="s1">&#39;qaqc_tile_check_results&#39;</span><span class="p">,</span>
+                <span class="n">qaqc_dir</span> <span class="o">/</span> <span class="s1">&#39;qaqc_tile_check_results&#39;</span> <span class="o">/</span> <span class="s1">&#39;qaqc_tile_json&#39;</span><span class="p">,</span>
+                <span class="p">]</span>
+
+            <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">dirs</span><span class="p">:</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">d</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+                    <span class="n">os</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">d</span><span class="p">))</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;created </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">d</span><span class="p">))</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{}</span><span class="s1"> already exists&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">d</span><span class="p">))</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">controller</span><span class="o">.</span><span class="n">save_config</span><span class="p">()</span>                                
+        <span class="n">validate_qaqc_directories</span><span class="p">(</span><span class="n">Path</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">gui</span><span class="p">[</span><span class="s1">&#39;dirs_to_set&#39;</span><span class="p">][</span><span class="s1">&#39;qaqc_dir&#39;</span><span class="p">][</span><span class="mi">2</span><span class="p">]))</span>
+        <span class="n">run_qaqc</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">controller</span><span class="o">.</span><span class="n">config_file</span><span class="p">)</span></div></div>
+
 
 <span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
     <span class="n">qchecker_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">realpath</span><span class="p">(</span><span class="vm">__file__</span><span class="p">))</span>
     <span class="n">os</span><span class="o">.</span><span class="n">chdir</span><span class="p">(</span><span class="n">qchecker_path</span><span class="p">)</span>
+
+    <span class="n">user_dir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">expanduser</span><span class="p">(</span><span class="s1">&#39;~&#39;</span><span class="p">)</span>
+
+    <span class="n">script_path</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">user_dir</span><span class="p">)</span><span class="o">.</span><span class="n">joinpath</span><span class="p">(</span><span class="s1">&#39;AppData&#39;</span><span class="p">,</span> <span class="s1">&#39;Local&#39;</span><span class="p">,</span> <span class="s1">&#39;Continuum&#39;</span><span class="p">,</span> <span class="s1">&#39;anaconda3&#39;</span><span class="p">,</span> <span class="s1">&#39;Scripts&#39;</span><span class="p">)</span>
+    <span class="n">gdal_data</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">user_dir</span><span class="p">)</span><span class="o">.</span><span class="n">joinpath</span><span class="p">(</span><span class="s1">&#39;AppData&#39;</span><span class="p">,</span> <span class="s1">&#39;Local&#39;</span><span class="p">,</span> <span class="s1">&#39;Continuum&#39;</span><span class="p">,</span> <span class="s1">&#39;anaconda3&#39;</span><span class="p">,</span> <span class="s1">&#39;envs&#39;</span><span class="p">,</span> <span class="s1">&#39;qchecker_v2.0&#39;</span><span class="p">,</span> <span class="s1">&#39;Library&#39;</span><span class="p">,</span> <span class="s1">&#39;share&#39;</span><span class="p">,</span> <span class="s1">&#39;gdal&#39;</span><span class="p">)</span>
+    <span class="n">proj_lib</span> <span class="o">=</span><span class="n">Path</span><span class="p">(</span><span class="n">user_dir</span><span class="p">)</span><span class="o">.</span><span class="n">joinpath</span><span class="p">(</span><span class="s1">&#39;AppData&#39;</span><span class="p">,</span> <span class="s1">&#39;Local&#39;</span><span class="p">,</span> <span class="s1">&#39;Continuum&#39;</span><span class="p">,</span> <span class="s1">&#39;anaconda3&#39;</span><span class="p">,</span> <span class="s1">&#39;envs&#39;</span><span class="p">,</span> <span class="s1">&#39;qchecker_v2.0&#39;</span><span class="p">,</span> <span class="s1">&#39;Library&#39;</span><span class="p">,</span> <span class="s1">&#39;share&#39;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">script_path</span><span class="o">.</span><span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s2">&quot;PATH&quot;</span><span class="p">]:</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s2">&quot;PATH&quot;</span><span class="p">]</span> <span class="o">+=</span> <span class="n">os</span><span class="o">.</span><span class="n">pathsep</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">script_path</span><span class="p">)</span>
+    <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s2">&quot;GDAL_DATA&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">gdal_data</span><span class="p">)</span>
+    <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s2">&quot;PROJ_LIB&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">proj_lib</span><span class="p">)</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s2">&quot;GDAL_DATA&quot;</span><span class="p">])</span>
 
     <span class="n">now</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">()</span>
     <span class="n">date_time_now_str</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">{}{}{}</span><span class="s1">_</span><span class="si">{}{}{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">now</span><span class="o">.</span><span class="n">year</span><span class="p">,</span> 
@@ -895,13 +929,15 @@
                                                <span class="nb">str</span><span class="p">(</span><span class="n">now</span><span class="o">.</span><span class="n">second</span><span class="p">)</span><span class="o">.</span><span class="n">zfill</span><span class="p">(</span><span class="mi">2</span><span class="p">))</span>
 
     <span class="n">log_file</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">qchecker_path</span><span class="p">,</span> <span class="s1">&#39;QChecker_</span><span class="si">{}</span><span class="s1">.log&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">date_time_now_str</span><span class="p">))</span>
-    <span class="n">logging</span><span class="o">.</span><span class="n">basicConfig</span><span class="p">(</span><span class="c1">#filename=log_file,</span>
-                        <span class="nb">format</span><span class="o">=</span><span class="s1">&#39;</span><span class="si">%(asctime)s</span><span class="s1">:</span><span class="si">%(message)s</span><span class="s1">&#39;</span><span class="p">,</span>
-                        <span class="n">level</span><span class="o">=</span><span class="n">logging</span><span class="o">.</span><span class="n">INFO</span><span class="p">)</span>
+    <span class="c1">#logging.basicConfig(filename=log_file,</span>
+    <span class="c1">#                    format=&#39;%(asctime)s:%(message)s&#39;,</span>
+    <span class="c1">#                    level=logging.DEBUG)</span>
+
+    <span class="n">logging</span><span class="o">.</span><span class="n">basicConfig</span><span class="p">(</span><span class="nb">format</span><span class="o">=</span><span class="s1">&#39;</span><span class="si">%(asctime)s</span><span class="s1">:</span><span class="si">%(message)s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">level</span><span class="o">=</span><span class="n">logging</span><span class="o">.</span><span class="n">DEBUG</span><span class="p">)</span>
 
     <span class="n">app</span> <span class="o">=</span> <span class="n">QaqcApp</span><span class="p">()</span>
     <span class="n">app</span><span class="o">.</span><span class="n">resizable</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
-    <span class="n">app</span><span class="o">.</span><span class="n">geometry</span><span class="p">(</span><span class="s1">&#39;400x615&#39;</span><span class="p">)</span>
+    <span class="n">app</span><span class="o">.</span><span class="n">geometry</span><span class="p">(</span><span class="s1">&#39;400x610&#39;</span><span class="p">)</span>
     <span class="n">app</span><span class="o">.</span><span class="n">mainloop</span><span class="p">()</span>  <span class="c1"># tk functionality</span>
 </pre></div>
 
@@ -915,7 +951,7 @@
 
   <div role="contentinfo">
     <p>
-        &copy; Copyright 2019, Nick Forfinski-Sarkozi
+        &copy; Copyright 2019, NOAA Remote Sensing Division
 
     </p>
   </div>

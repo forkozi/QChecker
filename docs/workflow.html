@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>Workflow &mdash; QChecker v1.0.0-alpha documentation</title>
+  <title>Workflow &mdash; Q-Checker v1.0.0-rc1 documentation</title>
   
 
   
@@ -36,7 +36,7 @@
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="Output" href="output.html" />
-    <link rel="prev" title="Q-Checker User Interface" href="gui.html" /> 
+    <link rel="prev" title="Q-Checker GUI" href="gui.html" /> 
 </head>
 
 <body class="wy-body-for-nav">
@@ -50,9 +50,12 @@
           
 
           
-            <a href="index.html" class="icon icon-home"> QChecker
+            <a href="index.html" class="icon icon-home"> Q-Checker
           
 
+          
+            
+            <img src="_static/SplashScreen.gif" class="logo" alt="Logo"/>
           
           </a>
 
@@ -82,8 +85,13 @@
             
               <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="install.html">Installation</a></li>
-<li class="toctree-l1"><a class="reference internal" href="gui.html">Q-Checker User Interface</a></li>
-<li class="toctree-l1 current"><a class="current reference internal" href="#">Workflow</a></li>
+<li class="toctree-l1"><a class="reference internal" href="gui.html">Q-Checker GUI</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Workflow</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#specify-settings">1. Specify Settings</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#specify-checks">2. Specify Checks</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#specify-surfaces">3. Specify Surfaces</a></li>
+</ul>
+</li>
 <li class="toctree-l1"><a class="reference internal" href="output.html">Output</a></li>
 </ul>
 
@@ -99,7 +107,7 @@
       <nav class="wy-nav-top" aria-label="top navigation">
         
           <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
-          <a href="index.html">QChecker</a>
+          <a href="index.html">Q-Checker</a>
         
       </nav>
 
@@ -151,6 +159,26 @@
             
   <div class="section" id="workflow">
 <h1>Workflow<a class="headerlink" href="#workflow" title="Permalink to this headline">¶</a></h1>
+<p>The workflow consists of specifying the settings, checks, and surfaces and running the tool</p>
+<div class="section" id="specify-settings">
+<h2>1. Specify Settings<a class="headerlink" href="#specify-settings" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li><p>After selecting a project, you will need to specify the QAQC root and las tiles directories.</p></li>
+</ul>
+<img alt="_images/SpecifyDirectories.PNG" src="_images/SpecifyDirectories.PNG" />
+</div>
+<div class="section" id="specify-checks">
+<h2>2. Specify Checks<a class="headerlink" href="#specify-checks" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li><p>Currently, only 3 of the checks are user-configurable.  The remaining 5 checks are fixed, as they either do not have more than one option or are automatically populated based on the selected option for other checks.</p></li>
+</ul>
+</div>
+<div class="section" id="specify-surfaces">
+<h2>3. Specify Surfaces<a class="headerlink" href="#specify-surfaces" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li><p>Any combination of the 4 options can be checked.</p></li>
+</ul>
+</div>
 </div>
 
 
@@ -164,7 +192,7 @@
         <a href="output.html" class="btn btn-neutral float-right" title="Output" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
       
       
-        <a href="gui.html" class="btn btn-neutral float-left" title="Q-Checker User Interface" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+        <a href="gui.html" class="btn btn-neutral float-left" title="Q-Checker GUI" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
       
     </div>
   
@@ -173,7 +201,7 @@
 
   <div role="contentinfo">
     <p>
-        &copy; Copyright 2019, Nick Forfinski-Sarkozi
+        &copy; Copyright 2019, NOAA Remote Sensing Division
 
     </p>
   </div>
