@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>Installation &mdash; QChecker v1.0.0-alpha documentation</title>
+  <title>Installation &mdash; Q-Checker v1.0.0-rc1 documentation</title>
   
 
   
@@ -35,7 +35,7 @@
   <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="Q-Checker User Interface" href="gui.html" />
+    <link rel="next" title="Q-Checker GUI" href="gui.html" />
     <link rel="prev" title="Q-Checker" href="index.html" /> 
 </head>
 
@@ -50,9 +50,12 @@
           
 
           
-            <a href="index.html" class="icon icon-home"> QChecker
+            <a href="index.html" class="icon icon-home"> Q-Checker
           
 
+          
+            
+            <img src="_static/SplashScreen.gif" class="logo" alt="Logo"/>
           
           </a>
 
@@ -82,11 +85,12 @@
             
               <ul class="current">
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Installation</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#create-python-environments">1.  Create Python environments</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#configure-arcpro-python-environment">2.  Configure ArcPro Python environment</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#download-q-checker-github-repository">1.  Download Q-Checker GitHub repository</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#create-python-environment">2.  Create Python environment</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#configure-bat-file">3.  Configure .bat file</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="gui.html">Q-Checker User Interface</a></li>
+<li class="toctree-l1"><a class="reference internal" href="gui.html">Q-Checker GUI</a></li>
 <li class="toctree-l1"><a class="reference internal" href="workflow.html">Workflow</a></li>
 <li class="toctree-l1"><a class="reference internal" href="output.html">Output</a></li>
 </ul>
@@ -103,7 +107,7 @@
       <nav class="wy-nav-top" aria-label="top navigation">
         
           <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
-          <a href="index.html">QChecker</a>
+          <a href="index.html">Q-Checker</a>
         
       </nav>
 
@@ -155,31 +159,31 @@
             
   <div class="section" id="installation">
 <h1>Installation<a class="headerlink" href="#installation" title="Permalink to this headline">¶</a></h1>
-<p>Q-Checker can be run independently or as a geoprocessing tool within ArcPro. In both cases, Q-checker relies on two separate Python environments:</p>
+<p>Installing Q-Checker consists of three steps:</p>
 <ul class="simple">
-<li><p>Q-Checker environment (modified version of the arcgispro-py3 Python environment that comes installed with ArcPro)</p></li>
-<li><p>PDAL environment</p></li>
+<li><p>Download Q-Checker GitHub repository</p></li>
+<li><p>Create Python environment</p></li>
+<li><p>Configure .bat file</p></li>
 </ul>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>Relying on two separate Python environments is perhaps unconventional, but doing so is a work-around for conflicts between PDAL and other packages in the modified arcgispro-p3y environment.</p>
+<div class="section" id="download-q-checker-github-repository">
+<h2>1.  Download Q-Checker GitHub repository<a class="headerlink" href="#download-q-checker-github-repository" title="Permalink to this headline">¶</a></h2>
+<p>Download the code repository from <a class="reference external" href="https://github.com/noaa-rsd/Q-Checker.github.io">https://github.com/noaa-rsd/Q-Checker.github.io</a> to the desired location on your local machine.</p>
 </div>
-<div class="section" id="create-python-environments">
-<h2>1.  Create Python environments<a class="headerlink" href="#create-python-environments" title="Permalink to this headline">¶</a></h2>
-<p>The recommended way to create the necessary Python environments relies on the two environment files (.yml) that are included in this repository. To create each environment, run the following commands at the base Anaconda prompt, where &lt;env_qchecker.yml&gt; and &lt;env_qchecker.yml&gt; are the full paths to the Q-Checker and PDAL .yml files, respectively:</p>
-<p><em>Q-Checker environment</em></p>
+<div class="section" id="create-python-environment">
+<h2>2.  Create Python environment<a class="headerlink" href="#create-python-environment" title="Permalink to this headline">¶</a></h2>
+<p>The recommended way to create the necessary Python environment is to create a conda environment by running the following command at an <a class="reference internal" href="anaconda_install.html#conda-label"><span class="std std-ref">Anaconda Prompt</span></a>:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">conda</span> <span class="n">env</span> <span class="n">create</span> <span class="o">--</span><span class="n">prefix</span> <span class="o">&lt;</span><span class="n">env_qchecker</span><span class="o">.</span><span class="n">yml</span><span class="o">&gt;</span>
 </pre></div>
 </div>
-<p><em>PDAL environment</em></p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">conda</span> <span class="n">env</span> <span class="n">create</span> <span class="o">--</span><span class="n">prefix</span> <span class="o">&lt;</span><span class="n">env_qchecker</span><span class="o">.</span><span class="n">yml</span><span class="o">&gt;</span>
+<p>where &lt;env_qchecker.yml&gt; is the full path to the Q-Checker environment file, located in the root level of the repository.</p>
+</div>
+<div class="section" id="configure-bat-file">
+<h2>3.  Configure .bat file<a class="headerlink" href="#configure-bat-file" title="Permalink to this headline">¶</a></h2>
+<p>Modify the .bat file in the root level of the repository to reflect the location of the Python environment and <em>qchecker_gui.py</em> file.  For example,</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="s2">&quot;C:\Users\Bette.Davis\AppData\Local\Continuum</span><span class="se">\a</span><span class="s2">naconda3\envs\qchecker\python.exe&quot;</span> <span class="s2">&quot;Z:\QChecker_noaa-rsd\qchecker_gui.py&quot;</span>
+<span class="n">pause</span>
 </pre></div>
 </div>
-</div>
-<div class="section" id="configure-arcpro-python-environment">
-<h2>2.  Configure ArcPro Python environment<a class="headerlink" href="#configure-arcpro-python-environment" title="Permalink to this headline">¶</a></h2>
-<p>In ArcPro’s Python Package Manager, click the “Manage Environments” button and specify the qchecker Python environment that was generated using the env_qchecker.yml file (no the env_pdal.yml file).  You do not manually point anything to the PDAL environment, as it is automatically called from within the qchecker environment.</p>
-<img alt="_images/ArcPro_PyEnvManager.PNG" src="_images/ArcPro_PyEnvManager.PNG" />
 </div>
 </div>
 
@@ -191,7 +195,7 @@
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="gui.html" class="btn btn-neutral float-right" title="Q-Checker User Interface" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+        <a href="gui.html" class="btn btn-neutral float-right" title="Q-Checker GUI" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
       
       
         <a href="index.html" class="btn btn-neutral float-left" title="Q-Checker" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
@@ -203,7 +207,7 @@
 
   <div role="contentinfo">
     <p>
-        &copy; Copyright 2019, Nick Forfinski-Sarkozi
+        &copy; Copyright 2019, NOAA Remote Sensing Division
 
     </p>
   </div>
