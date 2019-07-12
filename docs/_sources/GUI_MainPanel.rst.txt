@@ -1,7 +1,23 @@
 Settings
 --------
 
+The user is required to specify the following settings:
 
+.. image:: ../../assets/images/GUI_Settings.PNG
+
+.. csv-table:: Settings
+    :header: Setting, Description
+    :widths: 10, 30
+    
+    Project, lists the folders contained in //ngs-s-rsd/Lidar_Contract00
+    Use Multiprocessing, specifies whether to not Q-Checker uses multiple cores to perform checks and create surfaces (Q-Checker crudely uses half of a system's number of cores.)
+    QAQC Root Dir., the directory to contain the QAQC directory structure
+    Las Tiles, the directory containing the las files to be processed
+
+.. note::
+    
+    Q-Checker relies on a number of other settings, which are dynamically and statically specified in a separate configuration file (./assets/config_files/qaqc_config.json), but the user will generally not need to interact with these on an operational basis.
+    
 Checks
 ------
 

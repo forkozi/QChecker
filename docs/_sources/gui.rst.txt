@@ -1,5 +1,5 @@
-Q-Checker GUI
-*************
+GUI
+***
 
 The Q-Checker graphical user interface (GUI) has two main parts:
 
