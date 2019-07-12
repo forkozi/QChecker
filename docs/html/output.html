@@ -84,7 +84,7 @@
             
               <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="install.html">Installation</a></li>
-<li class="toctree-l1"><a class="reference internal" href="gui.html">Q-Checker GUI</a></li>
+<li class="toctree-l1"><a class="reference internal" href="gui.html">GUI</a></li>
 <li class="toctree-l1"><a class="reference internal" href="workflow.html">Workflow</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Output</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#qa-qc-results-shapefile">QA/QC results shapefile</a></li>
@@ -185,11 +185,23 @@
 <div class="section" id="dem">
 <h2>DEM<a class="headerlink" href="#dem" title="Permalink to this headline">¶</a></h2>
 <p>Q-Checker creates a true DEM (with elevation values) which can be displayed with any number of colormaps.  A hillshaded surface can then be created using, for example, the ArcPro shaded relief raster function.</p>
-<img alt="_images/RESULTS_DEM_hillshade.PNG" src="_images/RESULTS_DEM_hillshade.PNG" />
+<p>Original DEM</p>
+<img alt="_images/RESULTS_DEM_hillshade1.PNG" src="_images/RESULTS_DEM_hillshade1.PNG" />
+<p>Hillshaded Surface</p>
+<img alt="_images/RESULTS_DEM_hillshade2.PNG" src="_images/RESULTS_DEM_hillshade2.PNG" />
 </div>
 <div class="section" id="dz-surface">
 <h2>DZ Surface<a class="headerlink" href="#dz-surface" title="Permalink to this headline">¶</a></h2>
 <p>Q-Checker creates a DZ surface, which shows the maximum difference in per-flight-line mean elevation.  The DZ surface can be visualized using conventional discrete colormaps or continuous colormaps.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The DZ surfaces for each tile are created in 2 steps:</p>
+<ul class="simple">
+<li><p>create a mean-Z surface for each individual flight line (using PDAL’s writers.gdal GTiff driver)</p></li>
+<li><p>calculate, per cell, the difference between the max and min mean-z values</p></li>
+</ul>
+<p>Once all individual DZ surfaces are created, they are all merged into a single file</p>
+</div>
 <img alt="_images/RESULTS_DZ_surface.PNG" src="_images/RESULTS_DZ_surface.PNG" />
 </div>
 </div>

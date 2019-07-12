@@ -188,6 +188,14 @@ class SummaryPlots:
         return p1
 
     def draw_class_count_bar_chart(self):
+
+        def check_for_undefined_classes():
+            obs_class_nums = [c.replace('class', '') for c in source.data['index']]
+            for ocn in obs_class_nums:
+                if ocn not in self.las_classes:
+                    self.las_classes.update({ocn: 'UNDEFINED'})
+
+
         self.class_counts['Expected'] = np.zeros(self.class_counts.index.size)
         self.class_counts['Unexpected'] = np.zeros(self.class_counts.index.size)
         for i, class_name in enumerate(self.class_counts.index):
@@ -198,6 +206,7 @@ class SummaryPlots:
                 self.class_counts['Unexpected'][i] = self.class_counts['counts'][i]
 
         source = ColumnDataSource(self.class_counts)
+        check_for_undefined_classes()
         source.data.update({'labels': ['{} (Class {})'.format(
             self.las_classes[c.replace('class', '').zfill(2)], 
             c.replace('class', '').zfill(2)) for c in source.data['index']]})
@@ -624,8 +633,9 @@ class Mosaic:
         self.out_meta = None
 
     def get_tile_dems(self):
+        print('retreiving individual {} tiles...'.format(self.mtype))
         for dem in list(self.source_dems_dir.glob('*_{}.tif'.format(self.mtype.upper()))):
-            print('retreiving {}...'.format(dem))
+            #print('retreiving {}...'.format(dem))
             src = rasterio.open(dem)
             self.dems.append(src)
 
@@ -690,13 +700,13 @@ class Surface:
                         "type": "writers.gdal",
                         "gdaldriver": "GTiff",
                         "output_type": "mean",
-                        "resolution": "2.0",
+                        "resolution": "1.0",
                         "bounds": """ + '"{}",'.format(las_bounds) + """
                         "filename":  """ + '"{}"'.format(gtiff_path) + """
                     }
                 ]
             }"""
-        
+
             return pdal_json
 
         def create_dz(las_name):
@@ -704,11 +714,15 @@ class Surface:
             tif_dir = Path(self.config.surfaces_to_make[self.stype][1])
 
             tifs = []
+            meta = None
             for t in tif_dir.glob('{}*.tif'.format(las_name)):
-                print(t)
+                #print(t)
                 with rasterio.open(t, 'r') as tif:
                     tifs.append(tif.read(1))
-                    meta = tif.meta.copy()
+
+                    if not meta:
+                        meta = tif.meta.copy()
+
                 os.remove(t)
 
             if tifs:  # sometimes tif isn't made for las having ground or bathy (one e.g. was las having only 3 class 26 pts)
@@ -739,6 +753,7 @@ class Surface:
         gtiff_path = r'{}\{}_PSI_#.tif'.format(self.config.surfaces_to_make[self.stype][1], self.las_name)
         gtiff_path = str(gtiff_path).replace('\\', '/')
         
+        print('generating {} surface for {}...'.format(self.stype, self.las_name))
         pipeline = pdal.Pipeline(gen_pipeline(gtiff_path, las_bounds))
         __ = pipeline.execute()
 
@@ -767,7 +782,7 @@ class Surface:
                     "filename": """ + '"{}"'.format(gtiff_path) + """,
                     "gdaldriver": "GTiff",
                     "output_type": """ + '"{}"'.format(dem_type) + """,
-                    "resolution": "2.0",
+                    "resolution": "1.0",
                     "type": "writers.gdal"
                 }
             ]
@@ -933,7 +948,6 @@ class QaqcTile:
         from qchecker import Surface
         if tile.has_bathy or tile.has_ground:
             tile_dz = Surface(tile, 'Dz', self.config)
-            #tile_dz.create_dz_dem()
             tile_dz.create_dz_dem()
         else:
             logging.debug('{} has no bathy or ground points; no dz ortho generated'.format(tile.name))
@@ -1190,7 +1204,7 @@ def run_qaqc(config_json):
     qaqc_tile_collection = LasTileCollection(config.las_tile_dir)
     qaqc = QaqcTileCollection(qaqc_tile_collection.get_las_tile_paths()[0:], config)
     
-    #qaqc.run_qaqc_tile_collection_checks()
+    qaqc.run_qaqc_tile_collection_checks()
     qaqc.set_qaqc_results_df()
     qaqc.gen_qaqc_shp_NAD83_UTM(config.qaqc_shp_NAD83_UTM_POLYGONS)
     qaqc.gen_qaqc_json_WebMercator_CENTROIDS()

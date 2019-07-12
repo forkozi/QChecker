@@ -36,7 +36,7 @@
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="Workflow" href="workflow.html" />
-    <link rel="prev" title="Q-Checker GUI" href="gui.html" /> 
+    <link rel="prev" title="File" href="GUI_MenuBar.html" /> 
 </head>
 
 <body class="wy-body-for-nav">
@@ -85,10 +85,14 @@
             
               <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="install.html">Installation</a></li>
-<li class="toctree-l1 current"><a class="reference internal" href="gui.html">Q-Checker GUI</a><ul class="current">
-<li class="toctree-l2 current"><a class="current reference internal" href="#">Settings</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#checks">Checks</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#surfaces">Surfaces</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="gui.html">GUI</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="gui.html#menu-bar">Menu Bar</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="gui.html#main-panel">Main Panel</a><ul class="current">
+<li class="toctree-l3 current"><a class="current reference internal" href="#">Settings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#checks">Checks</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#surfaces">Surfaces</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="workflow.html">Workflow</a></li>
@@ -138,7 +142,7 @@
     
       <li><a href="index.html">Docs</a> &raquo;</li>
         
-          <li><a href="gui.html">Q-Checker GUI</a> &raquo;</li>
+          <li><a href="gui.html">GUI</a> &raquo;</li>
         
       <li>Settings</li>
     
@@ -161,13 +165,45 @@
             
   <div class="section" id="settings">
 <h1>Settings<a class="headerlink" href="#settings" title="Permalink to this headline">¶</a></h1>
+<p>The user is required to specify the following settings:</p>
+<img alt="_images/GUI_Settings.PNG" src="_images/GUI_Settings.PNG" />
+<table class="colwidths-given docutils align-default" id="id1">
+<caption><span class="caption-text">Settings</span><a class="headerlink" href="#id1" title="Permalink to this table">¶</a></caption>
+<colgroup>
+<col style="width: 25%" />
+<col style="width: 75%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Setting</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Project</p></td>
+<td><p>lists the folders contained in //ngs-s-rsd/Lidar_Contract00</p></td>
+</tr>
+<tr class="row-odd"><td><p>Use Multiprocessing</p></td>
+<td><p>specifies whether to not Q-Checker uses multiple cores to perform checks and create surfaces (Q-Checker crudely uses half of a system’s number of cores.)</p></td>
+</tr>
+<tr class="row-even"><td><p>QAQC Root Dir.</p></td>
+<td><p>the directory to contain the QAQC directory structure</p></td>
+</tr>
+<tr class="row-odd"><td><p>Las Tiles</p></td>
+<td><p>the directory containing the las files to be processed</p></td>
+</tr>
+</tbody>
+</table>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Q-Checker relies on a number of other settings, which are dynamically and statically specified in a separate configuration file (./assets/config_files/qaqc_config.json), but the user will generally not need to interact with these on an operational basis.</p>
+</div>
 </div>
 <div class="section" id="checks">
 <h1>Checks<a class="headerlink" href="#checks" title="Permalink to this headline">¶</a></h1>
 <p>The user can run a series of checks to verify that certain expected information is contained in the submitted LAS files.</p>
 <img alt="_images/checks.PNG" src="_images/checks.PNG" />
-<table class="colwidths-given docutils align-default" id="id1">
-<caption><span class="caption-text">Available Checks</span><a class="headerlink" href="#id1" title="Permalink to this table">¶</a></caption>
+<table class="colwidths-given docutils align-default" id="id2">
+<caption><span class="caption-text">Available Checks</span><a class="headerlink" href="#id2" title="Permalink to this table">¶</a></caption>
 <colgroup>
 <col style="width: 25%" />
 <col style="width: 75%" />
@@ -209,8 +245,8 @@
 <h1>Surfaces<a class="headerlink" href="#surfaces" title="Permalink to this headline">¶</a></h1>
 <p>The user has the option to generate the following surfaces:</p>
 <img alt="_images/surfaces.PNG" src="_images/surfaces.PNG" />
-<table class="colwidths-given docutils align-default" id="id2">
-<caption><span class="caption-text">Available Checks</span><a class="headerlink" href="#id2" title="Permalink to this table">¶</a></caption>
+<table class="colwidths-given docutils align-default" id="id3">
+<caption><span class="caption-text">Available Checks</span><a class="headerlink" href="#id3" title="Permalink to this table">¶</a></caption>
 <colgroup>
 <col style="width: 25%" />
 <col style="width: 75%" />
@@ -248,7 +284,7 @@
         <a href="workflow.html" class="btn btn-neutral float-right" title="Workflow" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
       
       
-        <a href="gui.html" class="btn btn-neutral float-left" title="Q-Checker GUI" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+        <a href="GUI_MenuBar.html" class="btn btn-neutral float-left" title="File" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
       
     </div>
   

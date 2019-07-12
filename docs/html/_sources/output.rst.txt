@@ -39,11 +39,26 @@ DEM
 
 Q-Checker creates a true DEM (with elevation values) which can be displayed with any number of colormaps.  A hillshaded surface can then be created using, for example, the ArcPro shaded relief raster function.
 
-.. image:: ../../assets/images/RESULTS_DEM_hillshade.PNG
+Original DEM   
+ 
+.. image:: ../../assets/images/RESULTS_DEM_hillshade1.PNG
+
+Hillshaded Surface
+
+.. image:: ../../assets/images/RESULTS_DEM_hillshade2.PNG
 
 DZ Surface
 ----------
 
 Q-Checker creates a DZ surface, which shows the maximum difference in per-flight-line mean elevation.  The DZ surface can be visualized using conventional discrete colormaps or continuous colormaps.
 
+.. note::
+
+    The DZ surfaces for each tile are created in 2 steps:
+    
+    - create a mean-Z surface for each individual flight line (using PDAL's writers.gdal GTiff driver)
+    - calculate, per cell, the difference between the max and min mean-z values
+    
+    Once all individual DZ surfaces are created, they are all merged into a single file
+    
 .. image:: ../../assets/images/RESULTS_DZ_surface.PNG
