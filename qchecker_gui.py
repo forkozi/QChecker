@@ -7,10 +7,7 @@ import time
 import json
 import pandas as pd
 import logging
-import datetime
 
-
-#matplotlib.use('Agg')
 
 LARGE_FONT = ('Verdanna', 12)
 LARGE_FONT_BOLD = ('Verdanna', 12, 'bold')
@@ -73,9 +70,6 @@ class QaqcApp(tk.Tk):
 
         self.components.update({'options': {
             'project_name': ['Project', None],
-            #'tile_size': ['Tile Size (m)', None],
-            #'make_contact_centroids': ['Make Contr. Tile Centroid shp', None],
-            'multiprocess': ['Use Multiprocessing', None],  # hard-coded False for now
             }})
 
         self.components.update({'dirs_to_set': {
@@ -96,12 +90,12 @@ class QaqcApp(tk.Tk):
 
         self.components.update({'surfaces_to_make': {
             'Dz': ['Dz', None, None, Path(self.configuration['surfaces_to_make']['Dz'][1])],
-            'Hillshade': ['Hillshade', None, None, Path(self.configuration['surfaces_to_make']['Hillshade'][1])],
+            'DEM': ['DEM', None, None, Path(self.configuration['surfaces_to_make']['DEM'][1])],
             }})
 
         self.components.update({'mosaics_to_make': {
             'Dz': ['Dz Mosaic', None, None, Path(self.configuration['mosaics_to_make']['Dz'][1])],
-            'Hillshade': ['Hillshade Mosaic', None, None, Path(self.configuration['mosaics_to_make']['Dz'][1])],
+            'DEM': ['DEM Mosaic', None, None, Path(self.configuration['mosaics_to_make']['DEM'][1])],
             }})
 
         self.components.update({'check_keys': {
@@ -163,7 +157,7 @@ class QaqcApp(tk.Tk):
     @staticmethod
     def show_about():
         about = tk.Toplevel()
-        tk.Toplevel.iconbitmap(about, 'qaqc.ico')
+        tk.Toplevel.iconbitmap(about, r'.\assets\images\qaqc.ico')
         about.wm_title('About Q-Checker')
         splash_img = tk.PhotoImage(file=r'.\assets\images\SplashScreen.gif')
         label = tk.Label(about, image=splash_img)
@@ -238,6 +232,7 @@ class MainGuiPage(ttk.Frame):
         popup.destroy()
 
     def get_class_status(self, c):
+        print(self.gui['check_keys']['exp_cls'][0].get())
         if c in self.gui['check_keys']['exp_cls'][0].get().split(','):
             return True
         else:
@@ -256,6 +251,8 @@ class MainGuiPage(ttk.Frame):
             core_classes = las_classes[las_version]['classes']
             for i, (k, v) in enumerate(sorted(core_classes.items()), 1):
                 vars.update({k: tk.BooleanVar()})
+                print(k)
+                print(self.get_class_status(k))
                 vars[k].set(self.get_class_status(k))
                 class_check = tk.Checkbutton(core_classes_frame, text='{}: {}'.format(k, v), 
                                              var=vars[k], anchor=tk.W, 
@@ -288,8 +285,6 @@ class MainGuiPage(ttk.Frame):
         with open(self.las_classes_file) as cf:
             las_classes = json.load(cf)
 
-        self.gui['check_keys']['exp_cls'][0].set('picking classes...')
-
         las_version = self.gui['check_keys']['version'][0].get()
 
         popup = tk.Toplevel()
@@ -304,6 +299,8 @@ class MainGuiPage(ttk.Frame):
         add_core_classes()
         add_domain_profile_selector()
         add_supp_classes()
+        
+        self.gui['check_keys']['exp_cls'][0].set('picking classes...')
 
         b1 = tk.Button(popup, text='Ok', command=lambda: self.get_checked_classes(popup, vars))
         b1.grid(row=2, sticky=tk.EW)
@@ -380,15 +377,11 @@ class MainGuiPage(ttk.Frame):
         label.grid(row=0, columnspan=3, pady=(10, 0), sticky=tk.W)
 
         def get_proj_names():
-            #with open(self.config['project_list'], 'r') as f:
-            #   project_ids = [s.strip() for s in f.readlines()]
-
-            project_unc = r'\\ngs-s-rsd\Lidar_Contract00'
-            project_ids = os.listdir(project_unc)
-
+            project_ids = next(os.walk(self.config['projects_unc']))[1]
             return tuple(project_ids)
 
         # -----------------------------------------------------
+        # currently only one option (project name)
         item = 'project_name'
         row = 1
         option_label = tk.Label(options_frame, 
@@ -407,30 +400,7 @@ class MainGuiPage(ttk.Frame):
 
         proj_down_down.grid(column=1, row=row, sticky=tk.EW)
 
-        # -----------------------------------------------------
-        item = 'multiprocess'
-        row = 4
-        option_label = tk.Label(options_frame, 
-                                text=self.gui['options'][item][0], 
-                                width=self.label_width, 
-                                anchor=tk.W, 
-                                justify=tk.LEFT)
-
-        option_label.grid(column=0, row=row, sticky=tk.W)
-        self.gui['options'][item][1] = tk.BooleanVar()
-        is_checked = self.config[item]
-        self.gui['options'][item][1].set(is_checked)
-        chk = tk.Checkbutton(
-            options_frame, 
-            text='',
-            var=self.gui['options'][item][1], 
-            anchor=tk.W, justify=tk.LEFT)
-        chk.grid(column=1, row=row, sticky=tk.W)
-
-
     def build_dirs(self):
-        '''Directories'''
-
         dirs_frame = ttk.Frame(self)
         dirs_frame.grid(row=self.section_rows['dirs'], sticky=tk.NSEW)
 
@@ -731,13 +701,13 @@ class MainGuiPage(ttk.Frame):
 
         def validate_qaqc_directories(qaqc_dir):
             dirs = [
-                qaqc_dir / 'dashboard_summary',
+                qaqc_dir / 'dashboard',
                 qaqc_dir / 'dz',
                 qaqc_dir / 'dz' / 'dz_tiles',
-                qaqc_dir / 'hillshade',
-                qaqc_dir / 'hillshade' / 'hillshade_tiles',
-                qaqc_dir / 'qaqc_tile_check_results',
-                qaqc_dir / 'qaqc_tile_check_results' / 'qaqc_tile_json',
+                qaqc_dir / 'dem',
+                qaqc_dir / 'dem' / 'dem_tiles',
+                qaqc_dir / 'tile_results',
+                qaqc_dir / 'tile_results' / 'json',
                 ]
 
             for d in dirs:
@@ -752,39 +722,29 @@ class MainGuiPage(ttk.Frame):
         run_qaqc(self.controller.config_file)
 
 
-if __name__ == '__main__':
+def set_gdal_env():
     qchecker_path = os.path.dirname(os.path.realpath(__file__))
     os.chdir(qchecker_path)
-
     user_dir = os.path.expanduser('~')
 
     script_path = Path(user_dir).joinpath('AppData', 'Local', 'Continuum', 'anaconda3', 'Scripts')
-    gdal_data = Path(user_dir).joinpath('AppData', 'Local', 'Continuum', 'anaconda3', 'envs', 'qchecker_v2.0', 'Library', 'share', 'gdal')
-    proj_lib =Path(user_dir).joinpath('AppData', 'Local', 'Continuum', 'anaconda3', 'envs', 'qchecker_v2.0', 'Library', 'share')
+    gdal_data = Path(user_dir).joinpath('AppData', 'Local', 'Continuum', 'anaconda3', 'envs', 'qchecker', 'Library', 'share', 'gdal')
+    proj_lib =Path(user_dir).joinpath('AppData', 'Local', 'Continuum', 'anaconda3', 'envs', 'qchecker', 'Library', 'share')
 
     if script_path.name not in os.environ["PATH"]:
         os.environ["PATH"] += os.pathsep + str(script_path)
+
     os.environ["GDAL_DATA"] = str(gdal_data)
     os.environ["PROJ_LIB"] = str(proj_lib)
 
-    print(os.environ["GDAL_DATA"])
 
-    now = datetime.datetime.now()
-    date_time_now_str = '{}{}{}_{}{}{}'.format(now.year, 
-                                               str(now.month).zfill(2), 
-                                               str(now.day).zfill(2),
-                                               str(now.hour).zfill(2),
-                                               str(now.minute).zfill(2),
-                                               str(now.second).zfill(2))
-
-    log_file = os.path.join(qchecker_path, 'QChecker_{}.log'.format(date_time_now_str))
-    #logging.basicConfig(filename=log_file,
-    #                    format='%(asctime)s:%(message)s',
-    #                    level=logging.DEBUG)
+if __name__ == '__main__':
 
     logging.basicConfig(format='%(asctime)s:%(message)s', level=logging.INFO)
 
+    set_gdal_env()
+
     app = QaqcApp()
     app.resizable(0, 0)
-    app.geometry('400x610')
-    app.mainloop()  # tk functionality
+    app.geometry('400x570')
+    app.mainloop()

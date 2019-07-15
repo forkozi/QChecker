@@ -1,5 +1,4 @@
 import os
-from shutil import copyfile
 import json
 import logging
 import numpy as np
@@ -9,7 +8,6 @@ from shapely.geometry import Point, Polygon
 from shapely import wkt
 import subprocess
 from laspy.file import File
-import xml.etree.ElementTree as ET
 
 import pdal
 import pathos.pools as pp
@@ -22,7 +20,6 @@ import progressbar
 from osgeo import osr
 from pathlib import Path
 from tqdm import tqdm
-import cProfile
 import rasterio
 import rasterio.merge
 
@@ -93,6 +90,8 @@ class SummaryPlots:
             return find('classes', las_classes)
 
         self.las_classes = {}
+
+        # recurssively consolidate class dictionaries listed in las_classes.json
         for class_list in get_las_classes():
             self.las_classes.update(class_list)
 
@@ -255,7 +254,6 @@ class SummaryPlots:
                                 tools=self.TOOLS)
 
                 p.toolbar.logo = None
-                #p.toolbar_location = None
 
                 cmap = {
                     'PASSED': '#3cb371',
@@ -267,7 +265,6 @@ class SummaryPlots:
                                             factors=list(cmap.keys()))
 
                 p.add_tile(get_provider(Vendors.CARTODBPOSITRON))
-                #p.patches(xs='xs', ys='ys', source=tile_polygons, fill_color=None, color='lightgray')
                 p.circle(x='x', y='y', size=3, alpha=0.5, 
                             source=self.qaqc_centroids, color=color_mapper)
                 
@@ -316,11 +313,7 @@ class SummaryPlots:
                 title_color = '#FF851B'
 
             p.title.text_color = title_color
-            #p.outline_line_width = 3
-            #p.outline_line_alpha = 0.6
-            #p.outline_line_color = title_color
             p.toolbar.logo = None
-            #p.toolbar_location = None
 
             p.add_tile(get_provider(Vendors.CARTODBPOSITRON))
             p.circle(x='x', y='y', size=3, alpha=0.5, 
@@ -343,7 +336,7 @@ class SummaryPlots:
         pass_fail_tab = self.draw_pass_fail_maps()
         class_count_tab = self.draw_class_count_maps()
 
-        output_file(str(self.config.qaqc_dir / 'dashboard_summary' / 'QAQC_DashboardSummary_{}.html'.format(self.config.project_name)))
+        output_file(str(self.config.qaqc_dir / 'dashboard' / 'QAQC_DashboardSummary_{}.html'.format(self.config.project_name)))
 
         tabs = Tabs(tabs=[pass_fail_tab, class_count_tab])
 
@@ -367,7 +360,7 @@ class Configuration:
         self.tile_size = float(data['tile_size'])
         self.to_pyramid = data['to_pyramid']
         self.multiprocess = data['multiprocess']
-        self.make_tile_centroids_shp = data['make_tile_centroids_shp']
+        self.projects_unc = data['projects_unc']
         self.check_keys = data['check_keys']
         self.hdatum_key = data['check_keys']['hdatum']
         self.vdatum_key = data['check_keys']['vdatum']
@@ -388,10 +381,10 @@ class Configuration:
         self.mosaics_to_make = data['mosaics_to_make']
         self.qaqc_geojson_NAD83_UTM_CENTROIDS = self.qaqc_dir / 'qaqc_NAD83_UTM_CENTROIDS.json'
         self.qaqc_geojson_NAD83_UTM_POLYGONS = self.qaqc_dir / 'qaqc_NAD83_UTM_POLYGONS.json'
-        self.qaqc_geojson_WebMercator_CENTROIDS = self.qaqc_dir / 'dashboard_summary' / '{}_qaqc_WebMercator_CENTROIDS.json'.format(self.project_name)
+        self.qaqc_geojson_WebMercator_CENTROIDS = self.qaqc_dir / 'dashboard' / '{}_qaqc_WebMercator_CENTROIDS.json'.format(self.project_name)
         self.qaqc_geojson_WebMercator_POLYGONS = self.qaqc_dir / 'qaqc_WebMercator_POLYGONS.json'
-        self.qaqc_shp_NAD83_UTM_POLYGONS = self.qaqc_dir / 'qaqc_tile_check_results' / '{}_qaqc_NAD83_UTM.shp'.format(self.project_name)
-        self.json_dir = self.qaqc_dir / 'qaqc_tile_check_results' / 'qaqc_tile_json'
+        self.qaqc_shp_NAD83_UTM_POLYGONS = self.qaqc_dir / 'tile_results' / '{}_qaqc_NAD83_UTM.shp'.format(self.project_name)
+        self.json_dir = self.qaqc_dir / 'tile_results' / 'json'
 
         if not self.json_dir.exists():
             os.makedirs(self.json_dir)
@@ -605,20 +598,6 @@ class LasTile:
             print(e)
             self.refraction_bit_set = 'not_present'
 
-    #def get_pt_src_ids(self):
-    #    options = [
-    #            '--stats',
-    #            '--filters.stats.dimensions=PointSourceId',
-    #            '--filters.stats.enumerate=PointSourceId'
-    #            ]
-
-
-    #    cmd_str = 'pdal info {} {} {} {}'.format(self.las_str, *options)
-    #    stats = self.run_console_cmd(cmd_str)[1].decode('utf-8')
-    #    stats_dict = json.loads(stats)
-    
-    #    return np.asarray(stats_dict['stats']['statistic'][0]['values'])
-
 
 class Mosaic:
 
@@ -654,11 +633,11 @@ class Mosaic:
                 'width': mosaic.shape[2],
                 'transform': out_trans})
 
-            # save TPU mosaic DEMs
+            # save mosaic DEMs
             with rasterio.open(self.mosaic_dataset_path, 'w', **self.out_meta) as dest:
                 dest.write(mosaic)
         else:
-            print('No Hillshade tile DEMs were generated.')
+            print('No DEM tiles were generated.')
 
 
 class Surface:
@@ -716,7 +695,6 @@ class Surface:
             tifs = []
             meta = None
             for t in tif_dir.glob('{}*.tif'.format(las_name)):
-                #print(t)
                 with rasterio.open(t, 'r') as tif:
                     tifs.append(tif.read(1))
 
@@ -747,8 +725,6 @@ class Surface:
         miny = bounds['miny']
         maxy = bounds['maxy']
         las_bounds = ([minx,maxx],[miny,maxy])
-
-        pt_src_id_dems = []
 
         gtiff_path = r'{}\{}_PSI_#.tif'.format(self.config.surfaces_to_make[self.stype][1], self.las_name)
         gtiff_path = str(gtiff_path).replace('\\', '/')
@@ -821,8 +797,8 @@ class QaqcTile:
         self.surfaces = {
             'Dz': self.create_dz,
             'Dz_mosaic': None,
-            'Hillshade': self.create_hillshade,
-            'Hillshade_mosaic': None,
+            'DEM': self.create_DEM,
+            'DEM_mosaic': None,
             }
 
     def check_las_naming(self, tile):
@@ -950,20 +926,19 @@ class QaqcTile:
             tile_dz = Surface(tile, 'Dz', self.config)
             tile_dz.create_dz_dem()
         else:
-            logging.debug('{} has no bathy or ground points; no dz ortho generated'.format(tile.name))
+            logging.debug('{} has no bathy or ground points; no dz surface generated'.format(tile.name))
 
-    def create_hillshade(self, tile):
+    def create_DEM(self, tile):
         from qchecker import Surface
         if tile.has_bathy or tile.has_ground:
-            tile_hillshade = Surface(tile, 'Hillshade', self.config)
-            tile_hillshade.gen_mean_z_surface('mean')
+            tile_DEM = Surface(tile, 'DEM', self.config)
+            tile_DEM.gen_mean_z_surface('mean')
         else:
-            logging.debug('{} has no bathy or ground points; no hillshade ortho generated'.format(tile.name))
+            logging.debug('{} has no bathy or ground points; no DEM generated'.format(tile.name))
 
     def run_qaqc_checks_multiprocess(self, las_path):
         from qchecker import LasTile, LasTileCollection
         import logging
-        import xml.etree.ElementTree as ET
         logging.basicConfig(format='%(asctime)s:%(message)s', level=logging.WARNING)
         tile = LasTile(las_path, self.config)
         for c in [k for k, v in self.config.checks_to_do.items() if v]:
@@ -986,8 +961,6 @@ class QaqcTile:
             logging.debug('starting {}...'.format(las_path))
             tile = LasTile(las_path, self.config)
 
-            #cProfile.runctx('LasTile(las_path, self.config)', globals={'LasTile': LasTile}, locals={'las_path': las_path, 'self': self}, sort='cumtime')
-
             for c in [k for k, v in self.config.checks_to_do.items() if v]:
                 logging.debug('running {}...'.format(c))
                 result = self.checks[c](tile)
@@ -1000,8 +973,7 @@ class QaqcTile:
 
     def run_qaqc(self, las_paths):
         if self.config.multiprocess:
-            p = pp.ProcessPool(int(ph.cpu_count() / 2))
-            #p = pp.ProcessPool(3)
+            p = pp.ProcessPool(max(int(ph.cpu_count() / 2), 1))
             num_las = len(las_paths)
             for _ in tqdm(p.imap(self.run_qaqc_checks_multiprocess, las_paths), total=num_las, ascii=True):
                 pass
@@ -1056,7 +1028,8 @@ class QaqcTileCollection:
 
     def set_qaqc_results_df(self):
         self.qaqc_results_df = pd.DataFrame(self.gen_qaqc_results_dict())
-
+    
+    # todo: refactor these 3 into one maybe?
     def gen_qaqc_results_gdf_NAD83_UTM_CENTROIDS(self):
         df = self.qaqc_results_df
         df['Coordinates'] = df.tile_centroid
@@ -1142,7 +1115,6 @@ class QaqcTileCollection:
                                 'x_max', 'x_min', 'y_max', 'y_min'])
 
         schema = gpd.io.file.infer_schema(gdf)
-        print(schema)
         gdf.to_file(output, driver='ESRI Shapefile', schema=schema)
 
     def gen_mosaic(self, mtype):
@@ -1171,12 +1143,6 @@ class QaqcTileCollection:
         gdf['centroid_lat'] = map(get_y, gdf['geometry'])
         gdf.to_csv(out_csv)
 
-    def gen_tile_centroids_shp_NAD83_UTM(self):
-        logging.debug('generating shapefile containing centroids of contractor tile polygons...')
-        gdf = gpd.read_file(self.config.contractor_shp)
-        gdf['geometry'] = gdf['geometry'].centroid
-        gdf.to_file(self.config.tile_shp_NAD83_UTM_CENTROIDS, driver='ESRI Shapefile')
-
     def gen_tile_geojson_WebMercator_POLYGONS(self, geojson):
         gdf = gpd.read_file(self.config.contractor_shp)
         try:
@@ -1193,13 +1159,11 @@ class QaqcTileCollection:
 def run_qaqc(config_json):
     config = Configuration(config_json)
     
-    print()
     print('-' * 50)
     print('Ignore the following laspy-generated warning, which doesn\'t effect Q-Checker:')
     print('WARNING: Invalid body length for classification lookup, not parsing.')
     print('(It has to do with the self.rec_len_after_header attribute of VLR record_id 0.)')
     print('-' * 50)
-    print()
 
     qaqc_tile_collection = LasTileCollection(config.las_tile_dir)
     qaqc = QaqcTileCollection(qaqc_tile_collection.get_las_tile_paths()[0:], config)
@@ -1221,9 +1185,7 @@ def run_qaqc(config_json):
     else:
         logging.debug('no mosaics to build...')
 
-    print('')
-    print('YAY, you just QAQC\'d project {}!!!'.format(config.project_name).upper())
-    print('(Restart Q-Checker before running it again.)')
+    print('\nYAY, you just QAQC\'d project {}!!!'.format(config.project_name).upper())
 
     pass
 

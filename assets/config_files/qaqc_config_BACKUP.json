@@ -1,10 +1,9 @@
 {
-  "aprx": "V:/FL1608/lidar/QAQC/FL1608_ArcProject/FL1608.aprx",
   "mosaics_to_make": {
-    "Hillshade": [ true, "V:\\FL1608\\lidar\\QAQC\\FL1608_ArcProject\\FL1608.gdb" ],
-    "Dz": [ true, "V:\\FL1608\\lidar\\QAQC\\FL1608_ArcProject\\FL1608.gdb" ]
+    "DEM": [ true, "V:\\FL1605\\lidar\\QAQC\\dem" ],
+    "Dz": [ true, "V:\\FL1605\\lidar\\QAQC\\dz" ]
   },
-  "project_name": "FL1608",
+  "project_name": "FL1605",
   "check_keys": {
     "gps_time": "Satellite GPS Time",
     "pdrf": "3",
@@ -16,10 +15,10 @@
     "pt_src_ids": "Verify Unique Flight Line IDs"
   },
   "surfaces_to_make": {
-    "Hillshade": [ true, "V:\\FL1608\\lidar\\QAQC\\hillshade\\hillshade_tiles" ],
-    "Dz": [ true, "V:\\FL1608\\lidar\\QAQC\\dz\\dz_tiles" ]
+    "DEM": [ true, "V:\\FL1605\\lidar\\QAQC\\DEM\\DEM_tiles" ],
+    "Dz": [ true, "V:\\FL1605\\lidar\\QAQC\\Dz\\Dz_tiles" ]
   },
-  "qaqc_dir": "V:\\FL1608\\lidar\\QAQC",
+  "qaqc_dir": "V:\\FL1605\\lidar\\QAQC",
   "dz_export_settings": "./assets/config_files/dz_export_settings.xml",
   "hillshade_export_settings": "./assets/config_files/hillshade_export_settings.xml",
   "make_contact_centroids": false,
@@ -33,13 +32,12 @@
     "vdatum": true,
     "pt_src_ids": true
   },
-  "las_tile_dir": "V:\\FL1608\\lidar\\CLASSIFIED_LIDAR",
-  "qaqc_gdb": "V:/FL1608/lidar/QAQC/FL1608_ArcProject/FL1608.gdb",
-  "dz_classes_template": "./assets/dz_classes.lyr",
+  "multiprocess": true,
+  "las_tile_dir": "V:\\FL1605\\lidar\\CLASSIFIED_LIDAR",
+  "project_unc": "\\\ngs-s-rsd\\Lidar_Contract00",
   "to_pyramid": false,
   "make_tile_centroids_shp": true,
   "tile_size": "500",
-  "contractor_shp": "V:\\FL1608\\lidar\\EXTENTS\\FL1608_Dog_Island_Tile_Grid.shp",
   "supp_las_domain": "RSD Supplemental Classes",
   "epsg_json": "./assets/epsg_lut.json",
   "lp360_ldexport_exe": "C:/Program Files/Common Files/LP360/LDExport.exe",

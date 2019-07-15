@@ -19,11 +19,7 @@
       "15": "Transmission Tower",
       "16": "Wire-structure Connector (e.g Insulator)",
       "17": "Bridge Deck",
-      "18": "High Noise",
-      "19": "?",
-      "20": "?",
-      "21": "?",
-      "22": "?"
+      "18": "High Noise"
     },
     "supplemental": {
       "Topo-Bathy Lidar Domain Profile": {

@@ -4,7 +4,7 @@ Q-Checker
 Q-Checker is an in-house (NOAA Remote Sensing Division) tool to facilitate the initial QA/QC of contract topobathymetric lidar surveys.  Q-Checker provides two main functions:
 
 - verify LAS metadata
-- create DEMs and "DZ surfaces"
+- create DEMs and DZ surfaces
 
 Documentation
 -------------
