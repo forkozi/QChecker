@@ -35,7 +35,7 @@
   <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="Q-Checker GUI" href="gui.html" />
+    <link rel="next" title="GUI" href="gui.html" />
     <link rel="prev" title="Q-Checker" href="index.html" /> 
 </head>
 
@@ -90,7 +90,7 @@
 <li class="toctree-l2"><a class="reference internal" href="#configure-bat-file">3.  Configure .bat file</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="gui.html">Q-Checker GUI</a></li>
+<li class="toctree-l1"><a class="reference internal" href="gui.html">GUI</a></li>
 <li class="toctree-l1"><a class="reference internal" href="workflow.html">Workflow</a></li>
 <li class="toctree-l1"><a class="reference internal" href="output.html">Output</a></li>
 </ul>
@@ -179,8 +179,10 @@
 </div>
 <div class="section" id="configure-bat-file">
 <h2>3.  Configure .bat file<a class="headerlink" href="#configure-bat-file" title="Permalink to this headline">¶</a></h2>
-<p>Modify the .bat file in the root level of the repository to reflect the location of the Python environment and <em>qchecker_gui.py</em> file.  For example,</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="s2">&quot;C:\Users\Bette.Davis\AppData\Local\Continuum</span><span class="se">\a</span><span class="s2">naconda3\envs\qchecker\python.exe&quot;</span> <span class="s2">&quot;Z:\QChecker_noaa-rsd\qchecker_gui.py&quot;</span>
+<p>Modify the .bat file in the root level of the repository to reflect the location of the Python environment and <em>qchecker_gui.py</em> file.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">call</span> <span class="o">%</span><span class="n">UserProfile</span><span class="o">%</span>\<span class="n">AppData</span>\<span class="n">Local</span>\<span class="n">Continuum</span>\<span class="n">anaconda3</span>\<span class="n">condabin</span>\<span class="n">conda</span><span class="o">.</span><span class="n">bat</span> <span class="n">activate</span> <span class="n">qchecker</span>
+<span class="o">%</span><span class="n">UserProfile</span><span class="o">%</span>\<span class="n">AppData</span>\<span class="n">Local</span>\<span class="n">Continuum</span>\<span class="n">anaconda3</span>\<span class="n">envs</span>\<span class="n">qchecker</span>\<span class="n">python</span><span class="o">.</span><span class="n">exe</span>
+<span class="o">&lt;</span><span class="n">path</span> <span class="n">to</span> <span class="n">qchecker_gui</span><span class="o">.</span><span class="n">py</span><span class="o">&gt;</span>
 <span class="n">pause</span>
 </pre></div>
 </div>
@@ -195,7 +197,7 @@
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="gui.html" class="btn btn-neutral float-right" title="Q-Checker GUI" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+        <a href="gui.html" class="btn btn-neutral float-right" title="GUI" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
       
       
         <a href="index.html" class="btn btn-neutral float-left" title="Q-Checker" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>

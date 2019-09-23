@@ -27,9 +27,11 @@ where <env_qchecker.yml> is the full path to the Q-Checker environment file, loc
 3.  Configure .bat file
 -----------------------    
 
-Modify the .bat file in the root level of the repository to reflect the location of the Python environment and *qchecker_gui.py* file.  For example,
+Modify the .bat file in the root level of the repository to reflect the location of the Python environment and *qchecker_gui.py* file.
 
 ::
 
-    "C:\Users\Bette.Davis\AppData\Local\Continuum\anaconda3\envs\qchecker\python.exe" "Z:\QChecker_noaa-rsd\qchecker_gui.py"
+    call %UserProfile%\AppData\Local\Continuum\anaconda3\condabin\conda.bat activate qchecker
+    %UserProfile%\AppData\Local\Continuum\anaconda3\envs\qchecker\python.exe 
+    <path to qchecker_gui.py>
     pause
