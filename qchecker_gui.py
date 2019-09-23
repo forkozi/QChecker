@@ -722,27 +722,26 @@ class MainGuiPage(ttk.Frame):
         run_qaqc(self.controller.config_file)
 
 
-def set_gdal_env():
-    qchecker_path = os.path.dirname(os.path.realpath(__file__))
-    os.chdir(qchecker_path)
+def set_env_vars(env_name):
     user_dir = os.path.expanduser('~')
-
-    script_path = Path(user_dir).joinpath('AppData', 'Local', 'Continuum', 'anaconda3', 'Scripts')
-    gdal_data = Path(user_dir).joinpath('AppData', 'Local', 'Continuum', 'anaconda3', 'envs', 'qchecker', 'Library', 'share', 'gdal')
-    proj_lib =Path(user_dir).joinpath('AppData', 'Local', 'Continuum', 'anaconda3', 'envs', 'qchecker', 'Library', 'share')
+    conda_dir = Path(user_dir).joinpath('AppData', 'Local', 'Continuum', 'anaconda3')
+    env_dir = conda_dir / 'envs' / env_name
+    share_dir = env_dir / 'Library' / 'share'
+    script_path = conda_dir / 'Scripts'
+    gdal_data_path = share_dir / 'gdal'
+    proj_lib_path = share_dir
 
     if script_path.name not in os.environ["PATH"]:
         os.environ["PATH"] += os.pathsep + str(script_path)
-
-    os.environ["GDAL_DATA"] = str(gdal_data)
-    os.environ["PROJ_LIB"] = str(proj_lib)
-
+    os.environ["GDAL_DATA"] = str(gdal_data_path)
+    os.environ["PROJ_LIB"] = str(proj_lib_path)
+    #C:\Users\Nick.Forfinski-Sarko\AppData\Local\Continuum\anaconda3\pkgs\proj4-6.1.1-hc2d0af5_1\Library\share\proj
 
 if __name__ == '__main__':
 
     logging.basicConfig(format='%(asctime)s:%(message)s', level=logging.INFO)
 
-    set_gdal_env()
+    set_env_vars('qchecker')
 
     app = QaqcApp()
     app.resizable(0, 0)

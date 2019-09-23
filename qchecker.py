@@ -371,7 +371,7 @@ class Configuration:
         self.pt_src_ids_key = data['check_keys']['pt_src_ids']
         self.las_classes_json = Path(data['las_classes_json'])
         self.srs_wkts = Path(data['srs_wkts'])
-        self.wkts_df = pd.read_csv( self.srs_wkts, index_col=1, header=None)
+        self.wkts_df = pd.read_csv(self.srs_wkts, index_col=1, header=None)
         self.epsg_code = int(self.wkts_df.loc[self.hdatum_key][0])
         self.crs = {'init': 'epsg:{}'.format(self.epsg_code)}
         self.web_mercator_epsg = {'init': 'epsg:3857'}
@@ -391,7 +391,7 @@ class Configuration:
 
         self.tile_geojson_WebMercator_POLYGONS = self.qaqc_dir / 'tiles_WebMercator_POLYGONS.json'
         self.tile_shp_NAD83_UTM_CENTROIDS = self.qaqc_dir / 'tiles_centroids_NAD83_UTM.shp'
-        self.epsg_json = Path(data['epsg_json'])
+        #self.epsg_json = Path(data['epsg_json'])
 
     def __str__(self):
         return json.dumps(self.data, indent=4, sort_keys=True)
@@ -454,6 +454,15 @@ class LasTile:
 
                 hor_srs = hor_srs.GetAttrValue('projcs')
                 ver_srs = ver_srs.GetAttrValue('vert_cs')
+                
+                # FOR REFERENCE ONLY
+                #from rasterio.crs import CRS
+                #CRS.from_epsg(6335).wkt
+                #hor_srs=osr.SpatialReference(wkt=CRS.from_epsg(6335).wkt)
+
+                #srs = osr.SpatialReference()
+                #srs.ImportFromEPSG(6335)
+                #srs.ExportToWkt()
 
             except Exception as e:
                 logging.debug(e)
@@ -512,8 +521,11 @@ class LasTile:
 
         self.classes_present, self.class_counts = self.get_class_counts()
         
-        self.has_bathy = True if 'class26' in self.class_counts.keys() else False
-        self.has_ground = True if 'class2' in self.class_counts.keys() else False
+        self.ground_class = {'1.2': '2', '1.4': '2'}
+        self.bathy_class = {'1.2': '26', '1.4': '128'}
+
+        self.has_bathy = True if 'class{}'.format(self.bathy_class[self.version]) in self.class_counts.keys() else False
+        self.has_ground = True if 'class{}'.format(self.ground_class[self.version]) in self.class_counts.keys() else False
 
         self.checks_result = {
             'naming': None,
@@ -522,13 +534,12 @@ class LasTile:
             'gps_time': None,
             'hdatum': None,
             'vdatum': None,
-            'pnt_src_ids': None,
+            'pt_src_ids': None,
             'exp_cls': None,
         }
 
         self.vlrs = get_vlrs()
         self.hor_srs, self.ver_srs = get_srs(self.path)
-
 
         if self.version == '1.4':
             self.has_wkt = self.inFile.header.get_wkt()
@@ -567,7 +578,8 @@ class LasTile:
             json_file.write(str(self))
 
     def get_class_counts(self):
-        bin_counts = np.bincount(self.inFile.points['point']['raw_classification'])
+        #bin_counts = np.bincount(self.inFile.points['point']['raw_classification'])
+        bin_counts = np.bincount(self.inFile.points['point']['classification_byte'])
         classes_present = np.where(bin_counts > 0)[0]  # i.e., indices
         class_counts = bin_counts[classes_present]
         class_counts = dict(zip(['class{}'.format(str(c)) for c in classes_present],
@@ -613,20 +625,21 @@ class Mosaic:
 
     def get_tile_dems(self):
         print('retreiving individual {} tiles...'.format(self.mtype))
+        dems = []
         for dem in list(self.source_dems_dir.glob('*_{}.tif'.format(self.mtype.upper()))):
             #print('retreiving {}...'.format(dem))
             src = rasterio.open(dem)
-            self.dems.append(src)
-
-        self.out_meta = src.meta.copy()  # uses last src made
+            dems.append(src)
+        return dems
 
     def gen_mosaic(self):
-        self.get_tile_dems()
+        self.dems = self.get_tile_dems()
 
         if self.dems:
             print('generating {}...'.format(self.mosaic_dataset_path))
             mosaic, out_trans = rasterio.merge.merge(self.dems)
 
+            self.out_meta = self.dems[-1].meta.copy()  # uses last src made
             self.out_meta.update({
                 'driver': "GTiff",
                 'height': mosaic.shape[1],
@@ -637,7 +650,7 @@ class Mosaic:
             with rasterio.open(self.mosaic_dataset_path, 'w', **self.out_meta) as dest:
                 dest.write(mosaic)
         else:
-            print('No DEM tiles were generated.')
+            print('No {} tiles were generated.'.format(self.mtype))
 
 
 class Surface:
@@ -657,6 +670,10 @@ class Surface:
     def create_dz_dem(self):
         
         def gen_pipeline(gtiff_path, las_bounds):
+
+            ground_class = self.tile.ground_class[self.tile.version]
+            bathy_class = self.tile.bathy_class[self.tile.version]
+
             pdal_json = """{
                 "pipeline":[
                     {
@@ -665,7 +682,11 @@ class Surface:
                     },
                     {
                         "type":"filters.range",
-                        "limits": "Classification[2:2],Classification[26:26]" 
+                        "limits": "Classification[""" + \
+                            '{}'.format(ground_class) + """:""" + \
+                            '{}'.format(ground_class) + """],Classification[""" + \
+                            '{}'.format(bathy_class) + """:""" + \
+                            '{}'.format(bathy_class) + """]"
                     },
                     {
                         "type":"filters.returns",
@@ -704,6 +725,7 @@ class Surface:
                 os.remove(t)
 
             if tifs:  # sometimes tif isn't made for las having ground or bathy (one e.g. was las having only 3 class 26 pts)
+                print(las_name)
                 tifs = np.stack(tifs, axis=0)
                 tifs[tifs == -9999] = np.nan
                 tifs = np.nanmax(tifs, axis=0) - np.nanmin(tifs, axis=0)
@@ -736,6 +758,10 @@ class Surface:
         create_dz(self.las_name)
 
     def gen_mean_z_surface(self, dem_type):
+
+        ground_class = self.tile.ground_class[self.tile.version]
+        bathy_class = self.tile.bathy_class[self.tile.version]
+
         las_str = str(self.las_path).replace('\\', '/')
         gtiff_path = r'{}\{}_{}.tif'.format(self.config.surfaces_to_make[self.stype][1], self.las_name, self.stype)
         gtiff_path = str(gtiff_path).replace('\\', '/')
@@ -752,7 +778,11 @@ class Surface:
                 },
                 {
                     "type":"filters.range",
-                    "limits": "Classification[2:2],Classification[26:26]"
+                    "limits": "Classification[""" + \
+                        '{}'.format(ground_class) + """:""" + \
+                        '{}'.format(ground_class) + """],Classification[""" + \
+                        '{}'.format(bathy_class) + """:""" + \
+                        '{}'.format(bathy_class) + """]"
                 },
                 {
                     "filename": """ + '"{}"'.format(gtiff_path) + """,
@@ -870,7 +900,7 @@ class QaqcTile:
     def check_hdatum(self, tile):
         hdatum = tile.hor_srs
         if tile.version == '1.4':
-            if hdatum == self.config.hdatum_key and self.has_wkt:
+            if hdatum == self.config.hdatum_key and tile.has_wkt:
                 passed = self.passed_text
             else:
                 passed = self.failed_text
@@ -1020,6 +1050,7 @@ class QaqcTileCollection:
 
     def get_unq_pt_src_ids(self):
         unq_pt_src_ids = set([])
+        #pnt_src_ids = self.qaqc_results_df['pnt_src_ids'].tolist()
         pnt_src_ids = self.qaqc_results_df['pnt_src_ids'].tolist()
         for i, pnt_src_id_str in enumerate(pnt_src_ids):
             pnt_src_ids_set = set(ast.literal_eval(pnt_src_id_str))

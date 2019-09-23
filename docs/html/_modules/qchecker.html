@@ -150,7 +150,6 @@
             
   <h1>Source code for qchecker</h1><div class="highlight"><pre>
 <span></span><span class="kn">import</span> <span class="nn">os</span>
-<span class="kn">from</span> <span class="nn">shutil</span> <span class="k">import</span> <span class="n">copyfile</span>
 <span class="kn">import</span> <span class="nn">json</span>
 <span class="kn">import</span> <span class="nn">logging</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
@@ -160,7 +159,6 @@
 <span class="kn">from</span> <span class="nn">shapely</span> <span class="k">import</span> <span class="n">wkt</span>
 <span class="kn">import</span> <span class="nn">subprocess</span>
 <span class="kn">from</span> <span class="nn">laspy.file</span> <span class="k">import</span> <span class="n">File</span>
-<span class="kn">import</span> <span class="nn">xml.etree.ElementTree</span> <span class="k">as</span> <span class="nn">ET</span>
 
 <span class="kn">import</span> <span class="nn">pdal</span>
 <span class="kn">import</span> <span class="nn">pathos.pools</span> <span class="k">as</span> <span class="nn">pp</span>
@@ -173,7 +171,6 @@
 <span class="kn">from</span> <span class="nn">osgeo</span> <span class="k">import</span> <span class="n">osr</span>
 <span class="kn">from</span> <span class="nn">pathlib</span> <span class="k">import</span> <span class="n">Path</span>
 <span class="kn">from</span> <span class="nn">tqdm</span> <span class="k">import</span> <span class="n">tqdm</span>
-<span class="kn">import</span> <span class="nn">cProfile</span>
 <span class="kn">import</span> <span class="nn">rasterio</span>
 <span class="kn">import</span> <span class="nn">rasterio.merge</span>
 
@@ -244,6 +241,8 @@
             <span class="k">return</span> <span class="n">find</span><span class="p">(</span><span class="s1">&#39;classes&#39;</span><span class="p">,</span> <span class="n">las_classes</span><span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">las_classes</span> <span class="o">=</span> <span class="p">{}</span>
+
+        <span class="c1"># recurssively consolidate class dictionaries listed in las_classes.json</span>
         <span class="k">for</span> <span class="n">class_list</span> <span class="ow">in</span> <span class="n">get_las_classes</span><span class="p">():</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">las_classes</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">class_list</span><span class="p">)</span>
 
@@ -406,7 +405,6 @@
                                 <span class="n">tools</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">TOOLS</span><span class="p">)</span>
 
                 <span class="n">p</span><span class="o">.</span><span class="n">toolbar</span><span class="o">.</span><span class="n">logo</span> <span class="o">=</span> <span class="kc">None</span>
-                <span class="c1">#p.toolbar_location = None</span>
 
                 <span class="n">cmap</span> <span class="o">=</span> <span class="p">{</span>
                     <span class="s1">&#39;PASSED&#39;</span><span class="p">:</span> <span class="s1">&#39;#3cb371&#39;</span><span class="p">,</span>
@@ -418,7 +416,6 @@
                                             <span class="n">factors</span><span class="o">=</span><span class="nb">list</span><span class="p">(</span><span class="n">cmap</span><span class="o">.</span><span class="n">keys</span><span class="p">()))</span>
 
                 <span class="n">p</span><span class="o">.</span><span class="n">add_tile</span><span class="p">(</span><span class="n">get_provider</span><span class="p">(</span><span class="n">Vendors</span><span class="o">.</span><span class="n">CARTODBPOSITRON</span><span class="p">))</span>
-                <span class="c1">#p.patches(xs=&#39;xs&#39;, ys=&#39;ys&#39;, source=tile_polygons, fill_color=None, color=&#39;lightgray&#39;)</span>
                 <span class="n">p</span><span class="o">.</span><span class="n">circle</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="s1">&#39;x&#39;</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="s1">&#39;y&#39;</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span> 
                             <span class="n">source</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">qaqc_centroids</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="n">color_mapper</span><span class="p">)</span>
                 
@@ -467,11 +464,7 @@
                 <span class="n">title_color</span> <span class="o">=</span> <span class="s1">&#39;#FF851B&#39;</span>
 
             <span class="n">p</span><span class="o">.</span><span class="n">title</span><span class="o">.</span><span class="n">text_color</span> <span class="o">=</span> <span class="n">title_color</span>
-            <span class="c1">#p.outline_line_width = 3</span>
-            <span class="c1">#p.outline_line_alpha = 0.6</span>
-            <span class="c1">#p.outline_line_color = title_color</span>
             <span class="n">p</span><span class="o">.</span><span class="n">toolbar</span><span class="o">.</span><span class="n">logo</span> <span class="o">=</span> <span class="kc">None</span>
-            <span class="c1">#p.toolbar_location = None</span>
 
             <span class="n">p</span><span class="o">.</span><span class="n">add_tile</span><span class="p">(</span><span class="n">get_provider</span><span class="p">(</span><span class="n">Vendors</span><span class="o">.</span><span class="n">CARTODBPOSITRON</span><span class="p">))</span>
             <span class="n">p</span><span class="o">.</span><span class="n">circle</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="s1">&#39;x&#39;</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="s1">&#39;y&#39;</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span> 
@@ -494,7 +487,7 @@
         <span class="n">pass_fail_tab</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">draw_pass_fail_maps</span><span class="p">()</span>
         <span class="n">class_count_tab</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">draw_class_count_maps</span><span class="p">()</span>
 
-        <span class="n">output_file</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">qaqc_dir</span> <span class="o">/</span> <span class="s1">&#39;dashboard_summary&#39;</span> <span class="o">/</span> <span class="s1">&#39;QAQC_DashboardSummary_</span><span class="si">{}</span><span class="s1">.html&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">project_name</span><span class="p">)))</span>
+        <span class="n">output_file</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">qaqc_dir</span> <span class="o">/</span> <span class="s1">&#39;dashboard&#39;</span> <span class="o">/</span> <span class="s1">&#39;QAQC_DashboardSummary_</span><span class="si">{}</span><span class="s1">.html&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">project_name</span><span class="p">)))</span>
 
         <span class="n">tabs</span> <span class="o">=</span> <span class="n">Tabs</span><span class="p">(</span><span class="n">tabs</span><span class="o">=</span><span class="p">[</span><span class="n">pass_fail_tab</span><span class="p">,</span> <span class="n">class_count_tab</span><span class="p">])</span>
 
@@ -518,7 +511,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">tile_size</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;tile_size&#39;</span><span class="p">])</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">to_pyramid</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s1">&#39;to_pyramid&#39;</span><span class="p">]</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">multiprocess</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s1">&#39;multiprocess&#39;</span><span class="p">]</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">make_tile_centroids_shp</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s1">&#39;make_tile_centroids_shp&#39;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">projects_unc</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s1">&#39;projects_unc&#39;</span><span class="p">]</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">check_keys</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s1">&#39;check_keys&#39;</span><span class="p">]</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">hdatum_key</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s1">&#39;check_keys&#39;</span><span class="p">][</span><span class="s1">&#39;hdatum&#39;</span><span class="p">]</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">vdatum_key</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s1">&#39;check_keys&#39;</span><span class="p">][</span><span class="s1">&#39;vdatum&#39;</span><span class="p">]</span>
@@ -529,7 +522,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">pt_src_ids_key</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s1">&#39;check_keys&#39;</span><span class="p">][</span><span class="s1">&#39;pt_src_ids&#39;</span><span class="p">]</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">las_classes_json</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;las_classes_json&#39;</span><span class="p">])</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">srs_wkts</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;srs_wkts&#39;</span><span class="p">])</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">wkts_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span> <span class="bp">self</span><span class="o">.</span><span class="n">srs_wkts</span><span class="p">,</span> <span class="n">index_col</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">header</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">wkts_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">srs_wkts</span><span class="p">,</span> <span class="n">index_col</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">header</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">epsg_code</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">wkts_df</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">hdatum_key</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">crs</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;init&#39;</span><span class="p">:</span> <span class="s1">&#39;epsg:</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">epsg_code</span><span class="p">)}</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">web_mercator_epsg</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;init&#39;</span><span class="p">:</span> <span class="s1">&#39;epsg:3857&#39;</span><span class="p">}</span>
@@ -539,17 +532,17 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">mosaics_to_make</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s1">&#39;mosaics_to_make&#39;</span><span class="p">]</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">qaqc_geojson_NAD83_UTM_CENTROIDS</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">qaqc_dir</span> <span class="o">/</span> <span class="s1">&#39;qaqc_NAD83_UTM_CENTROIDS.json&#39;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">qaqc_geojson_NAD83_UTM_POLYGONS</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">qaqc_dir</span> <span class="o">/</span> <span class="s1">&#39;qaqc_NAD83_UTM_POLYGONS.json&#39;</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">qaqc_geojson_WebMercator_CENTROIDS</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">qaqc_dir</span> <span class="o">/</span> <span class="s1">&#39;dashboard_summary&#39;</span> <span class="o">/</span> <span class="s1">&#39;</span><span class="si">{}</span><span class="s1">_qaqc_WebMercator_CENTROIDS.json&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">project_name</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">qaqc_geojson_WebMercator_CENTROIDS</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">qaqc_dir</span> <span class="o">/</span> <span class="s1">&#39;dashboard&#39;</span> <span class="o">/</span> <span class="s1">&#39;</span><span class="si">{}</span><span class="s1">_qaqc_WebMercator_CENTROIDS.json&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">project_name</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">qaqc_geojson_WebMercator_POLYGONS</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">qaqc_dir</span> <span class="o">/</span> <span class="s1">&#39;qaqc_WebMercator_POLYGONS.json&#39;</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">qaqc_shp_NAD83_UTM_POLYGONS</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">qaqc_dir</span> <span class="o">/</span> <span class="s1">&#39;qaqc_tile_check_results&#39;</span> <span class="o">/</span> <span class="s1">&#39;</span><span class="si">{}</span><span class="s1">_qaqc_NAD83_UTM.shp&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">project_name</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">json_dir</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">qaqc_dir</span> <span class="o">/</span> <span class="s1">&#39;qaqc_tile_check_results&#39;</span> <span class="o">/</span> <span class="s1">&#39;qaqc_tile_json&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">qaqc_shp_NAD83_UTM_POLYGONS</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">qaqc_dir</span> <span class="o">/</span> <span class="s1">&#39;tile_results&#39;</span> <span class="o">/</span> <span class="s1">&#39;</span><span class="si">{}</span><span class="s1">_qaqc_NAD83_UTM.shp&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">project_name</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">json_dir</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">qaqc_dir</span> <span class="o">/</span> <span class="s1">&#39;tile_results&#39;</span> <span class="o">/</span> <span class="s1">&#39;json&#39;</span>
 
         <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">json_dir</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
             <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">json_dir</span><span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">tile_geojson_WebMercator_POLYGONS</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">qaqc_dir</span> <span class="o">/</span> <span class="s1">&#39;tiles_WebMercator_POLYGONS.json&#39;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">tile_shp_NAD83_UTM_CENTROIDS</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">qaqc_dir</span> <span class="o">/</span> <span class="s1">&#39;tiles_centroids_NAD83_UTM.shp&#39;</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">epsg_json</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;epsg_json&#39;</span><span class="p">])</span>
+        <span class="c1">#self.epsg_json = Path(data[&#39;epsg_json&#39;])</span>
 
     <span class="k">def</span> <span class="nf">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> <span class="n">indent</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span> <span class="n">sort_keys</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span></div>
@@ -612,6 +605,15 @@
 
                 <span class="n">hor_srs</span> <span class="o">=</span> <span class="n">hor_srs</span><span class="o">.</span><span class="n">GetAttrValue</span><span class="p">(</span><span class="s1">&#39;projcs&#39;</span><span class="p">)</span>
                 <span class="n">ver_srs</span> <span class="o">=</span> <span class="n">ver_srs</span><span class="o">.</span><span class="n">GetAttrValue</span><span class="p">(</span><span class="s1">&#39;vert_cs&#39;</span><span class="p">)</span>
+                
+                <span class="c1"># FOR REFERENCE ONLY</span>
+                <span class="c1">#from rasterio.crs import CRS</span>
+                <span class="c1">#CRS.from_epsg(6335).wkt</span>
+                <span class="c1">#hor_srs=osr.SpatialReference(wkt=CRS.from_epsg(6335).wkt)</span>
+
+                <span class="c1">#srs = osr.SpatialReference()</span>
+                <span class="c1">#srs.ImportFromEPSG(6335)</span>
+                <span class="c1">#srs.ExportToWkt()</span>
 
             <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
                 <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
@@ -670,8 +672,11 @@
 
         <span class="bp">self</span><span class="o">.</span><span class="n">classes_present</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">class_counts</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_class_counts</span><span class="p">()</span>
         
-        <span class="bp">self</span><span class="o">.</span><span class="n">has_bathy</span> <span class="o">=</span> <span class="kc">True</span> <span class="k">if</span> <span class="s1">&#39;class26&#39;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">class_counts</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span> <span class="k">else</span> <span class="kc">False</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">has_ground</span> <span class="o">=</span> <span class="kc">True</span> <span class="k">if</span> <span class="s1">&#39;class2&#39;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">class_counts</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span> <span class="k">else</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ground_class</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;1.2&#39;</span><span class="p">:</span> <span class="s1">&#39;2&#39;</span><span class="p">,</span> <span class="s1">&#39;1.4&#39;</span><span class="p">:</span> <span class="s1">&#39;2&#39;</span><span class="p">}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">bathy_class</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;1.2&#39;</span><span class="p">:</span> <span class="s1">&#39;26&#39;</span><span class="p">,</span> <span class="s1">&#39;1.4&#39;</span><span class="p">:</span> <span class="s1">&#39;128&#39;</span><span class="p">}</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">has_bathy</span> <span class="o">=</span> <span class="kc">True</span> <span class="k">if</span> <span class="s1">&#39;class</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">bathy_class</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">version</span><span class="p">])</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">class_counts</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span> <span class="k">else</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">has_ground</span> <span class="o">=</span> <span class="kc">True</span> <span class="k">if</span> <span class="s1">&#39;class</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ground_class</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">version</span><span class="p">])</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">class_counts</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span> <span class="k">else</span> <span class="kc">False</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">checks_result</span> <span class="o">=</span> <span class="p">{</span>
             <span class="s1">&#39;naming&#39;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
@@ -680,13 +685,12 @@
             <span class="s1">&#39;gps_time&#39;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
             <span class="s1">&#39;hdatum&#39;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
             <span class="s1">&#39;vdatum&#39;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
-            <span class="s1">&#39;pnt_src_ids&#39;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="s1">&#39;pt_src_ids&#39;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
             <span class="s1">&#39;exp_cls&#39;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
         <span class="p">}</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">vlrs</span> <span class="o">=</span> <span class="n">get_vlrs</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">hor_srs</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ver_srs</span> <span class="o">=</span> <span class="n">get_srs</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">)</span>
-
 
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">version</span> <span class="o">==</span> <span class="s1">&#39;1.4&#39;</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">has_wkt</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">inFile</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">get_wkt</span><span class="p">()</span>
@@ -725,7 +729,8 @@
             <span class="n">json_file</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="p">))</span></div>
 
 <div class="viewcode-block" id="LasTile.get_class_counts"><a class="viewcode-back" href="../qchecker.html#qchecker.LasTile.get_class_counts">[docs]</a>    <span class="k">def</span> <span class="nf">get_class_counts</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="n">bin_counts</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">bincount</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">inFile</span><span class="o">.</span><span class="n">points</span><span class="p">[</span><span class="s1">&#39;point&#39;</span><span class="p">][</span><span class="s1">&#39;raw_classification&#39;</span><span class="p">])</span>
+        <span class="c1">#bin_counts = np.bincount(self.inFile.points[&#39;point&#39;][&#39;raw_classification&#39;])</span>
+        <span class="n">bin_counts</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">bincount</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">inFile</span><span class="o">.</span><span class="n">points</span><span class="p">[</span><span class="s1">&#39;point&#39;</span><span class="p">][</span><span class="s1">&#39;classification_byte&#39;</span><span class="p">])</span>
         <span class="n">classes_present</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">bin_counts</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>  <span class="c1"># i.e., indices</span>
         <span class="n">class_counts</span> <span class="o">=</span> <span class="n">bin_counts</span><span class="p">[</span><span class="n">classes_present</span><span class="p">]</span>
         <span class="n">class_counts</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="nb">zip</span><span class="p">([</span><span class="s1">&#39;class</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">c</span><span class="p">))</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">classes_present</span><span class="p">],</span>
@@ -756,20 +761,6 @@
             <span class="nb">print</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">refraction_bit_set</span> <span class="o">=</span> <span class="s1">&#39;not_present&#39;</span></div></div>
 
-    <span class="c1">#def get_pt_src_ids(self):</span>
-    <span class="c1">#    options = [</span>
-    <span class="c1">#            &#39;--stats&#39;,</span>
-    <span class="c1">#            &#39;--filters.stats.dimensions=PointSourceId&#39;,</span>
-    <span class="c1">#            &#39;--filters.stats.enumerate=PointSourceId&#39;</span>
-    <span class="c1">#            ]</span>
-
-
-    <span class="c1">#    cmd_str = &#39;pdal info {} {} {} {}&#39;.format(self.las_str, *options)</span>
-    <span class="c1">#    stats = self.run_console_cmd(cmd_str)[1].decode(&#39;utf-8&#39;)</span>
-    <span class="c1">#    stats_dict = json.loads(stats)</span>
-    
-    <span class="c1">#    return np.asarray(stats_dict[&#39;stats&#39;][&#39;statistic&#39;][0][&#39;values&#39;])</span>
-
 
 <div class="viewcode-block" id="Mosaic"><a class="viewcode-back" href="../qchecker.html#qchecker.Mosaic">[docs]</a><span class="k">class</span> <span class="nc">Mosaic</span><span class="p">:</span>
 
@@ -785,31 +776,32 @@
 
 <div class="viewcode-block" id="Mosaic.get_tile_dems"><a class="viewcode-back" href="../qchecker.html#qchecker.Mosaic.get_tile_dems">[docs]</a>    <span class="k">def</span> <span class="nf">get_tile_dems</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;retreiving individual </span><span class="si">{}</span><span class="s1"> tiles...&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mtype</span><span class="p">))</span>
+        <span class="n">dems</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="k">for</span> <span class="n">dem</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">source_dems_dir</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="s1">&#39;*_</span><span class="si">{}</span><span class="s1">.tif&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mtype</span><span class="o">.</span><span class="n">upper</span><span class="p">()))):</span>
             <span class="c1">#print(&#39;retreiving {}...&#39;.format(dem))</span>
             <span class="n">src</span> <span class="o">=</span> <span class="n">rasterio</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">dem</span><span class="p">)</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">dems</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">src</span><span class="p">)</span>
-
-        <span class="bp">self</span><span class="o">.</span><span class="n">out_meta</span> <span class="o">=</span> <span class="n">src</span><span class="o">.</span><span class="n">meta</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>  <span class="c1"># uses last src made</span></div>
+            <span class="n">dems</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">src</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">dems</span></div>
 
 <div class="viewcode-block" id="Mosaic.gen_mosaic"><a class="viewcode-back" href="../qchecker.html#qchecker.Mosaic.gen_mosaic">[docs]</a>    <span class="k">def</span> <span class="nf">gen_mosaic</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">get_tile_dems</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dems</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_tile_dems</span><span class="p">()</span>
 
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">dems</span><span class="p">:</span>
             <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;generating </span><span class="si">{}</span><span class="s1">...&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mosaic_dataset_path</span><span class="p">))</span>
             <span class="n">mosaic</span><span class="p">,</span> <span class="n">out_trans</span> <span class="o">=</span> <span class="n">rasterio</span><span class="o">.</span><span class="n">merge</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dems</span><span class="p">)</span>
 
+            <span class="bp">self</span><span class="o">.</span><span class="n">out_meta</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dems</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">meta</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>  <span class="c1"># uses last src made</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">out_meta</span><span class="o">.</span><span class="n">update</span><span class="p">({</span>
                 <span class="s1">&#39;driver&#39;</span><span class="p">:</span> <span class="s2">&quot;GTiff&quot;</span><span class="p">,</span>
                 <span class="s1">&#39;height&#39;</span><span class="p">:</span> <span class="n">mosaic</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
                 <span class="s1">&#39;width&#39;</span><span class="p">:</span> <span class="n">mosaic</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span>
                 <span class="s1">&#39;transform&#39;</span><span class="p">:</span> <span class="n">out_trans</span><span class="p">})</span>
 
-            <span class="c1"># save TPU mosaic DEMs</span>
+            <span class="c1"># save mosaic DEMs</span>
             <span class="k">with</span> <span class="n">rasterio</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mosaic_dataset_path</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">,</span> <span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">out_meta</span><span class="p">)</span> <span class="k">as</span> <span class="n">dest</span><span class="p">:</span>
                 <span class="n">dest</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">mosaic</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;No Hillshade tile DEMs were generated.&#39;</span><span class="p">)</span></div></div>
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;No </span><span class="si">{}</span><span class="s1"> tiles were generated.&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mtype</span><span class="p">))</span></div></div>
 
 
 <div class="viewcode-block" id="Surface"><a class="viewcode-back" href="../qchecker.html#qchecker.Surface">[docs]</a><span class="k">class</span> <span class="nc">Surface</span><span class="p">:</span>
@@ -829,6 +821,10 @@
 <div class="viewcode-block" id="Surface.create_dz_dem"><a class="viewcode-back" href="../qchecker.html#qchecker.Surface.create_dz_dem">[docs]</a>    <span class="k">def</span> <span class="nf">create_dz_dem</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         
         <span class="k">def</span> <span class="nf">gen_pipeline</span><span class="p">(</span><span class="n">gtiff_path</span><span class="p">,</span> <span class="n">las_bounds</span><span class="p">):</span>
+
+            <span class="n">ground_class</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tile</span><span class="o">.</span><span class="n">ground_class</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">tile</span><span class="o">.</span><span class="n">version</span><span class="p">]</span>
+            <span class="n">bathy_class</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tile</span><span class="o">.</span><span class="n">bathy_class</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">tile</span><span class="o">.</span><span class="n">version</span><span class="p">]</span>
+
             <span class="n">pdal_json</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;{</span>
 <span class="s2">                &quot;pipeline&quot;:[</span>
 <span class="s2">                    {</span>
@@ -837,7 +833,11 @@
 <span class="s2">                    },</span>
 <span class="s2">                    {</span>
 <span class="s2">                        &quot;type&quot;:&quot;filters.range&quot;,</span>
-<span class="s2">                        &quot;limits&quot;: &quot;Classification[2:2],Classification[26:26]&quot; </span>
+<span class="s2">                        &quot;limits&quot;: &quot;Classification[&quot;&quot;&quot;</span> <span class="o">+</span> \
+                            <span class="s1">&#39;</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">ground_class</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;&quot;&quot;:&quot;&quot;&quot;</span> <span class="o">+</span> \
+                            <span class="s1">&#39;</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">ground_class</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;&quot;&quot;],Classification[&quot;&quot;&quot;</span> <span class="o">+</span> \
+                            <span class="s1">&#39;</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">bathy_class</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;&quot;&quot;:&quot;&quot;&quot;</span> <span class="o">+</span> \
+                            <span class="s1">&#39;</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">bathy_class</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;&quot;&quot;]&quot;</span>
 <span class="s2">                    },</span>
 <span class="s2">                    {</span>
 <span class="s2">                        &quot;type&quot;:&quot;filters.returns&quot;,</span>
@@ -867,7 +867,6 @@
             <span class="n">tifs</span> <span class="o">=</span> <span class="p">[]</span>
             <span class="n">meta</span> <span class="o">=</span> <span class="kc">None</span>
             <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">tif_dir</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{}</span><span class="s1">*.tif&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">las_name</span><span class="p">)):</span>
-                <span class="c1">#print(t)</span>
                 <span class="k">with</span> <span class="n">rasterio</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">tif</span><span class="p">:</span>
                     <span class="n">tifs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">tif</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">1</span><span class="p">))</span>
 
@@ -877,6 +876,7 @@
                 <span class="n">os</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">t</span><span class="p">)</span>
 
             <span class="k">if</span> <span class="n">tifs</span><span class="p">:</span>  <span class="c1"># sometimes tif isn&#39;t made for las having ground or bathy (one e.g. was las having only 3 class 26 pts)</span>
+                <span class="nb">print</span><span class="p">(</span><span class="n">las_name</span><span class="p">)</span>
                 <span class="n">tifs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span><span class="n">tifs</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
                 <span class="n">tifs</span><span class="p">[</span><span class="n">tifs</span> <span class="o">==</span> <span class="o">-</span><span class="mi">9999</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
                 <span class="n">tifs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nanmax</span><span class="p">(</span><span class="n">tifs</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">nanmin</span><span class="p">(</span><span class="n">tifs</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
@@ -899,8 +899,6 @@
         <span class="n">maxy</span> <span class="o">=</span> <span class="n">bounds</span><span class="p">[</span><span class="s1">&#39;maxy&#39;</span><span class="p">]</span>
         <span class="n">las_bounds</span> <span class="o">=</span> <span class="p">([</span><span class="n">minx</span><span class="p">,</span><span class="n">maxx</span><span class="p">],[</span><span class="n">miny</span><span class="p">,</span><span class="n">maxy</span><span class="p">])</span>
 
-        <span class="n">pt_src_id_dems</span> <span class="o">=</span> <span class="p">[]</span>
-
         <span class="n">gtiff_path</span> <span class="o">=</span> <span class="sa">r</span><span class="s1">&#39;</span><span class="si">{}</span><span class="s1">\</span><span class="si">{}</span><span class="s1">_PSI_#.tif&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">surfaces_to_make</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">stype</span><span class="p">][</span><span class="mi">1</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">las_name</span><span class="p">)</span>
         <span class="n">gtiff_path</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">gtiff_path</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\\</span><span class="s1">&#39;</span><span class="p">,</span> <span class="s1">&#39;/&#39;</span><span class="p">)</span>
         
@@ -911,6 +909,10 @@
         <span class="n">create_dz</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">las_name</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="Surface.gen_mean_z_surface"><a class="viewcode-back" href="../qchecker.html#qchecker.Surface.gen_mean_z_surface">[docs]</a>    <span class="k">def</span> <span class="nf">gen_mean_z_surface</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dem_type</span><span class="p">):</span>
+
+        <span class="n">ground_class</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tile</span><span class="o">.</span><span class="n">ground_class</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">tile</span><span class="o">.</span><span class="n">version</span><span class="p">]</span>
+        <span class="n">bathy_class</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tile</span><span class="o">.</span><span class="n">bathy_class</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">tile</span><span class="o">.</span><span class="n">version</span><span class="p">]</span>
+
         <span class="n">las_str</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">las_path</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\\</span><span class="s1">&#39;</span><span class="p">,</span> <span class="s1">&#39;/&#39;</span><span class="p">)</span>
         <span class="n">gtiff_path</span> <span class="o">=</span> <span class="sa">r</span><span class="s1">&#39;</span><span class="si">{}</span><span class="s1">\</span><span class="si">{}</span><span class="s1">_</span><span class="si">{}</span><span class="s1">.tif&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">surfaces_to_make</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">stype</span><span class="p">][</span><span class="mi">1</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">las_name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">stype</span><span class="p">)</span>
         <span class="n">gtiff_path</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">gtiff_path</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\\</span><span class="s1">&#39;</span><span class="p">,</span> <span class="s1">&#39;/&#39;</span><span class="p">)</span>
@@ -927,7 +929,11 @@
 <span class="s2">                },</span>
 <span class="s2">                {</span>
 <span class="s2">                    &quot;type&quot;:&quot;filters.range&quot;,</span>
-<span class="s2">                    &quot;limits&quot;: &quot;Classification[2:2],Classification[26:26]&quot;</span>
+<span class="s2">                    &quot;limits&quot;: &quot;Classification[&quot;&quot;&quot;</span> <span class="o">+</span> \
+                        <span class="s1">&#39;</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">ground_class</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;&quot;&quot;:&quot;&quot;&quot;</span> <span class="o">+</span> \
+                        <span class="s1">&#39;</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">ground_class</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;&quot;&quot;],Classification[&quot;&quot;&quot;</span> <span class="o">+</span> \
+                        <span class="s1">&#39;</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">bathy_class</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;&quot;&quot;:&quot;&quot;&quot;</span> <span class="o">+</span> \
+                        <span class="s1">&#39;</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">bathy_class</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;&quot;&quot;]&quot;</span>
 <span class="s2">                },</span>
 <span class="s2">                {</span>
 <span class="s2">                    &quot;filename&quot;: &quot;&quot;&quot;</span> <span class="o">+</span> <span class="s1">&#39;&quot;</span><span class="si">{}</span><span class="s1">&quot;&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">gtiff_path</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;&quot;&quot;,</span>
@@ -972,8 +978,8 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">surfaces</span> <span class="o">=</span> <span class="p">{</span>
             <span class="s1">&#39;Dz&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">create_dz</span><span class="p">,</span>
             <span class="s1">&#39;Dz_mosaic&#39;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
-            <span class="s1">&#39;Hillshade&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">create_hillshade</span><span class="p">,</span>
-            <span class="s1">&#39;Hillshade_mosaic&#39;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="s1">&#39;DEM&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">create_DEM</span><span class="p">,</span>
+            <span class="s1">&#39;DEM_mosaic&#39;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
             <span class="p">}</span>
 
 <div class="viewcode-block" id="QaqcTile.check_las_naming"><a class="viewcode-back" href="../qchecker.html#qchecker.QaqcTile.check_las_naming">[docs]</a>    <span class="k">def</span> <span class="nf">check_las_naming</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tile</span><span class="p">):</span>
@@ -1045,7 +1051,7 @@
 <div class="viewcode-block" id="QaqcTile.check_hdatum"><a class="viewcode-back" href="../qchecker.html#qchecker.QaqcTile.check_hdatum">[docs]</a>    <span class="k">def</span> <span class="nf">check_hdatum</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tile</span><span class="p">):</span>
         <span class="n">hdatum</span> <span class="o">=</span> <span class="n">tile</span><span class="o">.</span><span class="n">hor_srs</span>
         <span class="k">if</span> <span class="n">tile</span><span class="o">.</span><span class="n">version</span> <span class="o">==</span> <span class="s1">&#39;1.4&#39;</span><span class="p">:</span>
-            <span class="k">if</span> <span class="n">hdatum</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">hdatum_key</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">has_wkt</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">hdatum</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">hdatum_key</span> <span class="ow">and</span> <span class="n">tile</span><span class="o">.</span><span class="n">has_wkt</span><span class="p">:</span>
                 <span class="n">passed</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">passed_text</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="n">passed</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">failed_text</span>
@@ -1101,20 +1107,19 @@
             <span class="n">tile_dz</span> <span class="o">=</span> <span class="n">Surface</span><span class="p">(</span><span class="n">tile</span><span class="p">,</span> <span class="s1">&#39;Dz&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">)</span>
             <span class="n">tile_dz</span><span class="o">.</span><span class="n">create_dz_dem</span><span class="p">()</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{}</span><span class="s1"> has no bathy or ground points; no dz ortho generated&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">tile</span><span class="o">.</span><span class="n">name</span><span class="p">))</span></div>
+            <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{}</span><span class="s1"> has no bathy or ground points; no dz surface generated&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">tile</span><span class="o">.</span><span class="n">name</span><span class="p">))</span></div>
 
-<div class="viewcode-block" id="QaqcTile.create_hillshade"><a class="viewcode-back" href="../qchecker.html#qchecker.QaqcTile.create_hillshade">[docs]</a>    <span class="k">def</span> <span class="nf">create_hillshade</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tile</span><span class="p">):</span>
+<div class="viewcode-block" id="QaqcTile.create_DEM"><a class="viewcode-back" href="../qchecker.html#qchecker.QaqcTile.create_DEM">[docs]</a>    <span class="k">def</span> <span class="nf">create_DEM</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tile</span><span class="p">):</span>
         <span class="kn">from</span> <span class="nn">qchecker</span> <span class="k">import</span> <span class="n">Surface</span>
         <span class="k">if</span> <span class="n">tile</span><span class="o">.</span><span class="n">has_bathy</span> <span class="ow">or</span> <span class="n">tile</span><span class="o">.</span><span class="n">has_ground</span><span class="p">:</span>
-            <span class="n">tile_hillshade</span> <span class="o">=</span> <span class="n">Surface</span><span class="p">(</span><span class="n">tile</span><span class="p">,</span> <span class="s1">&#39;Hillshade&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">)</span>
-            <span class="n">tile_hillshade</span><span class="o">.</span><span class="n">gen_mean_z_surface</span><span class="p">(</span><span class="s1">&#39;mean&#39;</span><span class="p">)</span>
+            <span class="n">tile_DEM</span> <span class="o">=</span> <span class="n">Surface</span><span class="p">(</span><span class="n">tile</span><span class="p">,</span> <span class="s1">&#39;DEM&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">)</span>
+            <span class="n">tile_DEM</span><span class="o">.</span><span class="n">gen_mean_z_surface</span><span class="p">(</span><span class="s1">&#39;mean&#39;</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{}</span><span class="s1"> has no bathy or ground points; no hillshade ortho generated&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">tile</span><span class="o">.</span><span class="n">name</span><span class="p">))</span></div>
+            <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{}</span><span class="s1"> has no bathy or ground points; no DEM generated&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">tile</span><span class="o">.</span><span class="n">name</span><span class="p">))</span></div>
 
 <div class="viewcode-block" id="QaqcTile.run_qaqc_checks_multiprocess"><a class="viewcode-back" href="../qchecker.html#qchecker.QaqcTile.run_qaqc_checks_multiprocess">[docs]</a>    <span class="k">def</span> <span class="nf">run_qaqc_checks_multiprocess</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">las_path</span><span class="p">):</span>
         <span class="kn">from</span> <span class="nn">qchecker</span> <span class="k">import</span> <span class="n">LasTile</span><span class="p">,</span> <span class="n">LasTileCollection</span>
         <span class="kn">import</span> <span class="nn">logging</span>
-        <span class="kn">import</span> <span class="nn">xml.etree.ElementTree</span> <span class="k">as</span> <span class="nn">ET</span>
         <span class="n">logging</span><span class="o">.</span><span class="n">basicConfig</span><span class="p">(</span><span class="nb">format</span><span class="o">=</span><span class="s1">&#39;</span><span class="si">%(asctime)s</span><span class="s1">:</span><span class="si">%(message)s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">level</span><span class="o">=</span><span class="n">logging</span><span class="o">.</span><span class="n">WARNING</span><span class="p">)</span>
         <span class="n">tile</span> <span class="o">=</span> <span class="n">LasTile</span><span class="p">(</span><span class="n">las_path</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">)</span>
         <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="p">[</span><span class="n">k</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">checks_to_do</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">v</span><span class="p">]:</span>
@@ -1137,8 +1142,6 @@
             <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;starting </span><span class="si">{}</span><span class="s1">...&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">las_path</span><span class="p">))</span>
             <span class="n">tile</span> <span class="o">=</span> <span class="n">LasTile</span><span class="p">(</span><span class="n">las_path</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">)</span>
 
-            <span class="c1">#cProfile.runctx(&#39;LasTile(las_path, self.config)&#39;, globals={&#39;LasTile&#39;: LasTile}, locals={&#39;las_path&#39;: las_path, &#39;self&#39;: self}, sort=&#39;cumtime&#39;)</span>
-
             <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="p">[</span><span class="n">k</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">checks_to_do</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">v</span><span class="p">]:</span>
                 <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;running </span><span class="si">{}</span><span class="s1">...&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">c</span><span class="p">))</span>
                 <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">checks</span><span class="p">[</span><span class="n">c</span><span class="p">](</span><span class="n">tile</span><span class="p">)</span>
@@ -1151,8 +1154,7 @@
 
 <div class="viewcode-block" id="QaqcTile.run_qaqc"><a class="viewcode-back" href="../qchecker.html#qchecker.QaqcTile.run_qaqc">[docs]</a>    <span class="k">def</span> <span class="nf">run_qaqc</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">las_paths</span><span class="p">):</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">multiprocess</span><span class="p">:</span>
-            <span class="n">p</span> <span class="o">=</span> <span class="n">pp</span><span class="o">.</span><span class="n">ProcessPool</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">ph</span><span class="o">.</span><span class="n">cpu_count</span><span class="p">()</span> <span class="o">/</span> <span class="mi">2</span><span class="p">))</span>
-            <span class="c1">#p = pp.ProcessPool(3)</span>
+            <span class="n">p</span> <span class="o">=</span> <span class="n">pp</span><span class="o">.</span><span class="n">ProcessPool</span><span class="p">(</span><span class="nb">max</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">ph</span><span class="o">.</span><span class="n">cpu_count</span><span class="p">()</span> <span class="o">/</span> <span class="mi">2</span><span class="p">),</span> <span class="mi">1</span><span class="p">))</span>
             <span class="n">num_las</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">las_paths</span><span class="p">)</span>
             <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">tqdm</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">imap</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">run_qaqc_checks_multiprocess</span><span class="p">,</span> <span class="n">las_paths</span><span class="p">),</span> <span class="n">total</span><span class="o">=</span><span class="n">num_las</span><span class="p">,</span> <span class="n">ascii</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
                 <span class="k">pass</span>
@@ -1199,6 +1201,7 @@
 
 <div class="viewcode-block" id="QaqcTileCollection.get_unq_pt_src_ids"><a class="viewcode-back" href="../qchecker.html#qchecker.QaqcTileCollection.get_unq_pt_src_ids">[docs]</a>    <span class="k">def</span> <span class="nf">get_unq_pt_src_ids</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="n">unq_pt_src_ids</span> <span class="o">=</span> <span class="nb">set</span><span class="p">([])</span>
+        <span class="c1">#pnt_src_ids = self.qaqc_results_df[&#39;pnt_src_ids&#39;].tolist()</span>
         <span class="n">pnt_src_ids</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">qaqc_results_df</span><span class="p">[</span><span class="s1">&#39;pnt_src_ids&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
         <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">pnt_src_id_str</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">pnt_src_ids</span><span class="p">):</span>
             <span class="n">pnt_src_ids_set</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">ast</span><span class="o">.</span><span class="n">literal_eval</span><span class="p">(</span><span class="n">pnt_src_id_str</span><span class="p">))</span>
@@ -1207,7 +1210,8 @@
 
 <div class="viewcode-block" id="QaqcTileCollection.set_qaqc_results_df"><a class="viewcode-back" href="../qchecker.html#qchecker.QaqcTileCollection.set_qaqc_results_df">[docs]</a>    <span class="k">def</span> <span class="nf">set_qaqc_results_df</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">qaqc_results_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">gen_qaqc_results_dict</span><span class="p">())</span></div>
-
+    
+    <span class="c1"># todo: refactor these 3 into one maybe?</span>
 <div class="viewcode-block" id="QaqcTileCollection.gen_qaqc_results_gdf_NAD83_UTM_CENTROIDS"><a class="viewcode-back" href="../qchecker.html#qchecker.QaqcTileCollection.gen_qaqc_results_gdf_NAD83_UTM_CENTROIDS">[docs]</a>    <span class="k">def</span> <span class="nf">gen_qaqc_results_gdf_NAD83_UTM_CENTROIDS</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="n">df</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">qaqc_results_df</span>
         <span class="n">df</span><span class="p">[</span><span class="s1">&#39;Coordinates&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">tile_centroid</span>
@@ -1293,7 +1297,6 @@
                                 <span class="s1">&#39;x_max&#39;</span><span class="p">,</span> <span class="s1">&#39;x_min&#39;</span><span class="p">,</span> <span class="s1">&#39;y_max&#39;</span><span class="p">,</span> <span class="s1">&#39;y_min&#39;</span><span class="p">])</span>
 
         <span class="n">schema</span> <span class="o">=</span> <span class="n">gpd</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">file</span><span class="o">.</span><span class="n">infer_schema</span><span class="p">(</span><span class="n">gdf</span><span class="p">)</span>
-        <span class="nb">print</span><span class="p">(</span><span class="n">schema</span><span class="p">)</span>
         <span class="n">gdf</span><span class="o">.</span><span class="n">to_file</span><span class="p">(</span><span class="n">output</span><span class="p">,</span> <span class="n">driver</span><span class="o">=</span><span class="s1">&#39;ESRI Shapefile&#39;</span><span class="p">,</span> <span class="n">schema</span><span class="o">=</span><span class="n">schema</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="QaqcTileCollection.gen_mosaic"><a class="viewcode-back" href="../qchecker.html#qchecker.QaqcTileCollection.gen_mosaic">[docs]</a>    <span class="k">def</span> <span class="nf">gen_mosaic</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mtype</span><span class="p">):</span>
@@ -1322,12 +1325,6 @@
         <span class="n">gdf</span><span class="p">[</span><span class="s1">&#39;centroid_lat&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">map</span><span class="p">(</span><span class="n">get_y</span><span class="p">,</span> <span class="n">gdf</span><span class="p">[</span><span class="s1">&#39;geometry&#39;</span><span class="p">])</span>
         <span class="n">gdf</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="n">out_csv</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="QaqcTileCollection.gen_tile_centroids_shp_NAD83_UTM"><a class="viewcode-back" href="../qchecker.html#qchecker.QaqcTileCollection.gen_tile_centroids_shp_NAD83_UTM">[docs]</a>    <span class="k">def</span> <span class="nf">gen_tile_centroids_shp_NAD83_UTM</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;generating shapefile containing centroids of contractor tile polygons...&#39;</span><span class="p">)</span>
-        <span class="n">gdf</span> <span class="o">=</span> <span class="n">gpd</span><span class="o">.</span><span class="n">read_file</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">contractor_shp</span><span class="p">)</span>
-        <span class="n">gdf</span><span class="p">[</span><span class="s1">&#39;geometry&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">gdf</span><span class="p">[</span><span class="s1">&#39;geometry&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">centroid</span>
-        <span class="n">gdf</span><span class="o">.</span><span class="n">to_file</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">tile_shp_NAD83_UTM_CENTROIDS</span><span class="p">,</span> <span class="n">driver</span><span class="o">=</span><span class="s1">&#39;ESRI Shapefile&#39;</span><span class="p">)</span></div>
-
 <div class="viewcode-block" id="QaqcTileCollection.gen_tile_geojson_WebMercator_POLYGONS"><a class="viewcode-back" href="../qchecker.html#qchecker.QaqcTileCollection.gen_tile_geojson_WebMercator_POLYGONS">[docs]</a>    <span class="k">def</span> <span class="nf">gen_tile_geojson_WebMercator_POLYGONS</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">geojson</span><span class="p">):</span>
         <span class="n">gdf</span> <span class="o">=</span> <span class="n">gpd</span><span class="o">.</span><span class="n">read_file</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">contractor_shp</span><span class="p">)</span>
         <span class="k">try</span><span class="p">:</span>
@@ -1344,13 +1341,11 @@
 <div class="viewcode-block" id="run_qaqc"><a class="viewcode-back" href="../qchecker.html#qchecker.run_qaqc">[docs]</a><span class="k">def</span> <span class="nf">run_qaqc</span><span class="p">(</span><span class="n">config_json</span><span class="p">):</span>
     <span class="n">config</span> <span class="o">=</span> <span class="n">Configuration</span><span class="p">(</span><span class="n">config_json</span><span class="p">)</span>
     
-    <span class="nb">print</span><span class="p">()</span>
     <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;-&#39;</span> <span class="o">*</span> <span class="mi">50</span><span class="p">)</span>
     <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Ignore the following laspy-generated warning, which doesn</span><span class="se">\&#39;</span><span class="s1">t effect Q-Checker:&#39;</span><span class="p">)</span>
     <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;WARNING: Invalid body length for classification lookup, not parsing.&#39;</span><span class="p">)</span>
     <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;(It has to do with the self.rec_len_after_header attribute of VLR record_id 0.)&#39;</span><span class="p">)</span>
     <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;-&#39;</span> <span class="o">*</span> <span class="mi">50</span><span class="p">)</span>
-    <span class="nb">print</span><span class="p">()</span>
 
     <span class="n">qaqc_tile_collection</span> <span class="o">=</span> <span class="n">LasTileCollection</span><span class="p">(</span><span class="n">config</span><span class="o">.</span><span class="n">las_tile_dir</span><span class="p">)</span>
     <span class="n">qaqc</span> <span class="o">=</span> <span class="n">QaqcTileCollection</span><span class="p">(</span><span class="n">qaqc_tile_collection</span><span class="o">.</span><span class="n">get_las_tile_paths</span><span class="p">()[</span><span class="mi">0</span><span class="p">:],</span> <span class="n">config</span><span class="p">)</span>
@@ -1372,9 +1367,7 @@
     <span class="k">else</span><span class="p">:</span>
         <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;no mosaics to build...&#39;</span><span class="p">)</span>
 
-    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;&#39;</span><span class="p">)</span>
-    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;YAY, you just QAQC</span><span class="se">\&#39;</span><span class="s1">d project </span><span class="si">{}</span><span class="s1">!!!&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">config</span><span class="o">.</span><span class="n">project_name</span><span class="p">)</span><span class="o">.</span><span class="n">upper</span><span class="p">())</span>
-    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;(Restart Q-Checker before running it again.)&#39;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">YAY, you just QAQC</span><span class="se">\&#39;</span><span class="s1">d project </span><span class="si">{}</span><span class="s1">!!!&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">config</span><span class="o">.</span><span class="n">project_name</span><span class="p">)</span><span class="o">.</span><span class="n">upper</span><span class="p">())</span>
 
     <span class="k">pass</span></div>
 
