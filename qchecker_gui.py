@@ -456,7 +456,7 @@ class MainGuiPage(ttk.Frame):
 
     @staticmethod
     def get_vdatums():
-        return ('Ellipsoid (meter)', 'Ellipsoid (metre)', 'MHW', 'MLLW', 'GRS80', 'WGS84')
+        return ('Ellipsoid (meter)', 'Ellipsoid (metre)')
 
     @staticmethod
     def get_pdrfs():

@@ -268,9 +268,8 @@ class SummaryPlots:
                                             factors=list(cmap.keys()))
 
                 p.add_tile(get_provider(Vendors.CARTODBPOSITRON))
-                p.patches('xs', 'ys', source=self.qaqc_polygons, alpha=0.1)
-                p.circle(x='x', y='y', size=5, alpha=0.5, 
-                            source=self.qaqc_centroids, color=color_mapper)
+                p.patches('xs', 'ys', source=self.qaqc_polygons, alpha=0.1, color=color_mapper)
+                p.circle(x='x', y='y', size=5, alpha=0.5, source=self.qaqc_centroids, color=color_mapper)
                 
                 check_pass_fail_plots.append(p)
 
@@ -321,8 +320,7 @@ class SummaryPlots:
 
             p.add_tile(get_provider(Vendors.CARTODBPOSITRON))
             p.patches('xs', 'ys', source=self.qaqc_polygons, alpha=0.1)
-            p.circle(x='x', y='y', size=5, alpha=0.5, 
-                        source=self.qaqc_centroids, color=color_mapper)
+            p.circle(x='x', y='y', size=5, alpha=0.5, source=self.qaqc_centroids, color=color_mapper)
 
             class_count_plots.append(p)
 
@@ -528,7 +526,7 @@ class LasTile:
         self.classes_present, self.class_counts = self.get_class_counts()
         
         self.ground_class = {'1.2': '2', '1.4': '2'}
-        self.bathy_class = {'1.2': '26', '1.4': '128'}
+        self.bathy_class = {'1.2': '26', '1.4': '40'}
 
         self.has_bathy = True if 'class{}'.format(self.bathy_class[self.version]) in self.class_counts.keys() else False
         self.has_ground = True if 'class{}'.format(self.ground_class[self.version]) in self.class_counts.keys() else False
