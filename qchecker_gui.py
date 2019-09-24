@@ -456,7 +456,7 @@ class MainGuiPage(ttk.Frame):
 
     @staticmethod
     def get_vdatums():
-        return ('MHW', 'MLLW', 'GRS80', 'WGS84')
+        return ('Ellipsoid (meter)', 'Ellipsoid (metre)', 'MHW', 'MLLW', 'GRS80', 'WGS84')
 
     @staticmethod
     def get_pdrfs():
@@ -569,7 +569,7 @@ class MainGuiPage(ttk.Frame):
                 self.gui['check_keys']['vdatum'][0], 
                 *self.get_vdatums())
             self.gui['check_keys']['vdatum'][1].configure(anchor='w')
-            self.gui['check_keys']['vdatum'][1].config(state='disabled')
+            #self.gui['check_keys']['vdatum'][1].config(state='disabled')
 
         def add_pt_src_ids_key():
             self.gui['check_keys']['pt_src_ids'][0] = tk.StringVar()

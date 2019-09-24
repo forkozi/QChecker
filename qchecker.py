@@ -42,8 +42,11 @@ class SummaryPlots:
 
         with open(self.config.qaqc_geojson_WebMercator_CENTROIDS) as f:
             geojson_qaqc_centroids = f.read()
-
         self.qaqc_centroids = GeoJSONDataSource(geojson=geojson_qaqc_centroids)
+
+        with open(self.config.qaqc_geojson_WebMercator_POLYGONS) as f:
+            geojson_qaqc_polygons = f.read()
+        self.qaqc_polygons = GeoJSONDataSource(geojson=geojson_qaqc_polygons)
 
         self.check_labels = {
             'naming_passed': 'Naming Convention',
@@ -265,7 +268,8 @@ class SummaryPlots:
                                             factors=list(cmap.keys()))
 
                 p.add_tile(get_provider(Vendors.CARTODBPOSITRON))
-                p.circle(x='x', y='y', size=3, alpha=0.5, 
+                p.patches('xs', 'ys', source=self.qaqc_polygons, alpha=0.1)
+                p.circle(x='x', y='y', size=5, alpha=0.5, 
                             source=self.qaqc_centroids, color=color_mapper)
                 
                 check_pass_fail_plots.append(p)
@@ -316,7 +320,8 @@ class SummaryPlots:
             p.toolbar.logo = None
 
             p.add_tile(get_provider(Vendors.CARTODBPOSITRON))
-            p.circle(x='x', y='y', size=3, alpha=0.5, 
+            p.patches('xs', 'ys', source=self.qaqc_polygons, alpha=0.1)
+            p.circle(x='x', y='y', size=5, alpha=0.5, 
                         source=self.qaqc_centroids, color=color_mapper)
 
             class_count_plots.append(p)
@@ -382,7 +387,7 @@ class Configuration:
         self.qaqc_geojson_NAD83_UTM_CENTROIDS = self.qaqc_dir / 'qaqc_NAD83_UTM_CENTROIDS.json'
         self.qaqc_geojson_NAD83_UTM_POLYGONS = self.qaqc_dir / 'qaqc_NAD83_UTM_POLYGONS.json'
         self.qaqc_geojson_WebMercator_CENTROIDS = self.qaqc_dir / 'dashboard' / '{}_qaqc_WebMercator_CENTROIDS.json'.format(self.project_name)
-        self.qaqc_geojson_WebMercator_POLYGONS = self.qaqc_dir / 'qaqc_WebMercator_POLYGONS.json'
+        self.qaqc_geojson_WebMercator_POLYGONS = self.qaqc_dir / 'dashboard' / '{}_qaqc_WebMercator_POLYGONS.json'.format(self.project_name)
         self.qaqc_shp_NAD83_UTM_POLYGONS = self.qaqc_dir / 'tile_results' / '{}_qaqc_NAD83_UTM.shp'.format(self.project_name)
         self.json_dir = self.qaqc_dir / 'tile_results' / 'json'
 
@@ -421,8 +426,8 @@ class LasTile:
 
         def get_useful_las_header_info():
             info_to_get = 'global_encoding,version_major,version_minor,' \
-                          'created_day,created_year,' \
-                          'data_format_id,x_min,x_max,y_min,y_max'
+                          'created_day,created_year,data_format_id,' \
+                          'x_min,x_max,y_min,y_max'
             header = {}
             for info in info_to_get.split(','):
                 header[info] = self.inFile.header.reader.get_header_property(info)
@@ -471,12 +476,12 @@ class LasTile:
             return hor_srs, ver_srs
 
         def calc_las_centroid():
-            data_nw_x = self.las_extents['ExtentXMin']
-            data_nw_y = self.las_extents['ExtentYMax']
-            las_nw_x = data_nw_x - (data_nw_x % self.config.tile_size)
-            las_nw_y = data_nw_y + self.config.tile_size - (data_nw_y % self.config.tile_size)
-            las_centroid_x = las_nw_x + self.config.tile_size / 2
-            las_centroid_y = las_nw_y - self.config.tile_size / 2
+            dx = self.las_extents['ExtentXMax'] - self.las_extents['ExtentXMin']
+            dy = self.las_extents['ExtentYMax'] - self.las_extents['ExtentYMin']
+            #las_nw_x = data_nw_x - (data_nw_x % self.config.tile_size)
+            #las_nw_y = data_nw_y + self.config.tile_size - (data_nw_y % self.config.tile_size)
+            las_centroid_x = self.las_extents['ExtentXMin'] + dx / 2
+            las_centroid_y = self.las_extents['ExtentYMax'] - dy / 2
             return (las_centroid_x, las_centroid_y)
 
         tic = time.time()
@@ -500,24 +505,25 @@ class LasTile:
             'ExtentYMax': self.header['y_max'],
             }
 
-        self.centroid_x, self.centroid_y = calc_las_centroid()
+        self.las_centroid_x, self.las_centroid_y = calc_las_centroid()
 
-        self.tile_extents = {
-            'tile_top': self.centroid_y + self.config.tile_size / 2,
-            'tile_bottom': self.centroid_y - self.config.tile_size / 2,
-            'tile_left': self.centroid_x - self.config.tile_size / 2,
-            'tile_right': self.centroid_x + self.config.tile_size / 2,
-            }
+        #self.tile_extents = {
+        #    'tile_top': self.las_centroid_y + self.config.tile_size / 2,
+        #    'tile_bottom': self.las_centroid_y - self.config.tile_size / 2,
+        #    'tile_left': self.las_centroid_x - self.config.tile_size / 2,
+        #    'tile_right': self.las_centroid_x + self.config.tile_size / 2,
+        #    }
 
-        self.tile_poly_wkt = GeoObject(Polygon([
-            (self.tile_extents['tile_left'], self.tile_extents['tile_top']), 
-            (self.tile_extents['tile_right'], self.tile_extents['tile_top']), 
-            (self.tile_extents['tile_right'], self.tile_extents['tile_bottom']), 
-            (self.tile_extents['tile_left'], self.tile_extents['tile_bottom']),
-            (self.tile_extents['tile_left'], self.tile_extents['tile_top']), 
+        self.las_poly_wkt = GeoObject(Polygon([
+            (self.header['x_min'], self.header['y_max']), 
+            (self.header['x_max'], self.header['y_max']), 
+            (self.header['x_max'], self.header['y_min']), 
+            (self.header['x_min'], self.header['y_min']),
+            (self.header['x_min'], self.header['y_max']), 
             ])).wkt()
 
-        self.tile_centroid_wkt = GeoObject(Point(self.centroid_x, self.centroid_y)).wkt()
+        #self.tile_centroid_wkt = GeoObject(Point(self.centroid_x, self.centroid_y)).wkt()
+        self.las_centroid_wkt = GeoObject(Point(self.las_centroid_x, self.las_centroid_y)).wkt()
 
         self.classes_present, self.class_counts = self.get_class_counts()
         
@@ -555,13 +561,13 @@ class LasTile:
         info_to_output = {
             'tile_name': self.name,
             'header': self.header,
-            'tile_extents': self.las_extents,
-            'centroid_x': self.centroid_x,
-            'centroid_y': self.centroid_y,
+            'las_extents': self.las_extents,
+            'centroid_x': self.las_centroid_x,
+            'centroid_y': self.las_centroid_y,
             'class_counts': self.class_counts,
             'check_results': self.checks_result,
-            'tile_polygon': self.tile_poly_wkt,
-            'tile_centroid': self.tile_centroid_wkt,
+            'tile_polygon': self.las_poly_wkt,
+            'tile_centroid': self.las_centroid_wkt,
             }
 
         # del keys that are not needed because of repitition
@@ -619,7 +625,6 @@ class Mosaic:
         self.mosaic_dataset_base_name = r'{}_{}_mosaic'.format(self.config.project_name, self.mtype)
         self.mosaic_dataset_path = Path(self.config.mosaics_to_make[self.mtype][1]) / '{}.tif'.format(self.mosaic_dataset_base_name)
         self.source_dems_dir = Path(self.config.surfaces_to_make[self.mtype][1])
-        self.dems = []
         self.src = None
         self.out_meta = None
 
@@ -633,21 +638,21 @@ class Mosaic:
         return dems
 
     def gen_mosaic(self):
-        self.dems = self.get_tile_dems()
+        dems = self.get_tile_dems()
 
-        if self.dems:
+        if dems:
             print('generating {}...'.format(self.mosaic_dataset_path))
-            mosaic, out_trans = rasterio.merge.merge(self.dems)
+            mosaic, out_trans = rasterio.merge.merge(dems)
 
-            self.out_meta = self.dems[-1].meta.copy()  # uses last src made
-            self.out_meta.update({
+            out_meta = dems[-1].meta.copy()  # uses last src made
+            out_meta.update({
                 'driver': "GTiff",
                 'height': mosaic.shape[1],
                 'width': mosaic.shape[2],
                 'transform': out_trans})
 
             # save mosaic DEMs
-            with rasterio.open(self.mosaic_dataset_path, 'w', **self.out_meta) as dest:
+            with rasterio.open(self.mosaic_dataset_path, 'w', **out_meta) as dest:
                 dest.write(mosaic)
         else:
             print('No {} tiles were generated.'.format(self.mtype))
@@ -1050,7 +1055,6 @@ class QaqcTileCollection:
 
     def get_unq_pt_src_ids(self):
         unq_pt_src_ids = set([])
-        #pnt_src_ids = self.qaqc_results_df['pnt_src_ids'].tolist()
         pnt_src_ids = self.qaqc_results_df['pnt_src_ids'].tolist()
         for i, pnt_src_id_str in enumerate(pnt_src_ids):
             pnt_src_ids_set = set(ast.literal_eval(pnt_src_id_str))
@@ -1102,7 +1106,8 @@ class QaqcTileCollection:
         gdf.to_file(output, driver="GeoJSON")
         return output
 
-    def gen_qaqc_json_WebMercator_POLYGONS(self, output):
+    def gen_qaqc_json_WebMercator_POLYGONS(self):
+        output = self.config.qaqc_geojson_WebMercator_POLYGONS
         gdf = self.gen_qaqc_results_gdf_WebMercator_POLYGONS()
         try:
             os.remove(output)
@@ -1203,6 +1208,7 @@ def run_qaqc(config_json):
     qaqc.set_qaqc_results_df()
     qaqc.gen_qaqc_shp_NAD83_UTM(config.qaqc_shp_NAD83_UTM_POLYGONS)
     qaqc.gen_qaqc_json_WebMercator_CENTROIDS()
+    qaqc.gen_qaqc_json_WebMercator_POLYGONS()
 
     dashboard = SummaryPlots(config, qaqc.qaqc_results_df)
     dashboard.gen_dashboard()

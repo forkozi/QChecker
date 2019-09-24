@@ -1,4 +1,4 @@
-name: qchecker_test2
+name: qchecker_test3
 channels:
   - conda-forge
   - defaults
