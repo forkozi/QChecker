@@ -33,7 +33,6 @@ from bokeh.transform import log_cmap, factor_cmap
 from bokeh.layouts import layout, gridplot
 
 
-
 class SummaryPlots:
 
     def __init__(self, config, qaqc_results_df):
@@ -462,7 +461,6 @@ class LasTile:
                 #from rasterio.crs import CRS
                 #CRS.from_epsg(6335).wkt
                 #hor_srs=osr.SpatialReference(wkt=CRS.from_epsg(6335).wkt)
-
                 #srs = osr.SpatialReference()
                 #srs.ImportFromEPSG(6335)
                 #srs.ExportToWkt()
@@ -505,13 +503,6 @@ class LasTile:
 
         self.las_centroid_x, self.las_centroid_y = calc_las_centroid()
 
-        #self.tile_extents = {
-        #    'tile_top': self.las_centroid_y + self.config.tile_size / 2,
-        #    'tile_bottom': self.las_centroid_y - self.config.tile_size / 2,
-        #    'tile_left': self.las_centroid_x - self.config.tile_size / 2,
-        #    'tile_right': self.las_centroid_x + self.config.tile_size / 2,
-        #    }
-
         self.las_poly_wkt = GeoObject(Polygon([
             (self.header['x_min'], self.header['y_max']), 
             (self.header['x_max'], self.header['y_max']), 
@@ -520,7 +511,6 @@ class LasTile:
             (self.header['x_min'], self.header['y_max']), 
             ])).wkt()
 
-        #self.tile_centroid_wkt = GeoObject(Point(self.centroid_x, self.centroid_y)).wkt()
         self.las_centroid_wkt = GeoObject(Point(self.las_centroid_x, self.las_centroid_y)).wkt()
 
         self.classes_present, self.class_counts = self.get_class_counts()
@@ -550,7 +540,11 @@ class LasTile:
 
     @staticmethod
     def run_console_cmd(cmd):
-        process = subprocess.Popen(cmd.split(' '), shell=False, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+        process = subprocess.Popen(cmd.split(' '), 
+                                   shell=False, 
+                                   stdout=subprocess.PIPE, 
+                                   stderr=subprocess.DEVNULL)
+
         output, error = process.communicate()
         returncode = process.poll()
         return returncode, output
@@ -806,8 +800,8 @@ class Surface:
             print(e)
         pass
             
-    pass
-
+    def detect_spikes(self):
+        pass
 
 class QaqcTile:
 
@@ -966,6 +960,7 @@ class QaqcTile:
         if tile.has_bathy or tile.has_ground:
             tile_DEM = Surface(tile, 'DEM', self.config)
             tile_DEM.gen_mean_z_surface('mean')
+            tile_DEM.detect_spikes(threshold=1.0)
         else:
             logging.debug('{} has no bathy or ground points; no DEM generated'.format(tile.name))
 
