@@ -194,7 +194,7 @@ class Check:
 
     def __init__(self):
         self.gui = gui
-
+        self.key = key
 
 class MainGuiPage(ttk.Frame):
 
