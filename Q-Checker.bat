@@ -1,3 +1,3 @@
-call %UserProfile%\AppData\Local\Continuum\anaconda3\condabin\conda.bat activate shore_gen
-%UserProfile%\AppData\Local\Continuum\anaconda3\envs\shore_gen\python.exe Z:\ShoreGen\ShoreGen_noaa-rsd\ShoreGen.py
+call %UserProfile%\AppData\Local\Continuum\anaconda3\condabin\conda.bat activate qchecker
+%UserProfile%\AppData\Local\Continuum\anaconda3\envs\qchecker\python.exe Z:\QChecker\QChecker_noaa-rsd\qchecker_gui.py
 pause

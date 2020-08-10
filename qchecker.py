@@ -576,8 +576,8 @@ class LasTile:
             json_file.write(str(self))
 
     def get_class_counts(self):
-        #bin_counts = np.bincount(self.inFile.points['point']['raw_classification'])
-        bin_counts = np.bincount(self.inFile.points['point']['classification_byte'])
+        bin_counts = np.bincount(self.inFile.points['point']['raw_classification'])
+        #bin_counts = np.bincount(self.inFile.points['point']['classification_byte'])
         classes_present = np.where(bin_counts > 0)[0]  # i.e., indices
         class_counts = bin_counts[classes_present]
         class_counts = dict(zip(['class{}'.format(str(c)) for c in classes_present],
@@ -803,6 +803,7 @@ class Surface:
     def detect_spikes(self):
         pass
 
+
 class QaqcTile:
 
     passed_text = 'PASSED'
@@ -960,7 +961,7 @@ class QaqcTile:
         if tile.has_bathy or tile.has_ground:
             tile_DEM = Surface(tile, 'DEM', self.config)
             tile_DEM.gen_mean_z_surface('mean')
-            tile_DEM.detect_spikes(threshold=1.0)
+            #tile_DEM.detect_spikes(threshold=1.0)
         else:
             logging.debug('{} has no bathy or ground points; no DEM generated'.format(tile.name))
 

@@ -190,6 +190,12 @@ class Splash(tk.Toplevel):
         self.update()
 
 
+class Check:
+
+    def __init__(self):
+        self.gui = gui
+
+
 class MainGuiPage(ttk.Frame):
 
     def __init__(self, parent, controller):
@@ -489,110 +495,77 @@ class MainGuiPage(ttk.Frame):
         self.gui['supp_las_domain'].set(supp_las_domain)
 
     def add_checks(self):
-        check = 'naming'
-        get_key_options_def = self.get_naming_types()
-        state = 'disabled'
-        command = None
-        def add_check_key(check, get_key_options_def, state):
-            self.gui['check_keys'][check][0] = tk.StringVar()
-            self.gui['check_keys'][check][0].set(
-                self.config['check_keys'][check])
-            self.gui['check_keys'][check][1] = tk.OptionMenu(
-                checks_frame, 
-                self.gui['check_keys'][check][0],
-                *get_key_options_def,
-                command=None)
-            self.gui['check_keys'][check][1].config(state=state)
-            self.gui['check_keys'][check][1].configure(anchor='w')
+        #check = 'naming'
+        #get_key_options_def = self.get_naming_types()
+        #state = 'disabled'
+        #command = None
+
+        def set_string_var(var):
+            self.gui['check_keys'][var][0] = tk.StringVar()
+            self.gui['check_keys'][var][0].set(self.config['check_keys'][var])
+            return self.gui['check_keys'][var][0]
+
+        def set_option_menu(var, parms, cmd, state, anchor):
+            option_menu = tk.OptionMenu(*parms, command=cmd)
+            self.gui['check_keys'][var][1] = option_menu
+            if state:
+                option_menu.config(state=state)
+            if anchor:
+                option_menu.configure(anchor=anchor)
+
+
+
 
         def add_naming_key():
-            self.gui['check_keys']['naming'][0] = tk.StringVar()
-            self.gui['check_keys']['naming'][0].set(
-                self.config['check_keys']['naming'])
-            self.gui['check_keys']['naming'][1] = tk.OptionMenu(
-                checks_frame,
-                self.gui['check_keys']['naming'][0], 
-                *self.get_naming_types())
-            self.gui['check_keys']['naming'][1].config(state='disabled')
-            self.gui['check_keys']['naming'][1].configure(anchor='w')
+            string_var = set_string_var('naming')
+            parms = (checks_frame, string_var, *self.get_naming_types())
+            cmd = None
+            set_option_menu('naming', parms, cmd, 'disabled', 'w')
 
         def add_version_key():
-            self.gui['check_keys']['version'][0] = tk.StringVar()
-            self.gui['check_keys']['version'][0].set(
-                self.config['check_keys']['version'])
-            self.gui['check_keys']['version'][1] = tk.OptionMenu(
-                checks_frame, 
-                self.gui['check_keys']['version'][0], 
-                *self.get_versions(), 
-                command=lambda x: self.update_version_affected_info())
-            self.gui['check_keys']['version'][1].configure(anchor='w')
+            string_var = set_string_var('version')
+            parms = (checks_frame, string_var, *self.get_versions())
+            cmd = lambda x: self.update_version_affected_info()
+            set_option_menu('version', parms, cmd, None, 'w')
 
         def add_pdrf_key():
-            self.gui['check_keys']['pdrf'][0] = tk.StringVar()
-            self.gui['check_keys']['pdrf'][0].set(
-                self.config['check_keys']['pdrf'])
-            self.gui['check_keys']['pdrf'][1] = tk.OptionMenu(
-                checks_frame, 
-                self.gui['check_keys']['pdrf'][0], 
-                *self.get_pdrfs(), 
-                command=lambda x: self.update_version_affected_info())
-            self.gui['check_keys']['pdrf'][1].config(state='disabled')
-            self.gui['check_keys']['pdrf'][1].configure(anchor='w')
+            string_var = set_string_var('pdrf')
+            parms = (checks_frame, string_var, *self.get_pdrfs())
+            cmd = lambda x: self.update_version_affected_info()
+            set_option_menu('pdrf', parms, cmd, 'disabled', 'w')
 
         def add_gps_time_key():
-            self.gui['check_keys']['gps_time'][0] = tk.StringVar()
-            self.gui['check_keys']['gps_time'][0].set(
-                self.config['check_keys']['gps_time'])
-            self.gui['check_keys']['gps_time'][1] = tk.OptionMenu(
-                checks_frame,
-                self.gui['check_keys']['gps_time'][0], 
-                *self.get_gps_times())
-            self.gui['check_keys']['gps_time'][1].config(state='disabled')
-            self.gui['check_keys']['gps_time'][1].configure(anchor='w')
+            string_var = set_string_var('gps_time')
+            parms = (checks_frame, string_var, *self.get_gps_times())
+            cmd = None
+            set_option_menu('gps_time', parms, cmd, 'disabled', 'w')
 
         def add_hdatum_key():
-            self.gui['check_keys']['hdatum'][0] = tk.StringVar()
-            self.gui['check_keys']['hdatum'][0].set(
-                self.config['check_keys']['hdatum'])
-            self.gui['check_keys']['hdatum'][1] = tk.OptionMenu(
-                checks_frame, 
-                self.gui['check_keys']['hdatum'][0], 
-                *self.get_wkt_ids())
-            self.gui['check_keys']['hdatum'][1].configure(anchor='w')
+            string_var = set_string_var('hdatum')
+            parms = (checks_frame, string_var, *self.get_wkt_ids())
+            cmd = None
+            set_option_menu('hdatum', parms, cmd, None, 'w')
 
         def add_vdatum_key():
-            self.gui['check_keys']['vdatum'][0] = tk.StringVar()
-            self.gui['check_keys']['vdatum'][0].set(
-                self.config['check_keys']['vdatum'])
-            self.gui['check_keys']['vdatum'][1] = tk.OptionMenu(
-                checks_frame, 
-                self.gui['check_keys']['vdatum'][0], 
-                *self.get_vdatums())
-            self.gui['check_keys']['vdatum'][1].configure(anchor='w')
-            #self.gui['check_keys']['vdatum'][1].config(state='disabled')
+            string_var = set_string_var('vdatum')
+            parms = (checks_frame, string_var, *self.get_vdatums())
+            cmd = None
+            set_option_menu('vdatum', parms, cmd, None, 'w')
 
         def add_pt_src_ids_key():
-            self.gui['check_keys']['pt_src_ids'][0] = tk.StringVar()
-            self.gui['check_keys']['pt_src_ids'][0].set(
-                self.config['check_keys']['pt_src_ids'])
-            self.gui['check_keys']['pt_src_ids'][1] = tk.OptionMenu(
-                checks_frame,
-                self.gui['check_keys']['pt_src_ids'][0], 
-                *self.get_pt_src_id_logic())
-            self.gui['check_keys']['pt_src_ids'][1].config(state='disabled')
-            self.gui['check_keys']['pt_src_ids'][1].configure(anchor='w')
+            string_var = set_string_var('pt_src_ids')
+            parms = (checks_frame, string_var, *self.get_pt_src_id_logic())
+            cmd = None
+            set_option_menu('pt_src_ids', parms, cmd, 'disabled', 'w')
 
         def add_exp_cls_key():
-            self.gui['check_keys']['exp_cls'][0] = tk.StringVar()
-            self.gui['check_keys']['exp_cls'][0].set(
-                self.config['check_keys']['exp_cls'])
-            self.gui['check_keys']['exp_cls'][1] = tk.OptionMenu(
-                checks_frame,
-                self.gui['check_keys']['exp_cls'][0], 
-                *self.get_class_picker_msg(),
-                command=lambda x: self.pick_classes())
-            #self.gui['check_keys']['exp_cls'][1].config(state='disabled')
-            self.gui['check_keys']['exp_cls'][1].configure(anchor='w')
+            string_var = set_string_var('exp_cls')
+            parms = (checks_frame, string_var, *self.get_class_picker_msg())
+            cmd = lambda x: self.pick_classes()
+            set_option_menu('exp_cls', parms, cmd, None, 'w')
+
+
+
 
         def add_supp_las_domain():
             self.gui['supp_las_domain'] = tk.StringVar()
@@ -613,6 +586,7 @@ class MainGuiPage(ttk.Frame):
         add_vdatum_key()
         add_pt_src_ids_key()
         add_exp_cls_key()
+
         add_supp_las_domain()
 
         for i, c in enumerate(self.gui['checks_to_do'], 1):
@@ -629,23 +603,23 @@ class MainGuiPage(ttk.Frame):
 
     def add_surfaces(self):
         
-        def bind_dirs_command(s):
-            def func():
-                dir_str = filedialog.askdirectory()
-                display_str = self.build_display_str(dir_str)
-                self.gui['surfaces_to_make'][s][2].configure(text=display_str)
-                self.gui['surfaces_to_make'][s][3] = dir_str 
-            func.__name__ = s
-            return func
+        #def bind_dirs_command(s):
+        #    def func():
+        #        dir_str = filedialog.askdirectory()
+        #        display_str = self.build_display_str(dir_str)
+        #        self.gui['surfaces_to_make'][s][2].configure(text=display_str)
+        #        self.gui['surfaces_to_make'][s][3] = dir_str 
+        #    func.__name__ = s
+        #    return func
 
-        def bind_file_command(s):
-            def func():
-                file_str = filedialog.askdirectory()
-                display_str = self.build_display_str(file_str)
-                self.gui['mosaics_to_make'][s][2].configure(text=display_str)
-                self.gui['mosaics_to_make'][s][3] = file_str 
-            func.__name__ = s
-            return func
+        #def bind_file_command(s):
+        #    def func():
+        #        file_str = filedialog.askdirectory()
+        #        display_str = self.build_display_str(file_str)
+        #        self.gui['mosaics_to_make'][s][2].configure(text=display_str)
+        #        self.gui['mosaics_to_make'][s][3] = file_str 
+        #    func.__name__ = s
+        #    return func
 
         def add_tile_surface():
             # checkbox
