@@ -25,7 +25,8 @@ import rasterio.merge
 
 from bokeh.models.widgets import Panel, Tabs
 from bokeh.io import output_file, show
-from bokeh.models import ColumnDataSource, PrintfTickFormatter, GeoJSONDataSource, Legend, Range1d
+from bokeh.models import (ColumnDataSource, PrintfTickFormatter, 
+                          GeoJSONDataSource, Legend, Range1d)
 from bokeh.plotting import figure
 from bokeh.tile_providers import get_provider, Vendors
 from bokeh.palettes import Blues
@@ -107,7 +108,9 @@ class SummaryPlots:
         if 'PASSED' not in self.result_counts.columns and 'FAILED' in self.result_counts.columns:
             self.result_counts['PASSED'] = 0
         if 'FAILED' not in self.result_counts.columns and 'PASSED' not in self.result_counts.columns:
-            self.result_counts = pd.DataFrame({'FAILED': 0, 'PASSED': 0}, index=['No_Test_Selected'])
+            self.result_counts = pd.DataFrame({'FAILED': 0, 
+                                               'PASSED': 0}, 
+                                              index=['No_Test_Selected'])
 
         present_classes = get_classes_present(self.qaqc_results_df.columns)
         self.class_counts = self.qaqc_results_df[present_classes].sum().to_frame()
@@ -142,7 +145,8 @@ class SummaryPlots:
     def draw_pass_fail_bar_chart(self):
         source = ColumnDataSource(self.result_counts)
         if source.data['index'][0] != 'No_Test_Selected':
-            source.data.update({'labels': ['{}'.format(self.check_labels[i]) for i in source.data['index']]})
+            labels = [f'{self.check_labels[i]}' for i in source.data['index']]
+            source.data.update({'labels': labels})
 
             failed = source.data.get('FAILED')
             passed = source.data.get('PASSED')
@@ -150,7 +154,8 @@ class SummaryPlots:
             source.data.update({'FAILED_stack': failed + passed})
 
             cats = ['PASSED', 'FAILED']
-            p1 = figure(y_range=source.data['labels'], title="Check PASS/FAIL Results", 
+            p1 = figure(y_range=source.data['labels'], 
+                        title="Check PASS/FAIL Results", 
                         plot_width=400, plot_height=400)
             
             p1.min_border_top = 100
@@ -159,11 +164,13 @@ class SummaryPlots:
             p1.toolbar.logo = None
             p1.toolbar_location = None
 
-            r_pass = p1.hbar(left=0, right='PASSED', y='labels',  height=0.9, color='#3cb371', 
-                                source=source, name='PASSED', line_color=None)
+            r_pass = p1.hbar(left=0, right='PASSED', y='labels',  
+                             height=0.9, color='#3cb371', 
+                             source=source, name='PASSED', line_color=None)
 
-            r_fail = p1.hbar(left='PASSED', right='FAILED_stack', y='labels', height=0.9, 
-                                color='#FF0000', source=source, name='FAILED', line_color=None)
+            r_fail = p1.hbar(left='PASSED', right='FAILED_stack', y='labels', 
+                             height=0.9, color='#FF0000', 
+                             source=source, name='FAILED', line_color=None)
 
             p1.xgrid.grid_line_color = None
 
@@ -233,27 +240,33 @@ class SummaryPlots:
         p2.xaxis.major_label_orientation = "vertical"
         p2.xaxis.minor_tick_line_color = None
 
-        legend = Legend(items=[('EXPECTED', [p2_expected]), ('UNEXPECTED', [p2_unexpected])], location=(0, 10))
+        legend = Legend(items=[('EXPECTED', [p2_expected]), 
+                               ('UNEXPECTED', [p2_unexpected])], 
+                        location=(0, 10))
         p2.add_layout(legend, 'above')
 
         return p2
 
     def draw_pass_fail_maps(self):
-        check_pass_fail_plots = []
+        check_pass_plots = []
         if self.result_counts.index[0] != 'No_Test_Selected':
             for i, check_field in enumerate(self.result_counts.index):
                 title = self.check_labels[check_field]
 
                 if i > 0:
-                    p = figure(title=title, x_axis_type="mercator", y_axis_type="mercator", 
-                                x_range=check_pass_fail_plots[0].x_range,
-                                y_range=check_pass_fail_plots[0].y_range,
-                                plot_width=300, plot_height=300, match_aspect=True, 
-                                tools=self.TOOLS)
+                    p = figure(title=title, 
+                               x_axis_type="mercator", 
+                               y_axis_type="mercator", 
+                               x_range=check_pass_plots[0].x_range,
+                               y_range=check_pass_plots[0].y_range,
+                               plot_width=300, plot_height=300, 
+                               match_aspect=True, tools=self.TOOLS)
                 else:
-                    p = figure(title=title, x_axis_type="mercator", y_axis_type="mercator", 
-                                plot_width=300, plot_height=300, match_aspect=True, 
-                                tools=self.TOOLS)
+                    p = figure(title=title, 
+                               x_axis_type="mercator", 
+                               y_axis_type="mercator", 
+                               plot_width=300, plot_height=300, 
+                               match_aspect=True, tools=self.TOOLS)
 
                 p.toolbar.logo = None
 
@@ -267,14 +280,17 @@ class SummaryPlots:
                                             factors=list(cmap.keys()))
 
                 p.add_tile(get_provider(Vendors.CARTODBPOSITRON))
-                p.patches('xs', 'ys', source=self.qaqc_polygons, alpha=0.1, color=color_mapper)
-                p.circle(x='x', y='y', size=5, alpha=0.5, source=self.qaqc_centroids, color=color_mapper)
+                p.patches('xs', 'ys', source=self.qaqc_polygons, 
+                          alpha=0.1, color=color_mapper)
+                p.circle(x='x', y='y', size=5, alpha=0.5, 
+                         source=self.qaqc_centroids, color=color_mapper)
                 
-                check_pass_fail_plots.append(p)
+                check_pass_plots.append(p)
 
-        check_pass_fail_plots = self.add_empty_plots_to_reshape(check_pass_fail_plots)
-        pass_fail_grid_plot = gridplot(check_pass_fail_plots, ncols=3, plot_height=300, 
-                                        toolbar_location='right')
+        check_pass_plots = self.add_empty_plots_to_reshape(check_pass_plots)
+        pass_fail_grid_plot = gridplot(check_pass_plots, ncols=3, 
+                                       plot_height=300, 
+                                       toolbar_location='right')
 
         tab1 = Panel(child=pass_fail_grid_plot, title="Checks Pass/Fail")
 
@@ -291,10 +307,11 @@ class SummaryPlots:
         for i, class_field in enumerate(self.class_counts.index):
 
             color_mapper = log_cmap(field_name=class_field, palette=palette, 
-                                    low=min_count, high=max_count, nan_color='white')
+                                    low=min_count, high=max_count, 
+                                    nan_color='white')
 
             las_class = class_field.replace('class', '').zfill(2)
-            title = 'Class {} ({})'.format(las_class, self.las_classes[las_class])
+            title = f'Class {las_class} ({self.las_classes[las_class]})'
 
             if i > 0:
                 p = figure(title=title,
@@ -338,7 +355,8 @@ class SummaryPlots:
         pass_fail_tab = self.draw_pass_fail_maps()
         class_count_tab = self.draw_class_count_maps()
 
-        output_file(str(self.config.qaqc_dir / 'dashboard' / 'QAQC_DashboardSummary_{}.html'.format(self.config.project_name)))
+        file_name = f'QAQC_DashboardSummary_{self.config.project_name}.html'
+        output_file(str(self.config.qaqc_dir / 'dashboard' / file_name))
 
         tabs = Tabs(tabs=[pass_fail_tab, class_count_tab])
 
@@ -620,7 +638,7 @@ class Mosaic:
         self.src = None
         self.out_meta = None
 
-    def get_tile_dems(self):
+    def get_tile_surfaces(self):
         print('retreiving individual {} tiles...'.format(self.mtype))
         dems = []
         for dem in list(self.source_dems_dir.glob('*_{}.tif'.format(self.mtype.upper()))):
@@ -630,10 +648,10 @@ class Mosaic:
         return dems
 
     def gen_mosaic(self):
-        dems = self.get_tile_dems()
+        dems = self.get_tile_surfaces()
 
         if dems:
-            print('generating {}...'.format(self.mosaic_dataset_path))
+            print(f'generating {self.mosaic_dataset_path}...')
             mosaic, out_trans = rasterio.merge.merge(dems)
 
             out_meta = dems[-1].meta.copy()  # uses last src made
@@ -743,7 +761,7 @@ class Surface:
         maxx = bounds['maxx']
         miny = bounds['miny']
         maxy = bounds['maxy']
-        las_bounds = ([minx,maxx],[miny,maxy])
+        las_bounds = ([minx ,maxx], [miny, maxy])
 
         gtiff_path = r'{}\{}_PSI_#.tif'.format(self.config.surfaces_to_make[self.stype][1], self.las_name)
         gtiff_path = str(gtiff_path).replace('\\', '/')
@@ -798,7 +816,6 @@ class Surface:
             count = pipeline.execute()
         except Exception as e:
             print(e)
-        pass
             
     def detect_spikes(self):
         pass
@@ -824,9 +841,7 @@ class QaqcTile:
 
         self.surfaces = {
             'Dz': self.create_dz,
-            'Dz_mosaic': None,
-            'DEM': self.create_DEM,
-            'DEM_mosaic': None,
+            'DEM': self.create_DEM
             }
 
     def check_las_naming(self, tile):
@@ -954,7 +969,7 @@ class QaqcTile:
             tile_dz = Surface(tile, 'Dz', self.config)
             tile_dz.create_dz_dem()
         else:
-            logging.debug('{} has no bathy or ground points; no dz surface generated'.format(tile.name))
+            logging.debug(f'{tile.name} has no bathy or ground points; no dz surface generated')
 
     def create_DEM(self, tile):
         from qchecker import Surface
@@ -963,7 +978,7 @@ class QaqcTile:
             tile_DEM.gen_mean_z_surface('mean')
             #tile_DEM.detect_spikes(threshold=1.0)
         else:
-            logging.debug('{} has no bathy or ground points; no DEM generated'.format(tile.name))
+            logging.debug('{tile.name} has no bathy or ground points; no DEM generated')
 
     def run_qaqc_checks_multiprocess(self, las_path):
         from qchecker import LasTile, LasTileCollection
@@ -1004,7 +1019,8 @@ class QaqcTile:
         if self.config.multiprocess:
             p = pp.ProcessPool(max(int(ph.cpu_count() / 2), 1))
             num_las = len(las_paths)
-            for _ in tqdm(p.imap(self.run_qaqc_checks_multiprocess, las_paths), total=num_las, ascii=True):
+            for _ in tqdm(p.imap(self.run_qaqc_checks_multiprocess, las_paths), 
+                          total=num_las, ascii=True):
                 pass
 
             p.close()
@@ -1183,8 +1199,6 @@ class QaqcTileCollection:
         gdf = gdf.to_crs(self.web_mercator_epsg)
         gdf.to_file(geojson, driver="GeoJSON")
 
-    pass
-
 
 def run_qaqc(config_json):
     config = Configuration(config_json)
@@ -1217,8 +1231,6 @@ def run_qaqc(config_json):
         logging.debug('no mosaics to build...')
 
     print('\nYAY, you just QAQC\'d project {}!!!'.format(config.project_name).upper())
-
-    pass
 
     
 if __name__ == '__main__':
