@@ -93,11 +93,6 @@ class QaqcApp(tk.Tk):
             'DEM': ['DEM', None, None, Path(self.configuration['surfaces_to_make']['DEM'][1])],
             }})
 
-        self.components.update({'mosaics_to_make': {
-            'Dz': ['Dz Mosaic', None, None, Path(self.configuration['mosaics_to_make']['Dz'][1])],
-            'DEM': ['DEM Mosaic', None, None, Path(self.configuration['mosaics_to_make']['DEM'][1])],
-            }})
-
         self.components.update({'check_keys': {
             'naming': [None, None],
             'version': [None, None],
@@ -144,14 +139,8 @@ class QaqcApp(tk.Tk):
         # surfaces_to_make
         for k, v in self.components['surfaces_to_make'].items():
             self.configuration['surfaces_to_make'][k][0] = v[1].get()
-            p = Path(self.configuration['qaqc_dir'], k, '{}_tiles'.format(k))
+            p = Path(self.configuration['qaqc_dir'], k)
             self.configuration['surfaces_to_make'][k][1] = str(p)
-
-        # mosaics_to_make
-        for k, v in self.components['mosaics_to_make'].items():
-            self.configuration['mosaics_to_make'][k][0] = v[1].get()
-            self.configuration['mosaics_to_make'][k][1] = str(Path(
-                self.configuration['qaqc_dir'], k.lower()))
 
         # supp_las_domain
         self.configuration['supp_las_domain'] = self.components['supp_las_domain'].get()
@@ -623,7 +612,7 @@ class MainGuiPage(ttk.Frame):
             subframe.grid(row=i, column=0, sticky=tk.EW)
 
             add_tile_surface()
-            add_mosaic_surface()
+            #add_mosaic_surface()
 
     def add_run_panel(self):
         run_frame = ttk.Frame(self)
@@ -643,9 +632,7 @@ class MainGuiPage(ttk.Frame):
             dirs = [
                 qaqc_dir / 'dashboard',
                 qaqc_dir / 'dz',
-                qaqc_dir / 'dz' / 'dz_tiles',
                 qaqc_dir / 'dem',
-                qaqc_dir / 'dem' / 'dem_tiles',
                 qaqc_dir / 'tile_results',
                 qaqc_dir / 'tile_results' / 'json',
                 ]

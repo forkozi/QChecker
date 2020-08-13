@@ -7,11 +7,14 @@ import geopandas as gpd
 from shapely.geometry import Point, Polygon
 from shapely import wkt
 import subprocess
+from functools import partial
 from laspy.file import File
 
 import pdal
 import pathos.pools as pp
 import pathos.helpers as ph
+import multiprocessing as mp
+
 import re
 from geodaisy import GeoObject
 import ast
@@ -22,6 +25,7 @@ from pathlib import Path
 from tqdm import tqdm
 import rasterio
 import rasterio.merge
+from rasterio.io import MemoryFile
 
 from bokeh.models.widgets import Panel, Tabs
 from bokeh.io import output_file, show
@@ -398,7 +402,6 @@ class Configuration:
         self.wgs84_epsg = {'init': 'epsg:4326'}
         self.checks_to_do = data['checks_to_do']
         self.surfaces_to_make = data['surfaces_to_make']
-        self.mosaics_to_make = data['mosaics_to_make']
         self.qaqc_geojson_NAD83_UTM_CENTROIDS = self.qaqc_dir / 'qaqc_NAD83_UTM_CENTROIDS.json'
         self.qaqc_geojson_NAD83_UTM_POLYGONS = self.qaqc_dir / 'qaqc_NAD83_UTM_POLYGONS.json'
         self.qaqc_geojson_WebMercator_CENTROIDS = self.qaqc_dir / 'dashboard' / '{}_qaqc_WebMercator_CENTROIDS.json'.format(self.project_name)
@@ -598,19 +601,22 @@ class LasTile:
         #bin_counts = np.bincount(self.inFile.points['point']['classification_byte'])
         classes_present = np.where(bin_counts > 0)[0]  # i.e., indices
         class_counts = bin_counts[classes_present]
-        class_counts = dict(zip(['class{}'.format(str(c)) for c in classes_present],
-                                [int(c) for c in class_counts]))
+        class_labels = [f'class{str(c)}' for c in classes_present]
+        class_counts = dict(zip(class_labels, [int(c) for c in class_counts]))
         return classes_present, class_counts
 
     def get_gps_time(self):
         gps_times = {0: 'GPS Week Time', 1: 'Satellite GPS Time'}
-        bit_num_gps_time_type = 0
-        gps_time_type_bit = int(bin(self.header['global_encoding'])[2:].zfill(16)[::-1][bit_num_gps_time_type])
+        bit_num = 0
+        global_encoding = self.header['global_encoding']
+        bit = int(bin(global_encoding)[2:].zfill(16)[::-1][bit_num])
 
-        return gps_times[gps_time_type_bit]
+        return gps_times[bit]
 
     def get_las_version(self):
-        return '{}.{}'.format(self.header['version_major'], self.header['version_minor'])
+        major = self.header['version_major']
+        minor = self.header['version_minor']
+        return f'{major}.{minor}'
 
     def get_las_pdrf(self):
         return self.header['data_format_id']
@@ -632,29 +638,16 @@ class Mosaic:
     def __init__(self, mtype, config):
         self.mtype = mtype
         self.config = config
-        self.mosaic_dataset_base_name = r'{}_{}_mosaic'.format(self.config.project_name, self.mtype)
-        self.mosaic_dataset_path = Path(self.config.mosaics_to_make[self.mtype][1]) / '{}.tif'.format(self.mosaic_dataset_base_name)
-        self.source_dems_dir = Path(self.config.surfaces_to_make[self.mtype][1])
-        self.src = None
-        self.out_meta = None
+        self.stem = f'{self.config.project_name}_{self.mtype}_mosaic'
+        self.basename = self.stem + '.tif'
+        self.path = Path(self.config.surfaces_to_make[self.mtype][1]) / self.basename
 
-    def get_tile_surfaces(self):
-        print('retreiving individual {} tiles...'.format(self.mtype))
-        dems = []
-        for dem in list(self.source_dems_dir.glob('*_{}.tif'.format(self.mtype.upper()))):
-            #print('retreiving {}...'.format(dem))
-            src = rasterio.open(dem)
-            dems.append(src)
-        return dems
+    def gen_mosaic(self, vrts):
+        if vrts:
+            print(f'generating {self.path}...')
+            mosaic, out_trans = rasterio.merge.merge(vrts)
 
-    def gen_mosaic(self):
-        dems = self.get_tile_surfaces()
-
-        if dems:
-            print(f'generating {self.mosaic_dataset_path}...')
-            mosaic, out_trans = rasterio.merge.merge(dems)
-
-            out_meta = dems[-1].meta.copy()  # uses last src made
+            out_meta = vrts[0].profile  # uses last src made
             out_meta.update({
                 'driver': "GTiff",
                 'height': mosaic.shape[1],
@@ -662,10 +655,14 @@ class Mosaic:
                 'transform': out_trans})
 
             # save mosaic DEMs
-            with rasterio.open(self.mosaic_dataset_path, 'w', **out_meta) as dest:
+            with rasterio.open(self.path, 'w', **out_meta) as dest:
                 dest.write(mosaic)
+
+            for vrt in vrts:
+                vrt.close()
+
         else:
-            print('No {} tiles were generated.'.format(self.mtype))
+            print('No {self.mtype} tiles were generated.')
 
 
 class Surface:
@@ -677,6 +674,7 @@ class Surface:
         self.las_str = tile.las_str
         self.las_extents = tile.las_extents
         self.config = config
+        self.tif_dir = Path(self.config.surfaces_to_make[self.stype][1])
         self.tile = tile
 
     def __str__(self):
@@ -724,33 +722,27 @@ class Surface:
 
             return pdal_json
 
-        def create_dz(las_name):
-
-            tif_dir = Path(self.config.surfaces_to_make[self.stype][1])
-
+        def create_dz():
             tifs = []
             meta = None
-            for t in tif_dir.glob('{}*.tif'.format(las_name)):
+            for t in self.tif_dir.glob('{}*.tif'.format(self.las_name)):
                 with rasterio.open(t, 'r') as tif:
                     tifs.append(tif.read(1))
-
                     if not meta:
                         meta = tif.meta.copy()
-
                 os.remove(t)
 
-            if tifs:  # sometimes tif isn't made for las having ground or bathy (one e.g. was las having only 3 class 26 pts)
-                print(las_name)
+            if tifs:
+                print(self.las_name)
                 tifs = np.stack(tifs, axis=0)
                 tifs[tifs == -9999] = np.nan
                 tifs = np.nanmax(tifs, axis=0) - np.nanmin(tifs, axis=0)
                 tifs[(np.isnan(tifs)) | (tifs == 0)] = -9999
-
-                dz_path = '{}\{}_DZ.tif'.format(self.config.surfaces_to_make[self.stype][1], self.las_name)
+                dz_path = self.tif_dir / f'{self.las_name}_DZ.tif'
                 with rasterio.open(dz_path, 'w', **meta) as dz:
                     dz.write(np.expand_dims(tifs, axis=0))
             else:
-                print('{} has no tifs :(...'.format(self.las_name))
+                print(f'{self.las_name} has no tifs :(...')
 
         cmd_str = 'pdal info {} --summary'.format(self.las_str)
         stats = self.tile.run_console_cmd(cmd_str)[1]
@@ -762,15 +754,15 @@ class Surface:
         miny = bounds['miny']
         maxy = bounds['maxy']
         las_bounds = ([minx ,maxx], [miny, maxy])
-
-        gtiff_path = r'{}\{}_PSI_#.tif'.format(self.config.surfaces_to_make[self.stype][1], self.las_name)
+        
+        gtiff_path = self.tif_dir / f'{self.las_name}_PSI_#.tif'
         gtiff_path = str(gtiff_path).replace('\\', '/')
         
         print('generating {} surface for {}...'.format(self.stype, self.las_name))
         pipeline = pdal.Pipeline(gen_pipeline(gtiff_path, las_bounds))
         __ = pipeline.execute()
 
-        create_dz(self.las_name)
+        create_dz()
 
     def gen_mean_z_surface(self, dem_type):
 
@@ -778,8 +770,8 @@ class Surface:
         bathy_class = self.tile.bathy_class[self.tile.version]
 
         las_str = str(self.las_path).replace('\\', '/')
-        gtiff_path = r'{}\{}_{}.tif'.format(self.config.surfaces_to_make[self.stype][1], self.las_name, self.stype)
-        gtiff_path = str(gtiff_path).replace('\\', '/')
+        gtiff_path = f'/vsimem/{self.las_name}_{self.stype}.tif'
+        #gtiff_path = str(gtiff_path).replace('\\', '/')
 
         pdal_json = """{
             "pipeline":[
@@ -814,8 +806,10 @@ class Surface:
         try:
             pipeline = pdal.Pipeline(pdal_json)
             count = pipeline.execute()
+            self.path = gtiff_path
         except Exception as e:
             print(e)
+            self.path = None
             
     def detect_spikes(self):
         pass
@@ -968,6 +962,7 @@ class QaqcTile:
         if tile.has_bathy or tile.has_ground:
             tile_dz = Surface(tile, 'Dz', self.config)
             tile_dz.create_dz_dem()
+            return tile_dz.path
         else:
             logging.debug(f'{tile.name} has no bathy or ground points; no dz surface generated')
 
@@ -976,14 +971,17 @@ class QaqcTile:
         if tile.has_bathy or tile.has_ground:
             tile_DEM = Surface(tile, 'DEM', self.config)
             tile_DEM.gen_mean_z_surface('mean')
+            return tile_DEM.path
             #tile_DEM.detect_spikes(threshold=1.0)
         else:
             logging.debug('{tile.name} has no bathy or ground points; no DEM generated')
+            return None
 
-    def run_qaqc_checks_multiprocess(self, las_path):
+    def run_qaqc_checks_multiprocess(self, shared_dict, las_path):
         from qchecker import LasTile, LasTileCollection
         import logging
-        logging.basicConfig(format='%(asctime)s:%(message)s', level=logging.WARNING)
+        logging.basicConfig(format='%(asctime)s:%(message)s', 
+                            level=logging.WARNING)
         tile = LasTile(las_path, self.config)
         for c in [k for k, v in self.config.checks_to_do.items() if v]:
             logging.debug('running {}...'.format(c))
@@ -992,7 +990,12 @@ class QaqcTile:
 
         for c in [k for k, v in self.config.surfaces_to_make.items() if v[0]]:
             logging.debug('running {}...'.format(c))
-            self.surfaces[c](tile)
+            vrt_tiff = self.surfaces[c](tile)
+
+            with rasterio.open(vrt_tiff) as src:
+                data = src.read()
+                profile = src.profile
+            shared_dict[tile.name] = [profile, data]
 
         tile.output_las_qaqc_to_json()
 
@@ -1017,15 +1020,18 @@ class QaqcTile:
 
     def run_qaqc(self, las_paths):
         if self.config.multiprocess:
-            p = pp.ProcessPool(max(int(ph.cpu_count() / 2), 1))
+            shared_dict = mp.Manager().dict()
+            #p = pp.ProcessPool(max(int(ph.cpu_count() / 2), 1))
+            p = mp.Pool(processes=max(4, 1))
             num_las = len(las_paths)
-            for _ in tqdm(p.imap(self.run_qaqc_checks_multiprocess, las_paths), 
+            func = partial(self.run_qaqc_checks_multiprocess, shared_dict)
+            for _ in tqdm(p.imap_unordered(func, las_paths), 
                           total=num_las, ascii=True):
                 pass
-
             p.close()
             p.join()
-            p.clear()
+            #p.clear()
+            return shared_dict
         else:
             self.run_qaqc_checks(las_paths)
 
@@ -1037,9 +1043,17 @@ class QaqcTileCollection:
         self.config = config
         self.qaqc_results_df = None
 
+    @staticmethod
+    def create_src(v):
+        memfile = MemoryFile()
+        src = memfile.open(**v[0])
+        src.write(v[1])
+        return src
+
     def run_qaqc_tile_collection_checks(self):
         tiles_qaqc = QaqcTile(self.config)
-        tiles_qaqc.run_qaqc(self.las_paths)
+        tile_surfaces = tiles_qaqc.run_qaqc(self.las_paths)
+        return tile_surfaces
 
     def gen_qaqc_results_dict(self):
         def flatten_dict(d_obj):
@@ -1163,9 +1177,9 @@ class QaqcTileCollection:
         schema = gpd.io.file.infer_schema(gdf)
         gdf.to_file(output, driver='ESRI Shapefile', schema=schema)
 
-    def gen_mosaic(self, mtype):
+    def gen_mosaic(self, mtype, vrts):
         mosaic = Mosaic(mtype, self.config)
-        mosaic.gen_mosaic()
+        mosaic.gen_mosaic(vrts)
 
     def gen_tile_geojson_WGS84(shp, geojson):
         gdf = gpd.read_file(shp).to_crs(self.config.wgs84_epsg)
@@ -1212,7 +1226,8 @@ def run_qaqc(config_json):
     qaqc_tile_collection = LasTileCollection(config.las_tile_dir)
     qaqc = QaqcTileCollection(qaqc_tile_collection.get_las_tile_paths()[0:], config)
     
-    qaqc.run_qaqc_tile_collection_checks()
+    tile_surfaces = qaqc.run_qaqc_tile_collection_checks()
+
     qaqc.set_qaqc_results_df()
     qaqc.gen_qaqc_shp_NAD83_UTM(config.qaqc_shp_NAD83_UTM_POLYGONS)
     qaqc.gen_qaqc_json_WebMercator_CENTROIDS()
@@ -1221,14 +1236,16 @@ def run_qaqc(config_json):
     dashboard = SummaryPlots(config, qaqc.qaqc_results_df)
     dashboard.gen_dashboard()
     
-    # build the mosaics the user checked
-    mosaic_types = [k for k, v in config.mosaics_to_make.items() if v[0]]
-    if mosaic_types:
-        print('building mosaics...')
-        for m in progressbar.progressbar(mosaic_types, redirect_stdout=True):
-            qaqc.gen_mosaic(m)
-    else:
-        logging.debug('no mosaics to build...')
+    vrts = [qaqc.create_src(v) for k, v in tile_surfaces.items()]
+    qaqc.gen_mosaic('DEM', vrts)
+    ## build the mosaics the user checked
+    #mosaic_types = [k for k, v in config.mosaics_to_make.items() if v[0]]
+    #if mosaic_types:
+    #    print('building mosaics...')
+    #    for m in progressbar.progressbar(mosaic_types, redirect_stdout=True):
+    #        qaqc.gen_mosaic(vrts)
+    #else:
+    #    logging.debug('no mosaics to build...')
 
     print('\nYAY, you just QAQC\'d project {}!!!'.format(config.project_name).upper())
 
