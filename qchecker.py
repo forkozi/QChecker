@@ -682,7 +682,7 @@ class Surface:
 
     def create_dz_dem(self):
         
-        def gen_pipeline(gtiff_path, las_bounds):
+        def gen_pipeline(las_bounds):
 
             ground_class = self.tile.ground_class[self.tile.version]
             bathy_class = self.tile.bathy_class[self.tile.version]
@@ -715,7 +715,7 @@ class Surface:
                         "output_type": "mean",
                         "resolution": "1.0",
                         "bounds": """ + '"{}",'.format(las_bounds) + """
-                        "filename":  """ + '"{}"'.format(gtiff_path) + """
+                        "filename":  """ + '"{}"'.format(self.gtiff_path) + """
                     }
                 ]
             }"""
@@ -724,23 +724,24 @@ class Surface:
 
         def create_dz():
             tifs = []
-            meta = None
-            for t in self.tif_dir.glob('{}*.tif'.format(self.las_name)):
+            profile = None
+            for t in self.tif_dir.glob(f'{self.las_name}*.tif'):
                 with rasterio.open(t, 'r') as tif:
-                    tifs.append(tif.read(1))
-                    if not meta:
-                        meta = tif.meta.copy()
+                    data = tif.read(1)
+                    tifs.append(data)
+                    if not profile:
+                        profile = tif.profile
                 os.remove(t)
 
             if tifs:
-                print(self.las_name)
                 tifs = np.stack(tifs, axis=0)
                 tifs[tifs == -9999] = np.nan
                 tifs = np.nanmax(tifs, axis=0) - np.nanmin(tifs, axis=0)
                 tifs[(np.isnan(tifs)) | (tifs == 0)] = -9999
-                dz_path = self.tif_dir / f'{self.las_name}_DZ.tif'
-                with rasterio.open(dz_path, 'w', **meta) as dz:
-                    dz.write(np.expand_dims(tifs, axis=0))
+                #memfile = MemoryFile()
+                #src = memfile.open(**profile)
+                #src.write(np.expand_dims(tifs, axis=0))
+                return profile, np.expand_dims(tifs, axis=0)
             else:
                 print(f'{self.las_name} has no tifs :(...')
 
@@ -755,17 +756,20 @@ class Surface:
         maxy = bounds['maxy']
         las_bounds = ([minx ,maxx], [miny, maxy])
         
-        gtiff_path = self.tif_dir / f'{self.las_name}_PSI_#.tif'
-        gtiff_path = str(gtiff_path).replace('\\', '/')
+        self.gtiff_path = self.tif_dir / f'{self.las_name}_PSI_#.tif'
+        self.gtiff_path = str(self.gtiff_path).replace('\\', '/')
+        #self.dz_path = f'/vsimem/{self.las_name}_DZ.tif'
         
         print('generating {} surface for {}...'.format(self.stype, self.las_name))
-        pipeline = pdal.Pipeline(gen_pipeline(gtiff_path, las_bounds))
-        __ = pipeline.execute()
+        try:
+            pipeline = pdal.Pipeline(gen_pipeline(las_bounds))
+            __ = pipeline.execute()
+        except Exception as e:
+            print(e)
 
-        create_dz()
+        return create_dz()
 
     def gen_mean_z_surface(self, dem_type):
-
         ground_class = self.tile.ground_class[self.tile.version]
         bathy_class = self.tile.bathy_class[self.tile.version]
 
@@ -961,23 +965,27 @@ class QaqcTile:
         from qchecker import Surface
         if tile.has_bathy or tile.has_ground:
             tile_dz = Surface(tile, 'Dz', self.config)
-            tile_dz.create_dz_dem()
-            return tile_dz.path
+            profile, data = tile_dz.create_dz_dem()
+
+            return profile, data
         else:
             logging.debug(f'{tile.name} has no bathy or ground points; no dz surface generated')
+            return None
 
     def create_DEM(self, tile):
         from qchecker import Surface
         if tile.has_bathy or tile.has_ground:
             tile_DEM = Surface(tile, 'DEM', self.config)
-            tile_DEM.gen_mean_z_surface('mean')
-            return tile_DEM.path
-            #tile_DEM.detect_spikes(threshold=1.0)
+            tile_DEM.gen_mean_z_surface('mean')            
+            with rasterio.open(tile_DEM.path) as src:
+                data = src.read()
+                profile = src.profile
+            return profile, data
         else:
             logging.debug('{tile.name} has no bathy or ground points; no DEM generated')
             return None
 
-    def run_qaqc_checks_multiprocess(self, shared_dict, las_path):
+    def run_qaqc_checks_multiprocess(self, las_path):
         from qchecker import LasTile, LasTileCollection
         import logging
         logging.basicConfig(format='%(asctime)s:%(message)s', 
@@ -987,53 +995,44 @@ class QaqcTile:
             logging.debug('running {}...'.format(c))
             result = self.checks[c](tile)
             logging.debug(result)
-
-        for c in [k for k, v in self.config.surfaces_to_make.items() if v[0]]:
-            logging.debug('running {}...'.format(c))
-            vrt_tiff = self.surfaces[c](tile)
-
-            with rasterio.open(vrt_tiff) as src:
-                data = src.read()
-                profile = src.profile
-            shared_dict[tile.name] = [profile, data]
-
         tile.output_las_qaqc_to_json()
 
-    def run_qaqc_checks(self, las_paths):       
+    def run_qaqc_surfaces_multiprocess(self, shared_dict, stype, las_path):
+        from qchecker import LasTile, LasTileCollection
+        import logging
+        logging.basicConfig(format='%(asctime)s:%(message)s', 
+                            level=logging.WARNING)
+        tile = LasTile(las_path, self.config)
+        logging.debug('running {}...'.format(stype))
+        profile, data = self.surfaces[stype](tile)
+        shared_dict[tile.name] = [profile, data]
+        tile.output_las_qaqc_to_json()
+
+    def run_qaqc_checks(self, las_paths):
+        #p = pp.ProcessPool(max(int(ph.cpu_count() / 2), 1))
+        p = mp.Pool(processes=max(4, 1))
         num_las = len(las_paths)
+        for _ in tqdm(p.imap_unordered(self.run_qaqc_checks_multiprocess, 
+                                       las_paths), 
+                      total=num_las, ascii=True):
+            pass
+        p.close()
+        p.join()
+        #p.clear()
 
-        print('performing tile qaqc processes...')
-        for las_path in progressbar.progressbar(las_paths, redirect_stdout=True):
-
-            logging.debug('starting {}...'.format(las_path))
-            tile = LasTile(las_path, self.config)
-
-            for c in [k for k, v in self.config.checks_to_do.items() if v]:
-                logging.debug('running {}...'.format(c))
-                result = self.checks[c](tile)
-
-            for c in [k for k, v in self.config.surfaces_to_make.items() if v[0]]:
-                logging.debug('running {}...'.format(c))
-                self.surfaces[c](tile)
-
-            tile.output_las_qaqc_to_json()
-
-    def run_qaqc(self, las_paths):
-        if self.config.multiprocess:
-            shared_dict = mp.Manager().dict()
-            #p = pp.ProcessPool(max(int(ph.cpu_count() / 2), 1))
-            p = mp.Pool(processes=max(4, 1))
-            num_las = len(las_paths)
-            func = partial(self.run_qaqc_checks_multiprocess, shared_dict)
-            for _ in tqdm(p.imap_unordered(func, las_paths), 
-                          total=num_las, ascii=True):
-                pass
-            p.close()
-            p.join()
-            #p.clear()
-            return shared_dict
-        else:
-            self.run_qaqc_checks(las_paths)
+    def run_qaqc_surfaces(self, las_paths, stype):
+        shared_dict = mp.Manager().dict()
+        #p = pp.ProcessPool(max(int(ph.cpu_count() / 2), 1))
+        p = mp.Pool(processes=max(4, 1))
+        num_las = len(las_paths)
+        func = partial(self.run_qaqc_surfaces_multiprocess, shared_dict, stype)
+        for _ in tqdm(p.imap_unordered(func, las_paths), 
+                      total=num_las, ascii=True):
+            pass
+        p.close()
+        p.join()
+        #p.clear()
+        return shared_dict
 
 
 class QaqcTileCollection:
@@ -1052,7 +1051,11 @@ class QaqcTileCollection:
 
     def run_qaqc_tile_collection_checks(self):
         tiles_qaqc = QaqcTile(self.config)
-        tile_surfaces = tiles_qaqc.run_qaqc(self.las_paths)
+        tiles_qaqc.run_qaqc_checks(self.las_paths)
+
+    def run_qaqc_tile_collection_surfaces(self, stype):
+        tiles_qaqc = QaqcTile(self.config)
+        tile_surfaces = tiles_qaqc.run_qaqc_surfaces(self.las_paths, stype)
         return tile_surfaces
 
     def gen_qaqc_results_dict(self):
@@ -1226,26 +1229,23 @@ def run_qaqc(config_json):
     qaqc_tile_collection = LasTileCollection(config.las_tile_dir)
     qaqc = QaqcTileCollection(qaqc_tile_collection.get_las_tile_paths()[0:], config)
     
-    tile_surfaces = qaqc.run_qaqc_tile_collection_checks()
-
+    qaqc.run_qaqc_tile_collection_checks()
     qaqc.set_qaqc_results_df()
     qaqc.gen_qaqc_shp_NAD83_UTM(config.qaqc_shp_NAD83_UTM_POLYGONS)
     qaqc.gen_qaqc_json_WebMercator_CENTROIDS()
     qaqc.gen_qaqc_json_WebMercator_POLYGONS()
 
     dashboard = SummaryPlots(config, qaqc.qaqc_results_df)
-    dashboard.gen_dashboard()
-    
-    vrts = [qaqc.create_src(v) for k, v in tile_surfaces.items()]
-    qaqc.gen_mosaic('DEM', vrts)
-    ## build the mosaics the user checked
-    #mosaic_types = [k for k, v in config.mosaics_to_make.items() if v[0]]
-    #if mosaic_types:
-    #    print('building mosaics...')
-    #    for m in progressbar.progressbar(mosaic_types, redirect_stdout=True):
-    #        qaqc.gen_mosaic(vrts)
-    #else:
-    #    logging.debug('no mosaics to build...')
+    dashboard.gen_dashboard()    
+
+    # build the surfaces the user checked
+    surface_types = [k for k, v in config.surfaces_to_make.items() if v[0]]
+    print(surface_types)
+    for stype in surface_types:
+        print(f'building {stype} mosaic...')
+        tile_surfaces = qaqc.run_qaqc_tile_collection_surfaces(stype)
+        vrts = [qaqc.create_src(v) for k, v in tile_surfaces.items()]
+        qaqc.gen_mosaic(stype, vrts)
 
     print('\nYAY, you just QAQC\'d project {}!!!'.format(config.project_name).upper())
 
