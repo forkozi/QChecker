@@ -1,12 +1,33 @@
-from qchecker import run_qaqc
+import sys
+
+if getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS'):
+    import os
+    from pathlib import Path
+    import pyproj
+    # logging.info('running in a PyInstaller bundle')
+    cwd = Path.cwd()
+    os.environ["PATH"] += os.pathsep + str(cwd)
+    gdal_data_path = cwd / 'Library' / 'share' / 'gdal'
+    os.environ["GDAL_DATA"] = str(gdal_data_path)
+    pyproj.datadir.set_data_dir(str(cwd / "pyproj"))
+
+import logging
+import pathos
+
 import tkinter as tk
 from tkinter import ttk, filedialog
 import os
 from pathlib import Path
 import time
 import json
+import multiprocessing as mp
 import pandas as pd
-import logging
+from qchecker import run_qaqc
+
+
+from listener import listener_process
+
+logger = logging.getLogger(__name__)
 
 
 LARGE_FONT = ('Verdanna', 12)
@@ -68,13 +89,10 @@ class QaqcApp(tk.Tk):
         # set GUI section options
         self.components = {}
 
-        self.components.update({'options': {
-            'project_name': ['Project', None],
-            }})
-
         self.components.update({'dirs_to_set': {
-            'qaqc_dir': ['QAQC Root Dir.', None, Path(self.configuration['qaqc_dir'])],
-            'las_tile_dir': ['Las Tiles', None, Path(self.configuration['las_tile_dir'])],
+            'project_dir': ['Project Dir.', None, Path(self.config['project_dir'])],
+            'qaqc_dir': ['QAQC Root Dir.', None, Path(self.config['qaqc_dir'])],
+            'las_tile_dir': ['Las Tiles', None, Path(self.config['las_tile_dir'])],
             }})
 
         self.components.update({'checks_to_do': {
@@ -89,8 +107,8 @@ class QaqcApp(tk.Tk):
             }})
 
         self.components.update({'surfaces_to_make': {
-            'Dz': ['Dz', None, None, Path(self.configuration['surfaces_to_make']['Dz'][1])],
-            'DEM': ['DEM', None, None, Path(self.configuration['surfaces_to_make']['DEM'][1])],
+            'Dz': ['Dz', None, None, Path(self.config['surfaces_to_make']['Dz'][1])],
+            'DEM': ['DEM', None, None, Path(self.config['surfaces_to_make']['DEM'][1])],
             }})
 
         self.components.update({'check_keys': {
@@ -109,45 +127,36 @@ class QaqcApp(tk.Tk):
     def load_config(self):
         if os.path.isfile(self.config_file):
             with open(self.config_file) as cf:
-                self.configuration = json.load(cf)
+                self.config = json.load(cf)
         else:
            logging.debug('configuration file doesn\'t exist')
 
     def save_config(self):
 
-        # options
-        for k, v in self.components['options'].items():
-            self.configuration[k] = v[1].get()
-
         # dirs_to_set
         for k, v in self.components['dirs_to_set'].items():
-            self.configuration[k] = str(v[2])
+            self.config[k] = str(v[2])
 
         # checks_to_do
         for k, v in self.components['checks_to_do'].items():
-            self.configuration['checks_to_do'][k] = v[1].get()
+            self.config['checks_to_do'][k] = v[1].get()
 
         # check_keys
         for k, v in self.components['check_keys'].items():
-            self.configuration['check_keys'][k] = v[0].get()
-
-        ## REFACTORED CHECK OBJECTS
-        #for check in checks:
-        #    self.configuration['checks_to_do'][check.id] = check.
-        #    self.configuration['check_keys'][check.id] = 
+            self.config['check_keys'][k] = v[0].get()
 
         # surfaces_to_make
         for k, v in self.components['surfaces_to_make'].items():
-            self.configuration['surfaces_to_make'][k][0] = v[1].get()
-            p = Path(self.configuration['qaqc_dir'], k)
-            self.configuration['surfaces_to_make'][k][1] = str(p)
+            self.config['surfaces_to_make'][k][0] = v[1].get()
+            p = Path(self.config['qaqc_dir'], k)
+            self.config['surfaces_to_make'][k][1] = str(p)
 
         # supp_las_domain
-        self.configuration['supp_las_domain'] = self.components['supp_las_domain'].get()
+        self.config['supp_las_domain'] = self.components['supp_las_domain'].get()
 
         logging.debug('saving {}...'.format(self.config_file))
         with open(self.config_file, 'w') as f:
-            json.dump(self.configuration, f)
+            json.dump(self.config, f)
 
     @staticmethod
     def show_about():
@@ -231,23 +240,20 @@ class MainGuiPage(ttk.Frame):
 
         self.parent = parent  # container made in QaqcApp
         self.controller = controller
-        self.config = controller.configuration  # from QaqcApp
+        self.config = controller.config  # from QaqcApp
         self.gui = controller.components  # from QaqcApp
         self.las_classes_file = self.config['las_classes_json']
 
         self.section_rows = {
-            'options': 0,
-            'dirs': 1,
-            'checks': 2,
-            'surfaces': 3,
-            'run_button': 4,
+            'dirs': 0,
+            'checks': 1,
+            'surfaces': 2,
+            'run_button': 3,
             }
 
         #  Build the GUI
         self.control_panel_width = 50
         self.label_width = 23
-
-        self.build_options()
         self.build_dirs()
         self.add_checks()
         self.add_surfaces()
@@ -266,7 +272,7 @@ class MainGuiPage(ttk.Frame):
         popup.destroy()
 
     def get_class_status(self, c):
-        print(self.gui['check_keys']['exp_cls'][0].get())
+        logging.info(self.gui['check_keys']['exp_cls'][0].get())
         if c in self.gui['check_keys']['exp_cls'][0].get().split(','):
             return True
         else:
@@ -285,8 +291,8 @@ class MainGuiPage(ttk.Frame):
             core_classes = las_classes[las_version]['classes']
             for i, (k, v) in enumerate(sorted(core_classes.items()), 1):
                 vars.update({k: tk.BooleanVar()})
-                print(k)
-                print(self.get_class_status(k))
+                logging.info(k)
+                logging.info(self.get_class_status(k))
                 vars[k].set(self.get_class_status(k))
                 class_check = tk.Checkbutton(core_classes_frame, text='{}: {}'.format(k, v), 
                                              var=vars[k], anchor=tk.W, 
@@ -380,67 +386,31 @@ class MainGuiPage(ttk.Frame):
 
         return progress 
 
-    def validate_qaqc_dirs(self):
-
-        not_specified_text = '(specify path)'
-
-        self.gui['dirs_to_set']['qaqc_dir'][1].configure(text=not_specified_text, fg='red')
-        self.gui['dirs_to_set']['qaqc_dir'][2] = not_specified_text
-
-        self.gui['dirs_to_set']['las_tile_dir'][1].configure(text=not_specified_text, fg='red')
-        self.gui['dirs_to_set']['las_tile_dir'][2] = not_specified_text
-
-        self.run_btn['state'] = 'disabled'
-
-        self.controller.save_config()
-
     def check_paths(self):
-
         not_specified_text = '(specify path)'
-        path1 = True if str(self.gui['dirs_to_set']['qaqc_dir'][2]) != not_specified_text else False
-        path2 = True if str(self.gui['dirs_to_set']['las_tile_dir'][2]) != not_specified_text else False
-
-        if path1 and path2:
+        dir_status = []
+        dir_types = ('project_dir', 'qaqc_dir', 'las_tile_dir')
+        for d in dir_types:
+            status = True if str(self.gui['dirs_to_set'][d][2]) != not_specified_text else False
+            dir_status.append(status)
+        if all(dir_status):
             self.run_btn['state'] = 'normal'
         else:
             self.run_btn['state'] = 'disabled'
 
-    def build_options(self):
-        '''options'''
+        #path0 = True if str(self.gui['dirs_to_set']['project_dir'][2]) != not_specified_text else False
+        #path1 = True if str(self.gui['dirs_to_set']['qaqc_dir'][2]) != not_specified_text else False
+        #path2 = True if str(self.gui['dirs_to_set']['las_tile_dir'][2]) != not_specified_text else False
+        #if path0 and path1 and path2:
+        #    self.run_btn['state'] = 'normal'
+        #else:
+        #    self.run_btn['state'] = 'disabled'
 
-        options_frame = ttk.Frame(self)
-        options_frame.grid(row=self.section_rows['options'], sticky=tk.NSEW)
-
-        label = tk.Label(options_frame, text='SETTINGS', font=LARGE_FONT_BOLD)
-        label.grid(row=0, columnspan=3, pady=(10, 0), sticky=tk.W)
-
-        def get_proj_names():
-            project_ids = next(os.walk(self.config['projects_unc']))[1]
-            return tuple(project_ids)
-
-        # -----------------------------------------------------
-        # currently only one option (project name)
-        item = 'project_name'
-        row = 1
-        option_label = tk.Label(options_frame, 
-                                text=self.gui['options'][item][0], 
-                                width=self.label_width, 
-                                anchor=tk.W, 
-                                justify=tk.LEFT)
-
-        option_label.grid(column=0, row=row, sticky=tk.W)
-        self.gui['options'][item][1] = tk.StringVar()
-        self.gui['options'][item][1].set(self.config[item])
-        proj_down_down = tk.OptionMenu(options_frame, 
-                                       self.gui['options'][item][1], 
-                                       *get_proj_names(),
-                                       command=lambda x: self.validate_qaqc_dirs())
-
-        proj_down_down.grid(column=1, row=row, sticky=tk.EW)
-
-    def build_dirs(self):
+    def build_dirs(self):       
         dirs_frame = ttk.Frame(self)
         dirs_frame.grid(row=self.section_rows['dirs'], sticky=tk.NSEW)
+        label = tk.Label(dirs_frame, text='DIRECTORIES', font=LARGE_FONT_BOLD)
+        label.grid(row=0, columnspan=3, pady=(10, 0), sticky=tk.W)
 
         def bind_dirs_command(d):
             def func():
@@ -640,13 +610,13 @@ class MainGuiPage(ttk.Frame):
             for d in dirs:
                 if not d.exists():
                     os.mkdir(str(d))
-                    print('created {}'.format(d))
+                    logging.info('created {}'.format(d))
                 else:
-                    print('{} already exists'.format(d))
+                    logging.info('{} already exists'.format(d))
 
         self.controller.save_config()                                
         validate_qaqc_directories(Path(self.gui['dirs_to_set']['qaqc_dir'][2]))
-        run_qaqc(self.controller.config_file)
+        run_qaqc(self.controller.config_file)  # from qchecker.py
 
 
 def set_env_vars(env_name):
@@ -656,7 +626,7 @@ def set_env_vars(env_name):
     share_dir = env_dir / 'Library' / 'share'
     script_path = conda_dir / 'Scripts'
     gdal_data_path = share_dir / 'gdal'
-    proj_lib_path = share_dir
+    proj_lib_path = share_dir / 'proj'
 
     if script_path.name not in os.environ["PATH"]:
         os.environ["PATH"] += os.pathsep + str(script_path)
@@ -665,11 +635,32 @@ def set_env_vars(env_name):
     #C:\Users\Nick.Forfinski-Sarko\AppData\Local\Continuum\anaconda3\pkgs\proj4-6.1.1-hc2d0af5_1\Library\share\proj
 
 
+def root_configurer(queue):
+    h = logging.handlers.QueueHandler(queue)
+    root = logging.getLogger()
+    root.addHandler(h)
+    root.setLevel(logging.INFO)
+
+
 if __name__ == '__main__':
 
-    logging.basicConfig(format='%(asctime)s:%(message)s', level=logging.INFO)
+    if getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS'):
+        # logging.info('running in a PyInstaller bundle')
+        # set_env_vars_frozen()
+        pass
+    else:
+        # logging.info('running in a normal Python process')
+        set_env_vars('qchecker')
 
-    set_env_vars('qchecker')
+    # Required for pyinstaller support of multiprocessing
+    pathos.helpers.freeze_support()
+
+    queue = mp.Manager().Queue(-1)
+    shared_dict = mp.Manager().dict()
+    listener = mp.Process(target=listener_process, args=(queue,))
+    listener.start()
+    root_configurer(queue)
+    logger.info('Starting Q-Checker')
 
     app = QaqcApp()
     app.resizable(0, 0)
