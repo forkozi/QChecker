@@ -30,8 +30,8 @@ from listener import listener_process
 logger = logging.getLogger(__name__)
 
 
-LARGE_FONT = ('Verdanna', 12)
-LARGE_FONT_BOLD = ('Verdanna', 12, 'bold')
+LARGE_FONT = ('Verdanna', 11)
+LARGE_FONT_BOLD = ('Verdanna', 11, 'bold')
 NORM_FONT = ('Verdanna', 10)
 NORM_FONT_BOLD = ('Verdanna', 10, 'bold')
 NORM_FONT_ITALIC = ('Verdanna', 10, 'italic')
@@ -50,7 +50,7 @@ class QaqcApp(tk.Tk):
         self.withdraw()
         splash = Splash(self)
 
-        version = 'v1.0.0-rc1'
+        version = 'v1.0.0'
         tk.Tk.wm_title(self, 'Q-Checker {}'.format(version))
         tk.Tk.iconbitmap(self, r'.\assets\images\qaqc.ico')
 
@@ -61,7 +61,8 @@ class QaqcApp(tk.Tk):
 
         menubar = tk.Menu(container)
         filemenu = tk.Menu(menubar, tearoff=0)
-        filemenu.add_command(label='Save settings', command=lambda: self.save_config())
+        filemenu.add_command(label='Save settings', 
+                             command=lambda: self.save_config())
         filemenu.add_separator()
         filemenu.add_command(label='Exit', command=quit)
         menubar.add_cascade(label='File', menu=filemenu)
@@ -86,13 +87,12 @@ class QaqcApp(tk.Tk):
         self.deiconify()
 
     def set_gui_components(self):
-        # set GUI section options
         self.components = {}
 
         self.components.update({'dirs_to_set': {
-            'project_dir': ['Project Dir.', None, Path(self.config['project_dir'])],
-            'qaqc_dir': ['QAQC Root Dir.', None, Path(self.config['qaqc_dir'])],
-            'las_tile_dir': ['Las Tiles', None, Path(self.config['las_tile_dir'])],
+            'project_dir': ['Project Dir.', None, self.config['project_dir']],
+            'qaqc_dir': ['QAQC Root Dir.', None, self.config['qaqc_dir']],
+            'las_tile_dir': ['Las Tiles', None, self.config['las_tile_dir']],
             }})
 
         self.components.update({'checks_to_do': {
@@ -107,7 +107,7 @@ class QaqcApp(tk.Tk):
             }})
 
         self.components.update({'surfaces_to_make': {
-            'Dz': ['Dz', None, None, Path(self.config['surfaces_to_make']['Dz'][1])],
+            'Dz': ['DZ', None, None, Path(self.config['surfaces_to_make']['Dz'][1])],
             'DEM': ['DEM', None, None, Path(self.config['surfaces_to_make']['DEM'][1])],
             }})
 
@@ -251,7 +251,7 @@ class MainGuiPage(ttk.Frame):
             'run_button': 3,
             }
 
-        #  Build the GUI
+        #  Build GUI
         self.control_panel_width = 50
         self.label_width = 23
         self.build_dirs()
@@ -387,24 +387,18 @@ class MainGuiPage(ttk.Frame):
         return progress 
 
     def check_paths(self):
-        not_specified_text = '(specify path)'
+        default_txt = '(specify path)'
         dir_status = []
         dir_types = ('project_dir', 'qaqc_dir', 'las_tile_dir')
         for d in dir_types:
-            status = True if str(self.gui['dirs_to_set'][d][2]) != not_specified_text else False
-            dir_status.append(status)
+            if str(self.gui['dirs_to_set'][d][2]) != default_txt:
+                dir_status.append(True)
+            else:
+                dir_status.append(False)
         if all(dir_status):
             self.run_btn['state'] = 'normal'
         else:
             self.run_btn['state'] = 'disabled'
-
-        #path0 = True if str(self.gui['dirs_to_set']['project_dir'][2]) != not_specified_text else False
-        #path1 = True if str(self.gui['dirs_to_set']['qaqc_dir'][2]) != not_specified_text else False
-        #path2 = True if str(self.gui['dirs_to_set']['las_tile_dir'][2]) != not_specified_text else False
-        #if path0 and path1 and path2:
-        #    self.run_btn['state'] = 'normal'
-        #else:
-        #    self.run_btn['state'] = 'disabled'
 
     def build_dirs(self):       
         dirs_frame = ttk.Frame(self)
@@ -412,11 +406,12 @@ class MainGuiPage(ttk.Frame):
         label = tk.Label(dirs_frame, text='DIRECTORIES', font=LARGE_FONT_BOLD)
         label.grid(row=0, columnspan=3, pady=(10, 0), sticky=tk.W)
 
-        def bind_dirs_command(d):
+        def bind_dirs_cmd(d):
             def func():
                 dir_str = filedialog.askdirectory()
                 display_str = self.build_display_str(dir_str)
-                self.gui['dirs_to_set'][d][1].configure(text=display_str, fg='black')
+                self.gui['dirs_to_set'][d][1].configure(text=display_str, 
+                                                        fg='black')
                 self.gui['dirs_to_set'][d][2] = dir_str
                 self.check_paths()
             func.__name__ = d
@@ -438,10 +433,12 @@ class MainGuiPage(ttk.Frame):
                 display_str = self.build_display_str(self.config[d])
                 font_color = 'black'
 
-            self.gui['dirs_to_set'][d][1] = tk.Label(dirs_frame, text=display_str, fg=font_color)
+            self.gui['dirs_to_set'][d][1] = tk.Label(dirs_frame, 
+                                                     text=display_str, 
+                                                     fg=font_color)
             self.gui['dirs_to_set'][d][1].grid(column=2, row=i, sticky=tk.W)
 
-            btn = tk.Button(dirs_frame, text='...', command=bind_dirs_command(d))
+            btn = tk.Button(dirs_frame, text='...', command=bind_dirs_cmd(d))
             btn.grid(column=1, row=i, sticky=tk.W)
 
     def get_wkt_ids(self):
@@ -467,8 +464,6 @@ class MainGuiPage(ttk.Frame):
         self.gui['supp_las_domain'].set(supp_las_domain)
 
     def add_checks(self):
-
-        '''Checks'''
         checks_frame = ttk.Frame(self)
         checks_frame.grid(row=self.section_rows['checks'], sticky=tk.NSEW)
 
@@ -559,30 +554,15 @@ class MainGuiPage(ttk.Frame):
                 anchor=tk.W, justify=tk.LEFT, width=13)
             chk.grid(column=0, row=0, sticky=tk.EW)
 
-        def add_mosaic_surface():
-            self.gui['mosaics_to_make'][s][1] = tk.BooleanVar()
-            is_checked = self.config['mosaics_to_make'][s][0]
-            self.gui['mosaics_to_make'][s][1].set(is_checked)
-            chk = tk.Checkbutton(
-                subframe, 
-                text=self.gui['mosaics_to_make'][s][0], 
-                var=self.gui['mosaics_to_make'][s][1], 
-                anchor=tk.W, justify=tk.LEFT, width=13)
-            chk.grid(column=1, row=0, sticky=tk.EW)
-
-        '''Surfaces'''
         surf_frame = ttk.Frame(self)
         surf_frame.grid(row=self.section_rows['surfaces'], sticky=tk.NSEW)
-
         label = tk.Label(surf_frame, text='SURFACES', font=LARGE_FONT_BOLD)
         label.grid(row=0, columnspan=3, pady=(10, 0), sticky=tk.W)
 
         for i, s in enumerate(self.gui['surfaces_to_make'], 1):
             subframe = ttk.Frame(surf_frame)
             subframe.grid(row=i, column=0, sticky=tk.EW)
-
             add_tile_surface()
-            #add_mosaic_surface()
 
     def add_run_panel(self):
         run_frame = ttk.Frame(self)
@@ -591,14 +571,14 @@ class MainGuiPage(ttk.Frame):
 
         self.run_btn = tk.Button(run_frame, text='Run QAQC Processes', 
                         command=self.run_qaqc_process, 
-                        width=25, height=3)
-        self.run_btn.grid(columnspan=4, row=0, sticky=tk.EW, padx=(100, 0))
+                        width=50, height=3, bg='#A9A9A9')
+        self.run_btn.grid(columnspan=4, row=0, sticky=tk.EW, padx=(10, 0))
 
         self.check_paths()
 
     def run_qaqc_process(self):
 
-        def validate_qaqc_directories(qaqc_dir):
+        def validate_qaqc_dirs(qaqc_dir):
             dirs = [
                 qaqc_dir / 'dashboard',
                 qaqc_dir / 'dz',
@@ -615,13 +595,14 @@ class MainGuiPage(ttk.Frame):
                     logging.info('{} already exists'.format(d))
 
         self.controller.save_config()                                
-        validate_qaqc_directories(Path(self.gui['dirs_to_set']['qaqc_dir'][2]))
+        validate_qaqc_dirs(Path(self.gui['dirs_to_set']['qaqc_dir'][2]))
         run_qaqc(self.controller.config_file)  # from qchecker.py
 
 
 def set_env_vars(env_name):
     user_dir = os.path.expanduser('~')
-    conda_dir = Path(user_dir).joinpath('AppData', 'Local', 'Continuum', 'anaconda3')
+    path_parts = ('AppData', 'Local', 'Continuum', 'anaconda3')
+    conda_dir = Path(user_dir).joinpath(*path_parts)
     env_dir = conda_dir / 'envs' / env_name
     share_dir = env_dir / 'Library' / 'share'
     script_path = conda_dir / 'Scripts'
@@ -632,7 +613,6 @@ def set_env_vars(env_name):
         os.environ["PATH"] += os.pathsep + str(script_path)
     os.environ["GDAL_DATA"] = str(gdal_data_path)
     os.environ["PROJ_LIB"] = str(proj_lib_path)
-    #C:\Users\Nick.Forfinski-Sarko\AppData\Local\Continuum\anaconda3\pkgs\proj4-6.1.1-hc2d0af5_1\Library\share\proj
 
 
 def root_configurer(queue):
@@ -644,12 +624,15 @@ def root_configurer(queue):
 
 if __name__ == '__main__':
 
+    # to create exe, use the following...
+    # pyinstaller --distpath=Z:\qchecker\dist --workpath=Z:\qchecker\build qchecker.spec
+
     if getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS'):
-        # logging.info('running in a PyInstaller bundle')
+        logging.info('running in a PyInstaller bundle')
         # set_env_vars_frozen()
         pass
     else:
-        # logging.info('running in a normal Python process')
+        logging.info('running in a normal Python process')
         set_env_vars('qchecker')
 
     # Required for pyinstaller support of multiprocessing
@@ -664,5 +647,8 @@ if __name__ == '__main__':
 
     app = QaqcApp()
     app.resizable(0, 0)
-    app.geometry('400x570')
+    app.geometry('380x555')
     app.mainloop()
+
+    logger.info('main function ends')
+    listener.join()

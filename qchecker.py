@@ -19,7 +19,6 @@ import re
 from geodaisy import GeoObject
 import ast
 import time
-import progressbar
 from osgeo import osr
 from pathlib import Path
 from tqdm import tqdm
@@ -53,17 +52,17 @@ class SummaryPlots:
 
     def __init__(self, config, qaqc_results_df):
         self.config = config
-        self.qaqc_results_df = qaqc_results_df
+        self.results_df = qaqc_results_df
         logging.info('qaqc_results_df')
         logging.info(qaqc_results_df)
 
         with open(self.config.qaqc_geojson_WebMercator_CENTROIDS) as f:
-            geojson_qaqc_centroids = f.read()
-        self.qaqc_centroids = GeoJSONDataSource(geojson=geojson_qaqc_centroids)
+            qaqc_centroids = f.read()
+        self.qaqc_centroids = GeoJSONDataSource(geojson=qaqc_centroids)
 
         with open(self.config.qaqc_geojson_WebMercator_POLYGONS) as f:
-            geojson_qaqc_polygons = f.read()
-        self.qaqc_polygons = GeoJSONDataSource(geojson=geojson_qaqc_polygons)
+            qaqc_polygons = f.read()
+        self.qaqc_polygons = GeoJSONDataSource(geojson=qaqc_polygons)
 
         self.check_labels = {
             'naming_passed': 'Naming Convention',
@@ -83,12 +82,12 @@ class SummaryPlots:
             return present_classes
 
         def get_test_results():
-            fields = self.qaqc_results_df.columns
+            fields = self.results_df.columns
             test_result_fields = []
             for f in fields:
                 if '_passed' in f:
                     test_result_fields.append(f)
-            return self.qaqc_results_df[test_result_fields]
+            return self.results_df[test_result_fields]
 
         def get_las_classes():
             with open(self.config.las_classes_json) as lcf:
@@ -115,11 +114,12 @@ class SummaryPlots:
         for class_list in get_las_classes():
             self.las_classes.update(class_list)
 
-        test_results = get_test_results()
-        test_result_fields = test_results.columns
+        results = get_test_results()
 
-        # add column for PASSED or FAILED if it's not there (to make PASS/FAIL plotting easy)
-        self.result_counts = self.qaqc_results_df[test_result_fields].apply(pd.Series.value_counts).fillna(0).transpose()
+        # add column for PASSED or FAILED if it's not there 
+        # (to make PASS/FAIL plotting easy)
+        result_counts = self.results_df[results.columns].apply(pd.Series.value_counts)
+        self.result_counts = result_counts.fillna(0).transpose()
 
         failed = 'FAILED' in self.result_counts.columns
         passed = 'PASSED' in self.result_counts.columns
@@ -135,8 +135,8 @@ class SummaryPlots:
                                                'PASSED': 0}, 
                                               index=['No_Test_Selected'])
 
-        present_classes = get_classes_present(self.qaqc_results_df.columns)
-        self.class_counts = self.qaqc_results_df[present_classes].sum().to_frame()
+        present_classes = get_classes_present(self.results_df.columns)
+        self.class_counts = self.results_df[present_classes].sum().to_frame()
         self.class_counts.columns = ['counts']
         self.TOOLS = 'box_zoom,box_select,crosshair,reset,wheel_zoom'
 
@@ -320,10 +320,10 @@ class SummaryPlots:
         return tab1
 
     def draw_class_count_maps(self):
-        min_count = self.qaqc_results_df[self.class_counts.index].min().min()
-        max_count = self.qaqc_results_df[self.class_counts.index].max().max()
+        min_count = self.results_df[self.class_counts.index].min().min()
+        max_count = self.results_df[self.class_counts.index].max().max()
         
-        palette = Blues[9]
+        palette = list(Blues[9])
         palette.reverse()
 
         class_count_plots = []
@@ -401,7 +401,8 @@ class Configuration:
             data = json.load(f)
 
         self.data = data
-        self.project_name = Path(data['project_dir']).name
+        self.project_dir = Path(data['project_dir'])
+        self.project_name = self.project_dir.name
         self.las_tile_dir = Path(data['las_tile_dir'])
         self.qaqc_dir = Path(data['qaqc_dir'])
         self.tile_size = float(data['tile_size'])
@@ -1251,13 +1252,8 @@ def run_qaqc(config_json):
         vrts = [qaqc.create_src(v) for k, v in tile_surfaces.items()]
         qaqc.gen_mosaic(stype, vrts)
 
-    logging.info('\nYAY, you just QAQC\'d project {}!!!'.format(config.project_name).upper())
+    logging.info('YAY, you just QAQC\'d project {}!!!'.format(config.project_name).upper())
 
     
 if __name__ == '__main__':
-
-    try:
-        run_qaqc(config)
-        sys.exit(0)
-    except SystemExit:
-        pass
+    pass
