@@ -20,9 +20,9 @@ The recommended way to create the necessary Python environment is to create a co
 
 ::
 
-    conda env create --prefix <env_qchecker.yml>
+    conda create --name qchecker --file <qchecker.env>
 
-where <env_qchecker.yml> is the full path to the Q-Checker environment file, located in the root level of the repository.
+where <qchecker.env> is the full path to the Q-Checker environment file, located in the root level of the repository.
 
 3.  Configure .bat file
 -----------------------    

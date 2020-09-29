@@ -21,10 +21,10 @@
   
     
       <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
-        <script type="text/javascript" src="_static/jquery.js"></script>
-        <script type="text/javascript" src="_static/underscore.js"></script>
-        <script type="text/javascript" src="_static/doctools.js"></script>
-        <script type="text/javascript" src="_static/language_data.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+        <script src="_static/language_data.js"></script>
     
     <script type="text/javascript" src="_static/js/theme.js"></script>
 
@@ -172,10 +172,10 @@
 <div class="section" id="create-python-environment">
 <h2>2.  Create Python environment<a class="headerlink" href="#create-python-environment" title="Permalink to this headline">¶</a></h2>
 <p>The recommended way to create the necessary Python environment is to create a conda environment by running the following command at an <a class="reference internal" href="anaconda_install.html#conda-label"><span class="std std-ref">Anaconda Prompt</span></a>:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">conda</span> <span class="n">env</span> <span class="n">create</span> <span class="o">--</span><span class="n">prefix</span> <span class="o">&lt;</span><span class="n">env_qchecker</span><span class="o">.</span><span class="n">yml</span><span class="o">&gt;</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">conda</span> <span class="n">create</span> <span class="o">--</span><span class="n">name</span> <span class="n">qchecker</span> <span class="o">--</span><span class="n">file</span> <span class="o">&lt;</span><span class="n">qchecker</span><span class="o">.</span><span class="n">env</span><span class="o">&gt;</span>
 </pre></div>
 </div>
-<p>where &lt;env_qchecker.yml&gt; is the full path to the Q-Checker environment file, located in the root level of the repository.</p>
+<p>where &lt;qchecker.env&gt; is the full path to the Q-Checker environment file, located in the root level of the repository.</p>
 </div>
 <div class="section" id="configure-bat-file">
 <h2>3.  Configure .bat file<a class="headerlink" href="#configure-bat-file" title="Permalink to this headline">¶</a></h2>
