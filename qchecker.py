@@ -7,25 +7,28 @@ import geopandas as gpd
 from shapely.geometry import Point, Polygon
 from shapely import wkt
 import subprocess
+from functools import partial
 from laspy.file import File
 
 import pdal
 import pathos.pools as pp
 import pathos.helpers as ph
+import multiprocessing as mp
+
 import re
-from geodaisy import GeoObject
 import ast
 import time
-import progressbar
 from osgeo import osr
 from pathlib import Path
 from tqdm import tqdm
 import rasterio
 import rasterio.merge
+from rasterio.io import MemoryFile
 
 from bokeh.models.widgets import Panel, Tabs
 from bokeh.io import output_file, show
-from bokeh.models import ColumnDataSource, PrintfTickFormatter, GeoJSONDataSource, Legend, Range1d
+from bokeh.models import (ColumnDataSource, PrintfTickFormatter, 
+                          GeoJSONDataSource, Legend, Range1d)
 from bokeh.plotting import figure
 from bokeh.tile_providers import get_provider, Vendors
 from bokeh.palettes import Blues
@@ -33,19 +36,32 @@ from bokeh.transform import log_cmap, factor_cmap
 from bokeh.layouts import layout, gridplot
 
 
+logger = logging.getLogger(__name__)
+
+
+def worker_configurer(queue):
+    h = logging.handlers.QueueHandler(queue)
+    root = logging.getLogger()
+    root.handlers = []
+    root.addHandler(h)
+    root.setLevel(logging.INFO)
+
+
 class SummaryPlots:
 
     def __init__(self, config, qaqc_results_df):
         self.config = config
-        self.qaqc_results_df = qaqc_results_df
+        self.results_df = qaqc_results_df
+        logging.info('qaqc_results_df')
+        logging.info(qaqc_results_df)
 
         with open(self.config.qaqc_geojson_WebMercator_CENTROIDS) as f:
-            geojson_qaqc_centroids = f.read()
-        self.qaqc_centroids = GeoJSONDataSource(geojson=geojson_qaqc_centroids)
+            qaqc_centroids = f.read()
+        self.qaqc_centroids = GeoJSONDataSource(geojson=qaqc_centroids)
 
         with open(self.config.qaqc_geojson_WebMercator_POLYGONS) as f:
-            geojson_qaqc_polygons = f.read()
-        self.qaqc_polygons = GeoJSONDataSource(geojson=geojson_qaqc_polygons)
+            qaqc_polygons = f.read()
+        self.qaqc_polygons = GeoJSONDataSource(geojson=qaqc_polygons)
 
         self.check_labels = {
             'naming_passed': 'Naming Convention',
@@ -65,12 +81,12 @@ class SummaryPlots:
             return present_classes
 
         def get_test_results():
-            fields = self.qaqc_results_df.columns
+            fields = self.results_df.columns
             test_result_fields = []
             for f in fields:
                 if '_passed' in f:
                     test_result_fields.append(f)
-            return self.qaqc_results_df[test_result_fields]
+            return self.results_df[test_result_fields]
 
         def get_las_classes():
             with open(self.config.las_classes_json) as lcf:
@@ -97,27 +113,35 @@ class SummaryPlots:
         for class_list in get_las_classes():
             self.las_classes.update(class_list)
 
-        test_results = get_test_results()
-        test_result_fields = test_results.columns
+        results = get_test_results()
 
-        # add column for PASSED or FAILED if it's not there (to make PASS/FAIL plotting easy)
-        self.result_counts = self.qaqc_results_df[test_result_fields].apply(pd.Series.value_counts).fillna(0).transpose()
-        if 'FAILED' not in self.result_counts.columns and 'PASSED' in self.result_counts.columns:
+        # add column for PASSED or FAILED if it's not there 
+        # (to make PASS/FAIL plotting easy)
+        result_counts = self.results_df[results.columns].apply(pd.Series.value_counts)
+        self.result_counts = result_counts.fillna(0).transpose()
+
+        failed = 'FAILED' in self.result_counts.columns
+        passed = 'PASSED' in self.result_counts.columns
+        not_failed = 'FAILED' not in self.result_counts.columns
+        not_passed = 'PASSED' not in self.result_counts.columns
+
+        if not_failed and passed:
             self.result_counts['FAILED'] = 0
-        if 'PASSED' not in self.result_counts.columns and 'FAILED' in self.result_counts.columns:
+        if not_passed and failed:
             self.result_counts['PASSED'] = 0
-        if 'FAILED' not in self.result_counts.columns and 'PASSED' not in self.result_counts.columns:
-            self.result_counts = pd.DataFrame({'FAILED': 0, 'PASSED': 0}, index=['No_Test_Selected'])
+        if not_failed and not_passed:
+            self.result_counts = pd.DataFrame({'FAILED': 0, 
+                                               'PASSED': 0}, 
+                                              index=['No_Test_Selected'])
 
-        present_classes = get_classes_present(self.qaqc_results_df.columns)
-        self.class_counts = self.qaqc_results_df[present_classes].sum().to_frame()
+        present_classes = get_classes_present(self.results_df.columns)
+        self.class_counts = self.results_df[present_classes].sum().to_frame()
         self.class_counts.columns = ['counts']
         self.TOOLS = 'box_zoom,box_select,crosshair,reset,wheel_zoom'
 
     @staticmethod
     def add_empty_plots_to_reshape(plot_list):
-        """len(plot_list) % 3 needs to = 0
-        """
+        """len(plot_list) % 3 needs to = 0"""
         len_check_pass_fail_plots = len(plot_list)
         while len_check_pass_fail_plots % 3 != 0:
             p = figure(plot_width=300, plot_height=300)
@@ -142,7 +166,8 @@ class SummaryPlots:
     def draw_pass_fail_bar_chart(self):
         source = ColumnDataSource(self.result_counts)
         if source.data['index'][0] != 'No_Test_Selected':
-            source.data.update({'labels': ['{}'.format(self.check_labels[i]) for i in source.data['index']]})
+            labels = [f'{self.check_labels[i]}' for i in source.data['index']]
+            source.data.update({'labels': labels})
 
             failed = source.data.get('FAILED')
             passed = source.data.get('PASSED')
@@ -150,7 +175,8 @@ class SummaryPlots:
             source.data.update({'FAILED_stack': failed + passed})
 
             cats = ['PASSED', 'FAILED']
-            p1 = figure(y_range=source.data['labels'], title="Check PASS/FAIL Results", 
+            p1 = figure(y_range=source.data['labels'], 
+                        title="Check PASS/FAIL Results", 
                         plot_width=400, plot_height=400)
             
             p1.min_border_top = 100
@@ -159,11 +185,13 @@ class SummaryPlots:
             p1.toolbar.logo = None
             p1.toolbar_location = None
 
-            r_pass = p1.hbar(left=0, right='PASSED', y='labels',  height=0.9, color='#3cb371', 
-                                source=source, name='PASSED', line_color=None)
+            r_pass = p1.hbar(left=0, right='PASSED', y='labels',  
+                             height=0.9, color='#3cb371', 
+                             source=source, name='PASSED', line_color=None)
 
-            r_fail = p1.hbar(left='PASSED', right='FAILED_stack', y='labels', height=0.9, 
-                                color='#FF0000', source=source, name='FAILED', line_color=None)
+            r_fail = p1.hbar(left='PASSED', right='FAILED_stack', y='labels', 
+                             height=0.9, color='#FF0000', 
+                             source=source, name='FAILED', line_color=None)
 
             p1.xgrid.grid_line_color = None
 
@@ -212,7 +240,8 @@ class SummaryPlots:
             self.las_classes[c.replace('class', '').zfill(2)], 
             c.replace('class', '').zfill(2)) for c in source.data['index']]})
 
-        p2 = figure(y_range=source.data['labels'], plot_width=400, plot_height=400, 
+        p2 = figure(y_range=source.data['labels'], 
+                    plot_width=400, plot_height=400, 
                     title="Class Counts", tools="")
         p2.min_border_top = 100
         p2.outline_line_color = None
@@ -233,27 +262,33 @@ class SummaryPlots:
         p2.xaxis.major_label_orientation = "vertical"
         p2.xaxis.minor_tick_line_color = None
 
-        legend = Legend(items=[('EXPECTED', [p2_expected]), ('UNEXPECTED', [p2_unexpected])], location=(0, 10))
+        legend = Legend(items=[('EXPECTED', [p2_expected]), 
+                               ('UNEXPECTED', [p2_unexpected])], 
+                        location=(0, 10))
         p2.add_layout(legend, 'above')
 
         return p2
 
     def draw_pass_fail_maps(self):
-        check_pass_fail_plots = []
+        check_pass_plots = []
         if self.result_counts.index[0] != 'No_Test_Selected':
             for i, check_field in enumerate(self.result_counts.index):
                 title = self.check_labels[check_field]
 
                 if i > 0:
-                    p = figure(title=title, x_axis_type="mercator", y_axis_type="mercator", 
-                                x_range=check_pass_fail_plots[0].x_range,
-                                y_range=check_pass_fail_plots[0].y_range,
-                                plot_width=300, plot_height=300, match_aspect=True, 
-                                tools=self.TOOLS)
+                    p = figure(title=title, 
+                               x_axis_type="mercator", 
+                               y_axis_type="mercator", 
+                               x_range=check_pass_plots[0].x_range,
+                               y_range=check_pass_plots[0].y_range,
+                               plot_width=300, plot_height=300, 
+                               match_aspect=True, tools=self.TOOLS)
                 else:
-                    p = figure(title=title, x_axis_type="mercator", y_axis_type="mercator", 
-                                plot_width=300, plot_height=300, match_aspect=True, 
-                                tools=self.TOOLS)
+                    p = figure(title=title, 
+                               x_axis_type="mercator", 
+                               y_axis_type="mercator", 
+                               plot_width=300, plot_height=300, 
+                               match_aspect=True, tools=self.TOOLS)
 
                 p.toolbar.logo = None
 
@@ -267,47 +302,51 @@ class SummaryPlots:
                                             factors=list(cmap.keys()))
 
                 p.add_tile(get_provider(Vendors.CARTODBPOSITRON))
-                p.patches('xs', 'ys', source=self.qaqc_polygons, alpha=0.1, color=color_mapper)
-                p.circle(x='x', y='y', size=5, alpha=0.5, source=self.qaqc_centroids, color=color_mapper)
+                p.patches('xs', 'ys', source=self.qaqc_polygons, 
+                          alpha=0.1, color=color_mapper)
+                p.circle(x='x', y='y', size=5, alpha=0.5, 
+                         source=self.qaqc_centroids, color=color_mapper)
                 
-                check_pass_fail_plots.append(p)
+                check_pass_plots.append(p)
 
-        check_pass_fail_plots = self.add_empty_plots_to_reshape(check_pass_fail_plots)
-        pass_fail_grid_plot = gridplot(check_pass_fail_plots, ncols=3, plot_height=300, 
-                                        toolbar_location='right')
+        check_pass_plots = self.add_empty_plots_to_reshape(check_pass_plots)
+        pass_fail_grid_plot = gridplot(check_pass_plots, ncols=3, 
+                                       plot_height=300, 
+                                       toolbar_location='right')
 
         tab1 = Panel(child=pass_fail_grid_plot, title="Checks Pass/Fail")
 
         return tab1
 
     def draw_class_count_maps(self):
-        min_count = self.qaqc_results_df[self.class_counts.index].min().min()
-        max_count = self.qaqc_results_df[self.class_counts.index].max().max()
+        min_count = self.results_df[self.class_counts.index].min().min()
+        max_count = self.results_df[self.class_counts.index].max().max()
         
-        palette = Blues[9]
+        palette = list(Blues[9])
         palette.reverse()
 
         class_count_plots = []
         for i, class_field in enumerate(self.class_counts.index):
 
             color_mapper = log_cmap(field_name=class_field, palette=palette, 
-                                    low=min_count, high=max_count, nan_color='white')
+                                    low=min_count, high=max_count, 
+                                    nan_color='white')
 
             las_class = class_field.replace('class', '').zfill(2)
-            title = 'Class {} ({})'.format(las_class, self.las_classes[las_class])
+            title = f'Class {las_class} ({self.las_classes[las_class]})'
 
             if i > 0:
                 p = figure(title=title,
-                            x_axis_type="mercator", y_axis_type="mercator", 
-                            x_range=class_count_plots[0].x_range,
-                            y_range=class_count_plots[0].y_range,
-                            plot_width=300, plot_height=300,
-                            match_aspect=True, tools=self.TOOLS)
+                           x_axis_type="mercator", y_axis_type="mercator", 
+                           x_range=class_count_plots[0].x_range,
+                           y_range=class_count_plots[0].y_range,
+                           plot_width=300, plot_height=300,
+                           match_aspect=True, tools=self.TOOLS)
             else:
                 p = figure(title=title,
-                            x_axis_type="mercator", y_axis_type="mercator", 
-                            plot_width=300, plot_height=300,
-                            match_aspect=True, tools=self.TOOLS)
+                           x_axis_type="mercator", y_axis_type="mercator", 
+                           plot_width=300, plot_height=300,
+                           match_aspect=True, tools=self.TOOLS)
 
             if int(las_class) in self.config.exp_cls_key:
                 title_color = '#0074D9'
@@ -319,31 +358,36 @@ class SummaryPlots:
 
             p.add_tile(get_provider(Vendors.CARTODBPOSITRON))
             p.patches('xs', 'ys', source=self.qaqc_polygons, alpha=0.1)
-            p.circle(x='x', y='y', size=5, alpha=0.5, source=self.qaqc_centroids, color=color_mapper)
+            p.circle(x='x', y='y', size=5, alpha=0.5, 
+                     source=self.qaqc_centroids, color=color_mapper)
 
             class_count_plots.append(p)
 
         class_count_plots = self.add_empty_plots_to_reshape(class_count_plots)
-        class_count_grid_plot = gridplot(class_count_plots, ncols=3, plot_height=300, 
-                                            toolbar_location='right')
+        class_count_grid_plot = gridplot(class_count_plots, ncols=3, 
+                                         plot_height=300, 
+                                         toolbar_location='right')
 
         tab2 = Panel(child=class_count_grid_plot, title="Class Counts")
 
         return tab2
 
     def gen_dashboard(self):
+        bars_elements = []
+        maps_elements = []
+        bars_elements.append(self.draw_pass_fail_bar_chart())
+        maps_elements.append(self.draw_pass_fail_maps())
+        if self.config.checks_to_do['exp_cls']:
+            bars_elements.append(self.draw_class_count_bar_chart())
+            maps_elements.append(self.draw_class_count_maps())
 
-        pass_fail_bar = self.draw_pass_fail_bar_chart()
-        class_count_bar = self.draw_class_count_bar_chart()
-        pass_fail_tab = self.draw_pass_fail_maps()
-        class_count_tab = self.draw_class_count_maps()
+        file_name = f'QAQC_DashboardSummary_{self.config.project_name}.html'
+        output_file(str(self.config.qaqc_dir / 'dashboard' / file_name))
 
-        output_file(str(self.config.qaqc_dir / 'dashboard' / 'QAQC_DashboardSummary_{}.html'.format(self.config.project_name)))
-
-        tabs = Tabs(tabs=[pass_fail_tab, class_count_tab])
+        tabs = Tabs(tabs=maps_elements)
 
         l = layout([
-            [[pass_fail_bar, class_count_bar], tabs],
+            [bars_elements, tabs],
             ])
         show(l)
 
@@ -356,7 +400,8 @@ class Configuration:
             data = json.load(f)
 
         self.data = data
-        self.project_name = data['project_name']
+        self.project_dir = Path(data['project_dir'])
+        self.project_name = self.project_dir.name
         self.las_tile_dir = Path(data['las_tile_dir'])
         self.qaqc_dir = Path(data['qaqc_dir'])
         self.tile_size = float(data['tile_size'])
@@ -380,7 +425,6 @@ class Configuration:
         self.wgs84_epsg = {'init': 'epsg:4326'}
         self.checks_to_do = data['checks_to_do']
         self.surfaces_to_make = data['surfaces_to_make']
-        self.mosaics_to_make = data['mosaics_to_make']
         self.qaqc_geojson_NAD83_UTM_CENTROIDS = self.qaqc_dir / 'qaqc_NAD83_UTM_CENTROIDS.json'
         self.qaqc_geojson_NAD83_UTM_POLYGONS = self.qaqc_dir / 'qaqc_NAD83_UTM_POLYGONS.json'
         self.qaqc_geojson_WebMercator_CENTROIDS = self.qaqc_dir / 'dashboard' / '{}_qaqc_WebMercator_CENTROIDS.json'.format(self.project_name)
@@ -427,9 +471,8 @@ class LasTile:
                           'x_min,x_max,y_min,y_max'
             header = {}
             for info in info_to_get.split(','):
-                header[info] = self.inFile.header.reader.get_header_property(info)
-
-            self.version = '{}.{}'.format(header['version_major'], header['version_minor'])
+                header[info] = self.inFile.header.reader.get_header_property(info)           
+            self.version = f"{header['version_major']}.{header['version_minor']}"
             return header
 
         def get_vlrs():
@@ -442,29 +485,15 @@ class LasTile:
             try:
                 las = str(las_path).replace('\\', '/')
                 cmd_str = 'pdal info {} --metadata'.format(las)
-
                 metadata = self.run_console_cmd(cmd_str)[1].decode('utf-8')
                 meta_dict = json.loads(metadata)
-
                 srs = meta_dict['metadata']['srs']
-
                 hor_wkt = srs['horizontal']
                 ver_wkt = srs['vertical']
-
                 hor_srs=osr.SpatialReference(wkt=hor_wkt)
                 ver_srs=osr.SpatialReference(wkt=ver_wkt)   
-
                 hor_srs = hor_srs.GetAttrValue('projcs')
-                ver_srs = ver_srs.GetAttrValue('vert_cs')
-                
-                # FOR REFERENCE ONLY
-                #from rasterio.crs import CRS
-                #CRS.from_epsg(6335).wkt
-                #hor_srs=osr.SpatialReference(wkt=CRS.from_epsg(6335).wkt)
-                #srs = osr.SpatialReference()
-                #srs.ImportFromEPSG(6335)
-                #srs.ExportToWkt()
-
+                ver_srs = ver_srs.GetAttrValue('vert_cs')               
             except Exception as e:
                 logging.debug(e)
                 hor_srs = ver_srs = None
@@ -503,23 +532,19 @@ class LasTile:
 
         self.las_centroid_x, self.las_centroid_y = calc_las_centroid()
 
-        self.las_poly_wkt = GeoObject(Polygon([
+        self.las_poly_wkt = wkt.dumps(Polygon([
             (self.header['x_min'], self.header['y_max']), 
             (self.header['x_max'], self.header['y_max']), 
             (self.header['x_max'], self.header['y_min']), 
             (self.header['x_min'], self.header['y_min']),
             (self.header['x_min'], self.header['y_max']), 
-            ])).wkt()
+            ]))
 
-        self.las_centroid_wkt = GeoObject(Point(self.las_centroid_x, self.las_centroid_y)).wkt()
-
-        self.classes_present, self.class_counts = self.get_class_counts()
+        point = Point(self.las_centroid_x, self.las_centroid_y)
+        self.las_centroid_wkt = wkt.dumps(point)
         
         self.ground_class = {'1.2': '2', '1.4': '2'}
         self.bathy_class = {'1.2': '26', '1.4': '40'}
-
-        self.has_bathy = True if 'class{}'.format(self.bathy_class[self.version]) in self.class_counts.keys() else False
-        self.has_ground = True if 'class{}'.format(self.ground_class[self.version]) in self.class_counts.keys() else False
 
         self.checks_result = {
             'naming': None,
@@ -535,6 +560,17 @@ class LasTile:
         self.vlrs = get_vlrs()
         self.hor_srs, self.ver_srs = get_srs(self.path)
 
+        self.info_to_output = {
+            'tile_name': self.name,
+            'header': self.header,
+            'las_extents': self.las_extents,
+            'centroid_x': self.las_centroid_x,
+            'centroid_y': self.las_centroid_y,
+            'check_results': self.checks_result,
+            'tile_polygon': self.las_poly_wkt,
+            'tile_centroid': self.las_centroid_wkt,
+            }
+
         if self.version == '1.4':
             self.has_wkt = self.inFile.header.get_wkt()
 
@@ -544,31 +580,18 @@ class LasTile:
                                    shell=False, 
                                    stdout=subprocess.PIPE, 
                                    stderr=subprocess.DEVNULL)
-
         output, error = process.communicate()
         returncode = process.poll()
         return returncode, output
 
     def __str__(self):
-        info_to_output = {
-            'tile_name': self.name,
-            'header': self.header,
-            'las_extents': self.las_extents,
-            'centroid_x': self.las_centroid_x,
-            'centroid_y': self.las_centroid_y,
-            'class_counts': self.class_counts,
-            'check_results': self.checks_result,
-            'tile_polygon': self.las_poly_wkt,
-            'tile_centroid': self.las_centroid_wkt,
-            }
-
         # del keys that are not needed because of repitition
-        info_to_output['header'].pop('VLRs', None)
-        info_to_output['header'].pop('version_major', None)
-        info_to_output['header'].pop('version_minor', None)
-        info_to_output['header'].pop('global_encoding', None)
-        info_to_output['header'].pop('data_format_id', None)
-        return json.dumps(info_to_output, indent=2)
+        self.info_to_output['header'].pop('VLRs', None)
+        self.info_to_output['header'].pop('version_major', None)
+        self.info_to_output['header'].pop('version_minor', None)
+        self.info_to_output['header'].pop('global_encoding', None)
+        self.info_to_output['header'].pop('data_format_id', None)
+        return json.dumps(self.info_to_output, indent=2)
 
     def output_las_qaqc_to_json(self):
         json_file_name = r'{}\{}.json'.format(self.config.json_dir, self.name)
@@ -576,23 +599,25 @@ class LasTile:
             json_file.write(str(self))
 
     def get_class_counts(self):
-        bin_counts = np.bincount(self.inFile.points['point']['raw_classification'])
-        #bin_counts = np.bincount(self.inFile.points['point']['classification_byte'])
-        classes_present = np.where(bin_counts > 0)[0]  # i.e., indices
-        class_counts = bin_counts[classes_present]
-        class_counts = dict(zip(['class{}'.format(str(c)) for c in classes_present],
-                                [int(c) for c in class_counts]))
-        return classes_present, class_counts
+        points = self.inFile.points['point']
+        bin_counts = np.bincount(points['raw_classification'])  # or 'classification_byte'
+        self.classes_present = np.where(bin_counts > 0)[0]  # i.e., indices
+        class_counts = bin_counts[self.classes_present]
+        class_labels = [f'class{str(c)}' for c in self.classes_present]
+        self.class_counts = dict(zip(class_labels, [int(c) for c in class_counts]))   
+        self.info_to_output['class_counts'] = self.class_counts
 
     def get_gps_time(self):
         gps_times = {0: 'GPS Week Time', 1: 'Satellite GPS Time'}
-        bit_num_gps_time_type = 0
-        gps_time_type_bit = int(bin(self.header['global_encoding'])[2:].zfill(16)[::-1][bit_num_gps_time_type])
-
-        return gps_times[gps_time_type_bit]
+        bit_num = 0
+        global_encoding = self.header['global_encoding']
+        bit = int(bin(global_encoding)[2:].zfill(16)[::-1][bit_num])
+        return gps_times[bit]
 
     def get_las_version(self):
-        return '{}.{}'.format(self.header['version_major'], self.header['version_minor'])
+        major = self.header['version_major']
+        minor = self.header['version_minor']
+        return f'{major}.{minor}'
 
     def get_las_pdrf(self):
         return self.header['data_format_id']
@@ -605,7 +630,7 @@ class LasTile:
            vlr_104 = self.vlrs['104']
            self.refraction_bit_set = True
         except Exception as e:
-            print(e)
+            logging.info(e)
             self.refraction_bit_set = 'not_present'
 
 
@@ -614,29 +639,15 @@ class Mosaic:
     def __init__(self, mtype, config):
         self.mtype = mtype
         self.config = config
-        self.mosaic_dataset_base_name = r'{}_{}_mosaic'.format(self.config.project_name, self.mtype)
-        self.mosaic_dataset_path = Path(self.config.mosaics_to_make[self.mtype][1]) / '{}.tif'.format(self.mosaic_dataset_base_name)
-        self.source_dems_dir = Path(self.config.surfaces_to_make[self.mtype][1])
-        self.src = None
-        self.out_meta = None
+        self.stem = f'{self.config.project_name}_{self.mtype}_mosaic'
+        self.basename = self.stem + '.tif'
+        self.path = Path(self.config.surfaces_to_make[self.mtype][1]) / self.basename
 
-    def get_tile_dems(self):
-        print('retreiving individual {} tiles...'.format(self.mtype))
-        dems = []
-        for dem in list(self.source_dems_dir.glob('*_{}.tif'.format(self.mtype.upper()))):
-            #print('retreiving {}...'.format(dem))
-            src = rasterio.open(dem)
-            dems.append(src)
-        return dems
-
-    def gen_mosaic(self):
-        dems = self.get_tile_dems()
-
-        if dems:
-            print('generating {}...'.format(self.mosaic_dataset_path))
-            mosaic, out_trans = rasterio.merge.merge(dems)
-
-            out_meta = dems[-1].meta.copy()  # uses last src made
+    def gen_mosaic(self, vrts):
+        if vrts:
+            logging.info(f'generating {self.path}...')
+            mosaic, out_trans = rasterio.merge.merge(vrts)
+            out_meta = vrts[0].profile  # uses last src made
             out_meta.update({
                 'driver': "GTiff",
                 'height': mosaic.shape[1],
@@ -644,10 +655,12 @@ class Mosaic:
                 'transform': out_trans})
 
             # save mosaic DEMs
-            with rasterio.open(self.mosaic_dataset_path, 'w', **out_meta) as dest:
+            with rasterio.open(self.path, 'w', **out_meta) as dest:
                 dest.write(mosaic)
+            for vrt in vrts:
+                vrt.close()
         else:
-            print('No {} tiles were generated.'.format(self.mtype))
+            logging.info('No {self.mtype} tiles were generated.')
 
 
 class Surface:
@@ -659,6 +672,7 @@ class Surface:
         self.las_str = tile.las_str
         self.las_extents = tile.las_extents
         self.config = config
+        self.tif_dir = Path(self.config.surfaces_to_make[self.stype][1])
         self.tile = tile
 
     def __str__(self):
@@ -666,7 +680,7 @@ class Surface:
 
     def create_dz_dem(self):
         
-        def gen_pipeline(gtiff_path, las_bounds):
+        def gen_pipeline(las_bounds):
 
             ground_class = self.tile.ground_class[self.tile.version]
             bathy_class = self.tile.bathy_class[self.tile.version]
@@ -699,40 +713,32 @@ class Surface:
                         "output_type": "mean",
                         "resolution": "1.0",
                         "bounds": """ + '"{}",'.format(las_bounds) + """
-                        "filename":  """ + '"{}"'.format(gtiff_path) + """
+                        "filename":  """ + '"{}"'.format(self.gtiff_path) + """
                     }
                 ]
             }"""
 
             return pdal_json
 
-        def create_dz(las_name):
-
-            tif_dir = Path(self.config.surfaces_to_make[self.stype][1])
-
+        def create_dz():
             tifs = []
-            meta = None
-            for t in tif_dir.glob('{}*.tif'.format(las_name)):
+            profile = None
+            for t in self.tif_dir.glob(f'{self.las_name}*.tif'):
                 with rasterio.open(t, 'r') as tif:
-                    tifs.append(tif.read(1))
-
-                    if not meta:
-                        meta = tif.meta.copy()
-
+                    data = tif.read(1)
+                    tifs.append(data)
+                    if not profile:
+                        profile = tif.profile
                 os.remove(t)
 
-            if tifs:  # sometimes tif isn't made for las having ground or bathy (one e.g. was las having only 3 class 26 pts)
-                print(las_name)
+            if tifs:
                 tifs = np.stack(tifs, axis=0)
                 tifs[tifs == -9999] = np.nan
                 tifs = np.nanmax(tifs, axis=0) - np.nanmin(tifs, axis=0)
                 tifs[(np.isnan(tifs)) | (tifs == 0)] = -9999
-
-                dz_path = '{}\{}_DZ.tif'.format(self.config.surfaces_to_make[self.stype][1], self.las_name)
-                with rasterio.open(dz_path, 'w', **meta) as dz:
-                    dz.write(np.expand_dims(tifs, axis=0))
+                return profile, np.expand_dims(tifs, axis=0)
             else:
-                print('{} has no tifs :(...'.format(self.las_name))
+                logging.info(f'{self.las_name} has no tifs :(...')
 
         cmd_str = 'pdal info {} --summary'.format(self.las_str)
         stats = self.tile.run_console_cmd(cmd_str)[1]
@@ -743,25 +749,26 @@ class Surface:
         maxx = bounds['maxx']
         miny = bounds['miny']
         maxy = bounds['maxy']
-        las_bounds = ([minx,maxx],[miny,maxy])
-
-        gtiff_path = r'{}\{}_PSI_#.tif'.format(self.config.surfaces_to_make[self.stype][1], self.las_name)
-        gtiff_path = str(gtiff_path).replace('\\', '/')
+        las_bounds = ([minx ,maxx], [miny, maxy])
         
-        print('generating {} surface for {}...'.format(self.stype, self.las_name))
-        pipeline = pdal.Pipeline(gen_pipeline(gtiff_path, las_bounds))
-        __ = pipeline.execute()
+        self.gtiff_path = self.tif_dir / f'{self.las_name}_PSI_#.tif'
+        self.gtiff_path = str(self.gtiff_path).replace('\\', '/')
+        
+        logging.info('generating {} surface for {}...'.format(self.stype, self.las_name))
+        try:
+            pipeline = pdal.Pipeline(gen_pipeline(las_bounds))
+            __ = pipeline.execute()
+        except Exception as e:
+            logging.info(e)
 
-        create_dz(self.las_name)
+        return create_dz()
 
     def gen_mean_z_surface(self, dem_type):
-
         ground_class = self.tile.ground_class[self.tile.version]
         bathy_class = self.tile.bathy_class[self.tile.version]
 
         las_str = str(self.las_path).replace('\\', '/')
-        gtiff_path = r'{}\{}_{}.tif'.format(self.config.surfaces_to_make[self.stype][1], self.las_name, self.stype)
-        gtiff_path = str(gtiff_path).replace('\\', '/')
+        gtiff_path = f'/vsimem/{self.las_name}_{self.stype}.tif'
 
         pdal_json = """{
             "pipeline":[
@@ -791,14 +798,15 @@ class Surface:
             ]
         }"""
 
-        print('generating {} surface for {}...'.format(self.stype, self.las_name))
+        logging.info('generating {} surface for {}...'.format(self.stype, self.las_name))
 
         try:
             pipeline = pdal.Pipeline(pdal_json)
             count = pipeline.execute()
+            self.path = gtiff_path
         except Exception as e:
-            print(e)
-        pass
+            logging.info(e)
+            self.path = None
             
     def detect_spikes(self):
         pass
@@ -824,9 +832,7 @@ class QaqcTile:
 
         self.surfaces = {
             'Dz': self.create_dz,
-            'Dz_mosaic': None,
-            'DEM': self.create_DEM,
-            'DEM_mosaic': None,
+            'DEM': self.create_DEM
             }
 
     def check_las_naming(self, tile):
@@ -846,6 +852,9 @@ class QaqcTile:
             tile_name_parts = tile.name.split('_')
             easting = int(tile_name_parts[1].replace('e', ''))
             northing = int(tile_name_parts[2].replace('n', ''))
+
+
+
             easting_good = self.passed_text if easting >= min_easting and easting <= max_easting else self.failed_text
             northing_good = self.passed_text if northing >= min_northing and northing <= max_northing else self.failed_text
             if easting_good and northing_good:
@@ -916,6 +925,7 @@ class QaqcTile:
         return passed
 
     def check_unexp_cls(self, tile):
+        tile.get_class_counts()
         unexp_cls = list(set(tile.classes_present).difference(self.config.exp_cls_key))
         if not unexp_cls:
             passed = self.passed_text
@@ -950,68 +960,78 @@ class QaqcTile:
 
     def create_dz(self, tile):
         from qchecker import Surface
-        if tile.has_bathy or tile.has_ground:
-            tile_dz = Surface(tile, 'Dz', self.config)
-            tile_dz.create_dz_dem()
-        else:
-            logging.debug('{} has no bathy or ground points; no dz surface generated'.format(tile.name))
+        #if tile.has_bathy or tile.has_ground:
+        tile_dz = Surface(tile, 'Dz', self.config)
+        profile, data = tile_dz.create_dz_dem()
+        return profile, data
+        #else:
+        #    logging.debug(f'{tile.name} has no bathy or ground points; no dz surface generated')
+        #    return None
 
     def create_DEM(self, tile):
         from qchecker import Surface
-        if tile.has_bathy or tile.has_ground:
-            tile_DEM = Surface(tile, 'DEM', self.config)
-            tile_DEM.gen_mean_z_surface('mean')
-            #tile_DEM.detect_spikes(threshold=1.0)
-        else:
-            logging.debug('{} has no bathy or ground points; no DEM generated'.format(tile.name))
+        #if tile.has_bathy or tile.has_ground:
+        tile_DEM = Surface(tile, 'DEM', self.config)
+        tile_DEM.gen_mean_z_surface('mean')            
+        with rasterio.open(tile_DEM.path) as src:
+            data = src.read()
+            profile = src.profile
+        return profile, data
+        #else:
+        #    logging.debug('{tile.name} has no bathy or ground points; no DEM generated')
+        #    return None
 
     def run_qaqc_checks_multiprocess(self, las_path):
         from qchecker import LasTile, LasTileCollection
         import logging
-        logging.basicConfig(format='%(asctime)s:%(message)s', level=logging.WARNING)
+        logging.basicConfig(format='%(asctime)s:%(message)s', 
+                            level=logging.WARNING)
         tile = LasTile(las_path, self.config)
         for c in [k for k, v in self.config.checks_to_do.items() if v]:
             logging.debug('running {}...'.format(c))
             result = self.checks[c](tile)
             logging.debug(result)
-
-        for c in [k for k, v in self.config.surfaces_to_make.items() if v[0]]:
-            logging.debug('running {}...'.format(c))
-            self.surfaces[c](tile)
-
         tile.output_las_qaqc_to_json()
 
-    def run_qaqc_checks(self, las_paths):       
+    def run_qaqc_surfaces_multiprocess(self, shared_dict, stype, las_path):
+        from qchecker import LasTile, LasTileCollection
+        import logging
+        logging.basicConfig(format='%(asctime)s:%(message)s', 
+                            level=logging.WARNING)
+        tile = LasTile(las_path, self.config)
+
+        #tile.get_class_counts()
+        #bathy_class = tile.bathy_class[tile.version]
+        #ground_class = tile.ground_class[tile.version]
+        #tile.has_bathy = True if 'class{}'.format(bathy_class) in tile.class_counts.keys() else False
+        #tile.has_ground = True if 'class{}'.format(ground_class) in tile.class_counts.keys() else False
+
+        logging.debug('running {}...'.format(stype))
+        profile, data = self.surfaces[stype](tile)
+        shared_dict[tile.name] = [profile, data]
+        tile.output_las_qaqc_to_json()
+
+    def run_qaqc_checks(self, las_paths):
+        p = mp.Pool(processes=max(int(ph.cpu_count() / 2), 1))
         num_las = len(las_paths)
+        for _ in tqdm(p.imap_unordered(self.run_qaqc_checks_multiprocess, 
+                                       las_paths), 
+                      total=num_las, ascii=True):
+            pass
+        p.close()
+        p.join()
 
-        print('performing tile qaqc processes...')
-        for las_path in progressbar.progressbar(las_paths, redirect_stdout=True):
-
-            logging.debug('starting {}...'.format(las_path))
-            tile = LasTile(las_path, self.config)
-
-            for c in [k for k, v in self.config.checks_to_do.items() if v]:
-                logging.debug('running {}...'.format(c))
-                result = self.checks[c](tile)
-
-            for c in [k for k, v in self.config.surfaces_to_make.items() if v[0]]:
-                logging.debug('running {}...'.format(c))
-                self.surfaces[c](tile)
-
-            tile.output_las_qaqc_to_json()
-
-    def run_qaqc(self, las_paths):
-        if self.config.multiprocess:
-            p = pp.ProcessPool(max(int(ph.cpu_count() / 2), 1))
-            num_las = len(las_paths)
-            for _ in tqdm(p.imap(self.run_qaqc_checks_multiprocess, las_paths), total=num_las, ascii=True):
-                pass
-
-            p.close()
-            p.join()
-            p.clear()
-        else:
-            self.run_qaqc_checks(las_paths)
+    def run_qaqc_surfaces(self, las_paths, stype):
+        shared_dict = mp.Manager().dict()
+        p = mp.Pool(processes=max(int(ph.cpu_count() / 2), 1))
+        num_las = len(las_paths)
+        func = partial(self.run_qaqc_surfaces_multiprocess, shared_dict, stype)
+        for _ in tqdm(p.imap_unordered(func, las_paths), 
+                      total=num_las, ascii=True):
+            pass
+        p.close()
+        p.join()
+        return shared_dict
 
 
 class QaqcTileCollection:
@@ -1021,9 +1041,21 @@ class QaqcTileCollection:
         self.config = config
         self.qaqc_results_df = None
 
+    @staticmethod
+    def create_src(v):
+        memfile = MemoryFile()
+        src = memfile.open(**v[0])
+        src.write(v[1])
+        return src
+
     def run_qaqc_tile_collection_checks(self):
         tiles_qaqc = QaqcTile(self.config)
-        tiles_qaqc.run_qaqc(self.las_paths)
+        tiles_qaqc.run_qaqc_checks(self.las_paths)
+
+    def run_qaqc_tile_collection_surfaces(self, stype):
+        tiles_qaqc = QaqcTile(self.config)
+        tile_surfaces = tiles_qaqc.run_qaqc_surfaces(self.las_paths, stype)
+        return tile_surfaces
 
     def gen_qaqc_results_dict(self):
         def flatten_dict(d_obj):
@@ -1147,9 +1179,9 @@ class QaqcTileCollection:
         schema = gpd.io.file.infer_schema(gdf)
         gdf.to_file(output, driver='ESRI Shapefile', schema=schema)
 
-    def gen_mosaic(self, mtype):
+    def gen_mosaic(self, mtype, vrts):
         mosaic = Mosaic(mtype, self.config)
-        mosaic.gen_mosaic()
+        mosaic.gen_mosaic(vrts)
 
     def gen_tile_geojson_WGS84(shp, geojson):
         gdf = gpd.read_file(shp).to_crs(self.config.wgs84_epsg)
@@ -1183,48 +1215,44 @@ class QaqcTileCollection:
         gdf = gdf.to_crs(self.web_mercator_epsg)
         gdf.to_file(geojson, driver="GeoJSON")
 
-    pass
-
 
 def run_qaqc(config_json):
     config = Configuration(config_json)
     
-    print('-' * 50)
-    print('Ignore the following laspy-generated warning, which doesn\'t effect Q-Checker:')
-    print('WARNING: Invalid body length for classification lookup, not parsing.')
-    print('(It has to do with the self.rec_len_after_header attribute of VLR record_id 0.)')
-    print('-' * 50)
+    logging.info('-' * 50)
+    logging.info('Ignore the following laspy-generated warning, which doesn\'t effect Q-Checker:')
+    logging.info('WARNING: Invalid body length for classification lookup, not parsing.')
+    logging.info('It has to do with the self.rec_len_after_header attribute of VLR record_id 0.')
+    logging.info('(self.rec_len_after_header % 16 != 0)')
+    logging.info('-' * 50)
 
     qaqc_tile_collection = LasTileCollection(config.las_tile_dir)
     qaqc = QaqcTileCollection(qaqc_tile_collection.get_las_tile_paths()[0:], config)
-    
-    qaqc.run_qaqc_tile_collection_checks()
-    qaqc.set_qaqc_results_df()
-    qaqc.gen_qaqc_shp_NAD83_UTM(config.qaqc_shp_NAD83_UTM_POLYGONS)
-    qaqc.gen_qaqc_json_WebMercator_CENTROIDS()
-    qaqc.gen_qaqc_json_WebMercator_POLYGONS()
 
-    dashboard = SummaryPlots(config, qaqc.qaqc_results_df)
-    dashboard.gen_dashboard()
-    
-    # build the mosaics the user checked
-    mosaic_types = [k for k, v in config.mosaics_to_make.items() if v[0]]
-    if mosaic_types:
-        print('building mosaics...')
-        for m in progressbar.progressbar(mosaic_types, redirect_stdout=True):
-            qaqc.gen_mosaic(m)
+    logging.info(config.checks_to_do)
+    if any(list(config.checks_to_do.values())):    
+        qaqc.run_qaqc_tile_collection_checks()
+        qaqc.set_qaqc_results_df()
+        qaqc.gen_qaqc_shp_NAD83_UTM(config.qaqc_shp_NAD83_UTM_POLYGONS)
+        qaqc.gen_qaqc_json_WebMercator_CENTROIDS()
+        qaqc.gen_qaqc_json_WebMercator_POLYGONS()
+
+        dashboard = SummaryPlots(config, qaqc.qaqc_results_df)
+        dashboard.gen_dashboard()  
     else:
-        logging.debug('no mosaics to build...')
+        logging.info('no checks are selected')
 
-    print('\nYAY, you just QAQC\'d project {}!!!'.format(config.project_name).upper())
+    # build the surfaces the user checked
+    surface_types = [k for k, v in config.surfaces_to_make.items() if v[0]]
+    logging.info(surface_types)
+    for stype in surface_types:
+        logging.info(f'building {stype} mosaic...')
+        tile_surfaces = qaqc.run_qaqc_tile_collection_surfaces(stype)
+        vrts = [qaqc.create_src(v) for k, v in tile_surfaces.items()]
+        qaqc.gen_mosaic(stype, vrts)
 
-    pass
+    logging.info('YAY, you just QAQC\'d project {}!!!'.format(config.project_name).upper())
 
     
 if __name__ == '__main__':
-
-    try:
-        run_qaqc(config)
-        sys.exit(0)
-    except SystemExit:
-        pass
+    pass
