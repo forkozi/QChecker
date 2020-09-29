@@ -1,18 +1,7 @@
 import sys
-
-if getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS'):
-    import os
-    from pathlib import Path
-    import pyproj
-    # logging.info('running in a PyInstaller bundle')
-    cwd = Path.cwd()
-    os.environ["PATH"] += os.pathsep + str(cwd)
-    gdal_data_path = cwd / 'Library' / 'share' / 'gdal'
-    os.environ["GDAL_DATA"] = str(gdal_data_path)
-    pyproj.datadir.set_data_dir(str(cwd / "pyproj"))
-
 import logging
 import pathos
+import pyproj
 
 import tkinter as tk
 from tkinter import ttk, filedialog
@@ -22,12 +11,46 @@ import time
 import json
 import multiprocessing as mp
 import pandas as pd
+
 from qchecker import run_qaqc
-
-
 from listener import listener_process
 
 logger = logging.getLogger(__name__)
+
+
+def set_env_vars_frozen():
+    import os
+    from pathlib import Path
+    import pyproj
+    logging.info('running in a PyInstaller bundle')
+    cwd = Path.cwd()
+    os.environ["PATH"] += os.pathsep + str(cwd)
+    #gdal_data_path = cwd / 'Library' / 'share' / 'gdal'
+    #proj_lib_path = cwd / 'Library' / 'share' / 'proj'
+    #os.environ["GDAL_DATA"] = str(gdal_data_path)
+    #os.environ["PROJ_LIB"] = str(proj_lib_path)
+    #pyproj.datadir.set_data_dir(str(cwd / "pyproj"))
+    #pyproj.datadir.set_data_dir(str(proj_lib_path))
+
+
+#set_env_vars_frozen()
+
+
+def set_env_vars(env_name):
+    user_dir = os.path.expanduser('~')
+    path_parts = ('AppData', 'Local', 'Continuum', 'anaconda3')
+    conda_dir = Path(user_dir).joinpath(*path_parts)
+    env_dir = conda_dir / 'envs' / env_name
+    share_dir = env_dir / 'Library' / 'share'
+    script_path = conda_dir / 'Scripts'
+    gdal_data_path = share_dir / 'gdal'
+    proj_lib_path = share_dir / 'proj'
+
+    if script_path.name not in os.environ["PATH"]:
+        os.environ["PATH"] += os.pathsep + str(script_path)
+    os.environ["GDAL_DATA"] = str(gdal_data_path)
+    os.environ["PROJ_LIB"] = str(proj_lib_path)
+    pyproj.datadir.set_data_dir(str(proj_lib_path))
 
 
 LARGE_FONT = ('Verdanna', 11)
@@ -569,7 +592,7 @@ class MainGuiPage(ttk.Frame):
         run_frame.grid(row=self.section_rows['run_button'], 
                        sticky=tk.NSEW, pady=(10, 0))
 
-        self.run_btn = tk.Button(run_frame, text='Run QAQC Processes', 
+        self.run_btn = tk.Button(run_frame, text='Run QAQC', 
                         command=self.run_qaqc_process, 
                         width=50, height=3, bg='#A9A9A9')
         self.run_btn.grid(columnspan=4, row=0, sticky=tk.EW, padx=(10, 0))
@@ -599,22 +622,6 @@ class MainGuiPage(ttk.Frame):
         run_qaqc(self.controller.config_file)  # from qchecker.py
 
 
-def set_env_vars(env_name):
-    user_dir = os.path.expanduser('~')
-    path_parts = ('AppData', 'Local', 'Continuum', 'anaconda3')
-    conda_dir = Path(user_dir).joinpath(*path_parts)
-    env_dir = conda_dir / 'envs' / env_name
-    share_dir = env_dir / 'Library' / 'share'
-    script_path = conda_dir / 'Scripts'
-    gdal_data_path = share_dir / 'gdal'
-    proj_lib_path = share_dir / 'proj'
-
-    if script_path.name not in os.environ["PATH"]:
-        os.environ["PATH"] += os.pathsep + str(script_path)
-    os.environ["GDAL_DATA"] = str(gdal_data_path)
-    os.environ["PROJ_LIB"] = str(proj_lib_path)
-
-
 def root_configurer(queue):
     h = logging.handlers.QueueHandler(queue)
     root = logging.getLogger()
@@ -629,11 +636,10 @@ if __name__ == '__main__':
 
     if getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS'):
         logging.info('running in a PyInstaller bundle')
-        # set_env_vars_frozen()
-        pass
+        #set_env_vars_frozen()
     else:
         logging.info('running in a normal Python process')
-        set_env_vars('qchecker')
+        set_env_vars('qchecker_exe')
 
     # Required for pyinstaller support of multiprocessing
     pathos.helpers.freeze_support()

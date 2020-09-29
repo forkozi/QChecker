@@ -16,7 +16,6 @@ import pathos.helpers as ph
 import multiprocessing as mp
 
 import re
-from geodaisy import GeoObject
 import ast
 import time
 from osgeo import osr
@@ -533,16 +532,16 @@ class LasTile:
 
         self.las_centroid_x, self.las_centroid_y = calc_las_centroid()
 
-        self.las_poly_wkt = GeoObject(Polygon([
+        self.las_poly_wkt = wkt.dumps(Polygon([
             (self.header['x_min'], self.header['y_max']), 
             (self.header['x_max'], self.header['y_max']), 
             (self.header['x_max'], self.header['y_min']), 
             (self.header['x_min'], self.header['y_min']),
             (self.header['x_min'], self.header['y_max']), 
-            ])).wkt()
+            ]))
 
         point = Point(self.las_centroid_x, self.las_centroid_y)
-        self.las_centroid_wkt = GeoObject(point).wkt()
+        self.las_centroid_wkt = wkt.dumps(point)
         
         self.ground_class = {'1.2': '2', '1.4': '2'}
         self.bathy_class = {'1.2': '26', '1.4': '40'}

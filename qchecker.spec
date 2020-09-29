@@ -79,13 +79,15 @@ hidden_imports = ['rasterio._shim',
                   'pandas',
                   'pandas._libs.tslibs.base']
 
+runtime_hooks = ['hook.py']
+
 a = Analysis(['qchecker.py'],
              pathex=paths,
              binaries=binaries,
              datas=datas,
              hiddenimports=hidden_imports,
              hookspath=[],
-             runtime_hooks=[],
+             runtime_hooks=runtime_hooks,
              excludes=[],
              win_no_prefer_redirects=False,
              win_private_assemblies=False,
