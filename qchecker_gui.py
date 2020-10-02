@@ -1,8 +1,17 @@
 import sys
-import logging
-import pathos
-import pyproj
 
+#if getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS'):
+#    import os
+#    from pathlib import Path
+#    import pyproj
+#    # logging.info('running in a PyInstaller bundle')
+#    cwd = Path.cwd()
+#    os.environ["PATH"] += os.pathsep + str(cwd)
+#    gdal_data_path = cwd / 'Library' / 'share' / 'gdal'
+#    os.environ["GDAL_DATA"] = str(gdal_data_path)
+#    #pyproj.datadir.set_data_dir(str(cwd / "pyproj"))
+
+import logging
 import tkinter as tk
 from tkinter import ttk, filedialog
 import os
@@ -11,6 +20,7 @@ import time
 import json
 import multiprocessing as mp
 import pandas as pd
+import pyproj
 
 from qchecker import run_qaqc
 from listener import listener_process
@@ -29,11 +39,8 @@ def set_env_vars_frozen():
     #proj_lib_path = cwd / 'Library' / 'share' / 'proj'
     #os.environ["GDAL_DATA"] = str(gdal_data_path)
     #os.environ["PROJ_LIB"] = str(proj_lib_path)
-    #pyproj.datadir.set_data_dir(str(cwd / "pyproj"))
+    pyproj.datadir.set_data_dir(str(cwd / "pyproj"))
     #pyproj.datadir.set_data_dir(str(proj_lib_path))
-
-
-#set_env_vars_frozen()
 
 
 def set_env_vars(env_name):
@@ -48,16 +55,14 @@ def set_env_vars(env_name):
 
     if script_path.name not in os.environ["PATH"]:
         os.environ["PATH"] += os.pathsep + str(script_path)
+
     os.environ["GDAL_DATA"] = str(gdal_data_path)
     os.environ["PROJ_LIB"] = str(proj_lib_path)
-    pyproj.datadir.set_data_dir(str(proj_lib_path))
 
 
-LARGE_FONT = ('Verdanna', 11)
 LARGE_FONT_BOLD = ('Verdanna', 11, 'bold')
 NORM_FONT = ('Verdanna', 10)
 NORM_FONT_BOLD = ('Verdanna', 10, 'bold')
-NORM_FONT_ITALIC = ('Verdanna', 10, 'italic')
 
 
 class QaqcApp(tk.Tk):
@@ -67,13 +72,14 @@ class QaqcApp(tk.Tk):
 
         self.config_file = r'.\assets\config_files\qaqc_config.json'
         self.load_config()
+        print(json.dumps(self.config, indent=2))
         self.set_gui_components()
 
         # show splash screen
         self.withdraw()
         splash = Splash(self)
 
-        version = 'v1.0.0'
+        version = 'v1.0.1'
         tk.Tk.wm_title(self, 'Q-Checker {}'.format(version))
         tk.Tk.iconbitmap(self, r'.\assets\images\qaqc.ico')
 
@@ -639,10 +645,10 @@ if __name__ == '__main__':
         #set_env_vars_frozen()
     else:
         logging.info('running in a normal Python process')
-        set_env_vars('qchecker_exe')
+        set_env_vars('qchecker')
 
     # Required for pyinstaller support of multiprocessing
-    pathos.helpers.freeze_support()
+    mp.freeze_support()
 
     queue = mp.Manager().Queue(-1)
     shared_dict = mp.Manager().dict()

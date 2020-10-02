@@ -81,7 +81,7 @@ hidden_imports = ['rasterio._shim',
 
 runtime_hooks = ['hook.py']
 
-a = Analysis(['qchecker.py'],
+a = Analysis(['qchecker_gui.py'],
              pathex=paths,
              binaries=binaries,
              datas=datas,
@@ -93,13 +93,15 @@ a = Analysis(['qchecker.py'],
              win_private_assemblies=False,
              cipher=block_cipher,
              noarchive=False)
+
 pyz = PYZ(a.pure, a.zipped_data,
              cipher=block_cipher)
+
 exe = EXE(pyz,
           a.scripts,
           [('W ignore', None, 'OPTION')],
           exclude_binaries=True,
-          name='qchecker',
+          name='Q-Checker',
           debug=False,
           bootloader_ignore_signals=False,
           strip=False,
@@ -107,6 +109,7 @@ exe = EXE(pyz,
           console=True,
           icon='assets\\images\\qaqc.ico',
           version='CI\\version.py')
+
 coll = COLLECT(exe,
                a.binaries,
                a.zipfiles,
@@ -114,4 +117,4 @@ coll = COLLECT(exe,
                strip=False,
                upx=True,
                upx_exclude=[],
-               name='qchecker')
+               name='Q-Checker')

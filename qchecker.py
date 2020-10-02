@@ -11,8 +11,6 @@ from functools import partial
 from laspy.file import File
 
 import pdal
-import pathos.pools as pp
-import pathos.helpers as ph
 import multiprocessing as mp
 
 import re
@@ -600,7 +598,12 @@ class LasTile:
 
     def get_class_counts(self):
         points = self.inFile.points['point']
-        bin_counts = np.bincount(points['raw_classification'])  # or 'classification_byte'
+        class_keys = {
+            '1.2': 'raw_classification',
+            '1.4': 'classification_byte'
+            }
+        class_key = class_keys[self.get_las_version()]
+        bin_counts = np.bincount(points[class_key])
         self.classes_present = np.where(bin_counts > 0)[0]  # i.e., indices
         class_counts = bin_counts[self.classes_present]
         class_labels = [f'class{str(c)}' for c in self.classes_present]
@@ -1012,7 +1015,7 @@ class QaqcTile:
         tile.output_las_qaqc_to_json()
 
     def run_qaqc_checks(self, las_paths):
-        p = mp.Pool(processes=max(int(ph.cpu_count() / 2), 1))
+        p = mp.Pool(processes=max(int(mp.cpu_count() / 2), 1))
         num_las = len(las_paths)
         for _ in tqdm(p.imap_unordered(self.run_qaqc_checks_multiprocess, 
                                        las_paths), 
@@ -1023,7 +1026,7 @@ class QaqcTile:
 
     def run_qaqc_surfaces(self, las_paths, stype):
         shared_dict = mp.Manager().dict()
-        p = mp.Pool(processes=max(int(ph.cpu_count() / 2), 1))
+        p = mp.Pool(processes=max(int(mp.cpu_count() / 2), 1))
         num_las = len(las_paths)
         func = partial(self.run_qaqc_surfaces_multiprocess, shared_dict, stype)
         for _ in tqdm(p.imap_unordered(func, las_paths), 
