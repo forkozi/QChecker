@@ -150,10 +150,19 @@
             
   <h1>Source code for qchecker_gui</h1><div class="highlight"><pre>
 <span></span><span class="kn">import</span> <span class="nn">sys</span>
-<span class="kn">import</span> <span class="nn">logging</span>
-<span class="kn">import</span> <span class="nn">pathos</span>
-<span class="kn">import</span> <span class="nn">pyproj</span>
 
+<span class="c1">#if getattr(sys, &#39;frozen&#39;, False) and hasattr(sys, &#39;_MEIPASS&#39;):</span>
+<span class="c1">#    import os</span>
+<span class="c1">#    from pathlib import Path</span>
+<span class="c1">#    import pyproj</span>
+<span class="c1">#    # logging.info(&#39;running in a PyInstaller bundle&#39;)</span>
+<span class="c1">#    cwd = Path.cwd()</span>
+<span class="c1">#    os.environ[&quot;PATH&quot;] += os.pathsep + str(cwd)</span>
+<span class="c1">#    gdal_data_path = cwd / &#39;Library&#39; / &#39;share&#39; / &#39;gdal&#39;</span>
+<span class="c1">#    os.environ[&quot;GDAL_DATA&quot;] = str(gdal_data_path)</span>
+<span class="c1">#    #pyproj.datadir.set_data_dir(str(cwd / &quot;pyproj&quot;))</span>
+
+<span class="kn">import</span> <span class="nn">logging</span>
 <span class="kn">import</span> <span class="nn">tkinter</span> <span class="k">as</span> <span class="nn">tk</span>
 <span class="kn">from</span> <span class="nn">tkinter</span> <span class="kn">import</span> <span class="n">ttk</span><span class="p">,</span> <span class="n">filedialog</span>
 <span class="kn">import</span> <span class="nn">os</span>
@@ -162,6 +171,7 @@
 <span class="kn">import</span> <span class="nn">json</span>
 <span class="kn">import</span> <span class="nn">multiprocessing</span> <span class="k">as</span> <span class="nn">mp</span>
 <span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+<span class="kn">import</span> <span class="nn">pyproj</span>
 
 <span class="kn">from</span> <span class="nn">qchecker</span> <span class="kn">import</span> <span class="n">run_qaqc</span>
 <span class="kn">from</span> <span class="nn">listener</span> <span class="kn">import</span> <span class="n">listener_process</span>
@@ -175,16 +185,13 @@
     <span class="kn">import</span> <span class="nn">pyproj</span>
     <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;running in a PyInstaller bundle&#39;</span><span class="p">)</span>
     <span class="n">cwd</span> <span class="o">=</span> <span class="n">Path</span><span class="o">.</span><span class="n">cwd</span><span class="p">()</span>
-    <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s2">&quot;PATH&quot;</span><span class="p">]</span> <span class="o">+=</span> <span class="n">os</span><span class="o">.</span><span class="n">pathsep</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">cwd</span><span class="p">)</span></div>
+    <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s2">&quot;PATH&quot;</span><span class="p">]</span> <span class="o">+=</span> <span class="n">os</span><span class="o">.</span><span class="n">pathsep</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">cwd</span><span class="p">)</span>
     <span class="c1">#gdal_data_path = cwd / &#39;Library&#39; / &#39;share&#39; / &#39;gdal&#39;</span>
     <span class="c1">#proj_lib_path = cwd / &#39;Library&#39; / &#39;share&#39; / &#39;proj&#39;</span>
     <span class="c1">#os.environ[&quot;GDAL_DATA&quot;] = str(gdal_data_path)</span>
     <span class="c1">#os.environ[&quot;PROJ_LIB&quot;] = str(proj_lib_path)</span>
-    <span class="c1">#pyproj.datadir.set_data_dir(str(cwd / &quot;pyproj&quot;))</span>
+    <span class="n">pyproj</span><span class="o">.</span><span class="n">datadir</span><span class="o">.</span><span class="n">set_data_dir</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">cwd</span> <span class="o">/</span> <span class="s2">&quot;pyproj&quot;</span><span class="p">))</span></div>
     <span class="c1">#pyproj.datadir.set_data_dir(str(proj_lib_path))</span>
-
-
-<span class="c1">#set_env_vars_frozen()</span>
 
 
 <div class="viewcode-block" id="set_env_vars"><a class="viewcode-back" href="../qchecker_gui.html#qchecker_gui.set_env_vars">[docs]</a><span class="k">def</span> <span class="nf">set_env_vars</span><span class="p">(</span><span class="n">env_name</span><span class="p">):</span>
@@ -199,16 +206,14 @@
 
     <span class="k">if</span> <span class="n">script_path</span><span class="o">.</span><span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s2">&quot;PATH&quot;</span><span class="p">]:</span>
         <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s2">&quot;PATH&quot;</span><span class="p">]</span> <span class="o">+=</span> <span class="n">os</span><span class="o">.</span><span class="n">pathsep</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">script_path</span><span class="p">)</span>
+
     <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s2">&quot;GDAL_DATA&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">gdal_data_path</span><span class="p">)</span>
-    <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s2">&quot;PROJ_LIB&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">proj_lib_path</span><span class="p">)</span>
-    <span class="n">pyproj</span><span class="o">.</span><span class="n">datadir</span><span class="o">.</span><span class="n">set_data_dir</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">proj_lib_path</span><span class="p">))</span></div>
+    <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s2">&quot;PROJ_LIB&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">proj_lib_path</span><span class="p">)</span></div>
 
 
-<span class="n">LARGE_FONT</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;Verdanna&#39;</span><span class="p">,</span> <span class="mi">11</span><span class="p">)</span>
 <span class="n">LARGE_FONT_BOLD</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;Verdanna&#39;</span><span class="p">,</span> <span class="mi">11</span><span class="p">,</span> <span class="s1">&#39;bold&#39;</span><span class="p">)</span>
 <span class="n">NORM_FONT</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;Verdanna&#39;</span><span class="p">,</span> <span class="mi">10</span><span class="p">)</span>
 <span class="n">NORM_FONT_BOLD</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;Verdanna&#39;</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="s1">&#39;bold&#39;</span><span class="p">)</span>
-<span class="n">NORM_FONT_ITALIC</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;Verdanna&#39;</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="s1">&#39;italic&#39;</span><span class="p">)</span>
 
 
 <div class="viewcode-block" id="QaqcApp"><a class="viewcode-back" href="../qchecker_gui.html#qchecker_gui.QaqcApp">[docs]</a><span class="k">class</span> <span class="nc">QaqcApp</span><span class="p">(</span><span class="n">tk</span><span class="o">.</span><span class="n">Tk</span><span class="p">):</span>
@@ -218,13 +223,14 @@
 
         <span class="bp">self</span><span class="o">.</span><span class="n">config_file</span> <span class="o">=</span> <span class="sa">r</span><span class="s1">&#39;.\assets\config_files\qaqc_config.json&#39;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">load_config</span><span class="p">()</span>
+        <span class="nb">print</span><span class="p">(</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">,</span> <span class="n">indent</span><span class="o">=</span><span class="mi">2</span><span class="p">))</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">set_gui_components</span><span class="p">()</span>
 
         <span class="c1"># show splash screen</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">withdraw</span><span class="p">()</span>
         <span class="n">splash</span> <span class="o">=</span> <span class="n">Splash</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
 
-        <span class="n">version</span> <span class="o">=</span> <span class="s1">&#39;v1.0.0&#39;</span>
+        <span class="n">version</span> <span class="o">=</span> <span class="s1">&#39;v1.0.1&#39;</span>
         <span class="n">tk</span><span class="o">.</span><span class="n">Tk</span><span class="o">.</span><span class="n">wm_title</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;Q-Checker </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">version</span><span class="p">))</span>
         <span class="n">tk</span><span class="o">.</span><span class="n">Tk</span><span class="o">.</span><span class="n">iconbitmap</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="sa">r</span><span class="s1">&#39;.\assets\images\qaqc.ico&#39;</span><span class="p">)</span>
 
@@ -790,10 +796,10 @@
         <span class="c1">#set_env_vars_frozen()</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;running in a normal Python process&#39;</span><span class="p">)</span>
-        <span class="n">set_env_vars</span><span class="p">(</span><span class="s1">&#39;qchecker_exe&#39;</span><span class="p">)</span>
+        <span class="n">set_env_vars</span><span class="p">(</span><span class="s1">&#39;qchecker&#39;</span><span class="p">)</span>
 
     <span class="c1"># Required for pyinstaller support of multiprocessing</span>
-    <span class="n">pathos</span><span class="o">.</span><span class="n">helpers</span><span class="o">.</span><span class="n">freeze_support</span><span class="p">()</span>
+    <span class="n">mp</span><span class="o">.</span><span class="n">freeze_support</span><span class="p">()</span>
 
     <span class="n">queue</span> <span class="o">=</span> <span class="n">mp</span><span class="o">.</span><span class="n">Manager</span><span class="p">()</span><span class="o">.</span><span class="n">Queue</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
     <span class="n">shared_dict</span> <span class="o">=</span> <span class="n">mp</span><span class="o">.</span><span class="n">Manager</span><span class="p">()</span><span class="o">.</span><span class="n">dict</span><span class="p">()</span>
