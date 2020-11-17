@@ -1,15 +1,17 @@
 import sys
 
-#if getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS'):
-#    import os
-#    from pathlib import Path
-#    import pyproj
-#    # logging.info('running in a PyInstaller bundle')
-#    cwd = Path.cwd()
-#    os.environ["PATH"] += os.pathsep + str(cwd)
-#    gdal_data_path = cwd / 'Library' / 'share' / 'gdal'
-#    os.environ["GDAL_DATA"] = str(gdal_data_path)
-#    #pyproj.datadir.set_data_dir(str(cwd / "pyproj"))
+if getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS'):
+    import os
+    from pathlib import Path
+    import pyproj
+    # logging.info('running in a PyInstaller bundle')
+    cwd = Path.cwd()
+    #os.environ["PATH"] += os.pathsep + str(cwd)
+    gdal_data_path = cwd / 'Library' / 'share' / 'gdal'
+    proj_data_path = cwd / 'Library' / 'share' / 'proj'
+
+    os.environ["GDAL_DATA"] = str(gdal_data_path)
+    os.environ["PROJ_LIB"] = str(proj_data_path)
 
 import logging
 import tkinter as tk
@@ -28,25 +30,9 @@ from listener import listener_process
 logger = logging.getLogger(__name__)
 
 
-def set_env_vars_frozen():
-    import os
-    from pathlib import Path
-    import pyproj
-    logging.info('running in a PyInstaller bundle')
-    cwd = Path.cwd()
-    os.environ["PATH"] += os.pathsep + str(cwd)
-    #gdal_data_path = cwd / 'Library' / 'share' / 'gdal'
-    #proj_lib_path = cwd / 'Library' / 'share' / 'proj'
-    #os.environ["GDAL_DATA"] = str(gdal_data_path)
-    #os.environ["PROJ_LIB"] = str(proj_lib_path)
-    pyproj.datadir.set_data_dir(str(cwd / "pyproj"))
-    #pyproj.datadir.set_data_dir(str(proj_lib_path))
-
-
 def set_env_vars(env_name):
-    user_dir = os.path.expanduser('~')
-    path_parts = ('AppData', 'Local', 'Continuum', 'anaconda3')
-    conda_dir = Path(user_dir).joinpath(*path_parts)
+    user_dir = Path(os.path.expanduser('~'))
+    conda_dir = user_dir / 'Anaconda3'
     env_dir = conda_dir / 'envs' / env_name
     share_dir = env_dir / 'Library' / 'share'
     script_path = conda_dir / 'Scripts'
@@ -93,7 +79,7 @@ class QaqcApp(tk.Tk):
         filemenu.add_command(label='Save settings', 
                              command=lambda: self.save_config())
         filemenu.add_separator()
-        filemenu.add_command(label='Exit', command=quit)
+        filemenu.add_command(label='Exit', command=self.quit)
         menubar.add_cascade(label='File', menu=filemenu)
 
         exchangeChoice = tk.Menu(menubar, tearoff=0)
